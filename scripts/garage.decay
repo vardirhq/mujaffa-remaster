@@ -1,0 +1,247 @@
+// Responsive Mujaffa garage presentation.
+//
+// The same customization state drives both layouts. Desktop/landscape gets a
+// category rail; narrow portrait viewports get a bottom strip and larger thumb
+// controls. This script owns only garage presentation/selection. Prices and the
+// final buy rules stay out until they are recovered from the original SWF.
+script Garage {
+    var category: f32 = 0.0;
+    var paint_index: f32 = 0.0;
+    var tyre_index: f32 = 0.0;
+    var rim_index: f32 = 0.0;
+    var spoiler_index: f32 = 0.0;
+    var exhaust_index: f32 = 0.0;
+    var windows_index: f32 = 0.0;
+    var sunroof_index: f32 = 0.0;
+    var interior_index: f32 = 0.0;
+    var stripe_index: f32 = 0.0;
+    var windscreen_index: f32 = 0.0;
+
+    var car: Entity = null;
+    var desktop: Entity = null;
+    var mobile: Entity = null;
+    var desktop_prev: Entity = null;
+    var desktop_next: Entity = null;
+    var mobile_prev: Entity = null;
+    var mobile_next: Entity = null;
+
+    var d_paint: Entity = null;
+    var d_tyres: Entity = null;
+    var d_rims: Entity = null;
+    var d_spoiler: Entity = null;
+    var d_exhaust: Entity = null;
+    var d_windows: Entity = null;
+    var d_sunroof: Entity = null;
+    var d_interior: Entity = null;
+    var d_stripes: Entity = null;
+    var d_windscreen: Entity = null;
+    var m_paint: Entity = null;
+    var m_tyres: Entity = null;
+    var m_rims: Entity = null;
+    var m_spoiler: Entity = null;
+    var m_exhaust: Entity = null;
+    var m_windows: Entity = null;
+    var m_sunroof: Entity = null;
+    var m_interior: Entity = null;
+    var m_stripes: Entity = null;
+    var m_windscreen: Entity = null;
+
+    var paint: Entity = null;
+    var tyre1: Entity = null;
+    var tyre2: Entity = null;
+    var tyre3: Entity = null;
+    var tyre4: Entity = null;
+    var spoiler1: Entity = null;
+    var spoiler2: Entity = null;
+    var spoiler3: Entity = null;
+    var spoiler4: Entity = null;
+    var spoiler5: Entity = null;
+    var exhaust1: Entity = null;
+    var exhaust2: Entity = null;
+    var exhaust3: Entity = null;
+    var exhaust4: Entity = null;
+    var windows1: Entity = null;
+    var windows2: Entity = null;
+    var windows3: Entity = null;
+    var windows4: Entity = null;
+    var sunroof1: Entity = null;
+    var sunroof2: Entity = null;
+    var interior1: Entity = null;
+    var interior2: Entity = null;
+    var interior3: Entity = null;
+    var interior4: Entity = null;
+    var stripe1: Entity = null;
+    var stripe2: Entity = null;
+    var stripe3: Entity = null;
+    var stripe4: Entity = null;
+    var stripe5: Entity = null;
+    var windscreen1: Entity = null;
+    var windscreen2: Entity = null;
+    var windscreen3: Entity = null;
+    var windscreen4: Entity = null;
+    var windscreen5: Entity = null;
+
+    var rim11: Entity = null; var rim12: Entity = null; var rim13: Entity = null; var rim14: Entity = null;
+    var rim21: Entity = null; var rim22: Entity = null; var rim23: Entity = null; var rim24: Entity = null;
+    var rim31: Entity = null; var rim32: Entity = null; var rim33: Entity = null; var rim34: Entity = null;
+    var rim41: Entity = null; var rim42: Entity = null; var rim43: Entity = null; var rim44: Entity = null;
+
+    fn start() {
+        this.car = World.find("Parity Car");
+        this.desktop = World.find("Garage Desktop UI");
+        this.mobile = World.find("Garage Mobile UI");
+        this.desktop_prev = World.find("Desktop Previous Part");
+        this.desktop_next = World.find("Desktop Next Part");
+        this.mobile_prev = World.find("Mobile Previous Part");
+        this.mobile_next = World.find("Mobile Next Part");
+
+        this.d_paint = World.find("Desktop Category PAINT"); this.m_paint = World.find("Mobile Category PAINT");
+        this.d_tyres = World.find("Desktop Category TYRES"); this.m_tyres = World.find("Mobile Category TYRES");
+        this.d_rims = World.find("Desktop Category RIMS"); this.m_rims = World.find("Mobile Category RIMS");
+        this.d_spoiler = World.find("Desktop Category SPOILER"); this.m_spoiler = World.find("Mobile Category SPOILER");
+        this.d_exhaust = World.find("Desktop Category EXHAUST"); this.m_exhaust = World.find("Mobile Category EXHAUST");
+        this.d_windows = World.find("Desktop Category WINDOWS"); this.m_windows = World.find("Mobile Category WINDOWS");
+        this.d_sunroof = World.find("Desktop Category SUNROOF"); this.m_sunroof = World.find("Mobile Category SUNROOF");
+        this.d_interior = World.find("Desktop Category INTERIOR"); this.m_interior = World.find("Mobile Category INTERIOR");
+        this.d_stripes = World.find("Desktop Category STRIPES"); this.m_stripes = World.find("Mobile Category STRIPES");
+        this.d_windscreen = World.find("Desktop Category WINDSCREEN"); this.m_windscreen = World.find("Mobile Category WINDSCREEN");
+
+        this.paint = World.find("Garage Car paint-tintable");
+        this.tyre1 = World.find("Garage Car daek-1"); this.tyre2 = World.find("Garage Car daek-2");
+        this.tyre3 = World.find("Garage Car daek-3"); this.tyre4 = World.find("Garage Car daek-4");
+        this.spoiler1 = World.find("Garage Car spoiler-1"); this.spoiler2 = World.find("Garage Car spoiler-2");
+        this.spoiler3 = World.find("Garage Car spoiler-3"); this.spoiler4 = World.find("Garage Car spoiler-4"); this.spoiler5 = World.find("Garage Car spoiler-5");
+        this.exhaust1 = World.find("Garage Car udstodning-1"); this.exhaust2 = World.find("Garage Car udstodning-2");
+        this.exhaust3 = World.find("Garage Car udstodning-3"); this.exhaust4 = World.find("Garage Car udstodning-4");
+        this.windows1 = World.find("Garage Car vinduer-standard"); this.windows2 = World.find("Garage Car vinduer-gradient");
+        this.windows3 = World.find("Garage Car vinduer-tonede"); this.windows4 = World.find("Garage Car vinduer-spejlrefleks");
+        this.sunroof1 = World.find("Garage Car soltag-off"); this.sunroof2 = World.find("Garage Car soltag-on");
+        this.interior1 = World.find("Garage Car indtraek-polyester"); this.interior2 = World.find("Garage Car indtraek-tiger");
+        this.interior3 = World.find("Garage Car indtraek-læder"); this.interior4 = World.find("Garage Car indtraek-skind");
+        this.stripe1 = World.find("Garage Car farvestribe-empty"); this.stripe2 = World.find("Garage Car farvestribe-pink");
+        this.stripe3 = World.find("Garage Car farvestribe-sort"); this.stripe4 = World.find("Garage Car farvestribe-grøn"); this.stripe5 = World.find("Garage Car farvestribe-hvid");
+        this.windscreen1 = World.find("Garage Car forrude-empty"); this.windscreen2 = World.find("Garage Car forrude-nosser");
+        this.windscreen3 = World.find("Garage Car forrude-wunderbaum"); this.windscreen4 = World.find("Garage Car forrude-hjerte"); this.windscreen5 = World.find("Garage Car forrude-koran");
+
+        this.rim11 = World.find("Garage Car hjulkapsel-1-standard"); this.rim12 = World.find("Garage Car hjulkapsel-1-racer");
+        this.rim13 = World.find("Garage Car hjulkapsel-1-krom"); this.rim14 = World.find("Garage Car hjulkapsel-1-guld");
+        this.rim21 = World.find("Garage Car hjulkapsel-2-standard"); this.rim22 = World.find("Garage Car hjulkapsel-2-racer");
+        this.rim23 = World.find("Garage Car hjulkapsel-2-krom"); this.rim24 = World.find("Garage Car hjulkapsel-2-guld");
+        this.rim31 = World.find("Garage Car hjulkapsel-3-standard"); this.rim32 = World.find("Garage Car hjulkapsel-3-racer");
+        this.rim33 = World.find("Garage Car hjulkapsel-3-krom"); this.rim34 = World.find("Garage Car hjulkapsel-3-guld");
+        this.rim41 = World.find("Garage Car hjulkapsel-4-standard"); this.rim42 = World.find("Garage Car hjulkapsel-4-racer");
+        this.rim43 = World.find("Garage Car hjulkapsel-4-krom"); this.rim44 = World.find("Garage Car hjulkapsel-4-guld");
+
+        refresh_layout();
+        refresh_car();
+    }
+
+    fn set_category(value: f32) { this.category = value; }
+
+    fn wrap(value: f32, count: f32) -> f32 {
+        if value < 0.0 { return count - 1.0; }
+        if value >= count { return 0.0; }
+        return value;
+    }
+
+    fn step(direction: f32) {
+        if this.category == 0.0 { this.paint_index = wrap(this.paint_index + direction, 5.0); }
+        else if this.category == 1.0 { this.tyre_index = wrap(this.tyre_index + direction, 4.0); }
+        else if this.category == 2.0 { this.rim_index = wrap(this.rim_index + direction, 4.0); }
+        else if this.category == 3.0 { this.spoiler_index = wrap(this.spoiler_index + direction, 5.0); }
+        else if this.category == 4.0 { this.exhaust_index = wrap(this.exhaust_index + direction, 4.0); }
+        else if this.category == 5.0 { this.windows_index = wrap(this.windows_index + direction, 4.0); }
+        else if this.category == 6.0 { this.sunroof_index = wrap(this.sunroof_index + direction, 2.0); }
+        else if this.category == 7.0 { this.interior_index = wrap(this.interior_index + direction, 4.0); }
+        else if this.category == 8.0 { this.stripe_index = wrap(this.stripe_index + direction, 5.0); }
+        else { this.windscreen_index = wrap(this.windscreen_index + direction, 5.0); }
+        refresh_car();
+    }
+
+    fn refresh_layout() {
+        let aspect = max(Viewport.aspect, 0.001);
+        let phone = aspect < 0.78;
+        World.set_active(this.mobile, phone);
+        World.set_active(this.desktop, !phone);
+        let car = this.car;
+        if phone {
+            car.transform.position.x = 0.0;
+            car.transform.position.y = 1.25;
+            car.transform.scale.x = 0.72;
+            car.transform.scale.y = 0.72;
+        } else {
+            car.transform.position.x = 0.55;
+            car.transform.position.y = 0.10;
+            car.transform.scale.x = 1.0;
+            car.transform.scale.y = 1.0;
+        }
+    }
+
+    fn one_of_2(a: Entity, b: Entity, selected: f32) {
+        World.set_active(a, selected == 0.0); World.set_active(b, selected == 1.0);
+    }
+    fn one_of_4(a: Entity, b: Entity, c: Entity, d: Entity, selected: f32) {
+        World.set_active(a, selected == 0.0); World.set_active(b, selected == 1.0);
+        World.set_active(c, selected == 2.0); World.set_active(d, selected == 3.0);
+    }
+    fn one_of_5(a: Entity, b: Entity, c: Entity, d: Entity, e: Entity, selected: f32) {
+        World.set_active(a, selected == 0.0); World.set_active(b, selected == 1.0);
+        World.set_active(c, selected == 2.0); World.set_active(d, selected == 3.0); World.set_active(e, selected == 4.0);
+    }
+
+    fn refresh_rims() {
+        World.set_active(this.rim11, this.tyre_index == 0.0 && this.rim_index == 0.0);
+        World.set_active(this.rim12, this.tyre_index == 0.0 && this.rim_index == 1.0);
+        World.set_active(this.rim13, this.tyre_index == 0.0 && this.rim_index == 2.0);
+        World.set_active(this.rim14, this.tyre_index == 0.0 && this.rim_index == 3.0);
+        World.set_active(this.rim21, this.tyre_index == 1.0 && this.rim_index == 0.0);
+        World.set_active(this.rim22, this.tyre_index == 1.0 && this.rim_index == 1.0);
+        World.set_active(this.rim23, this.tyre_index == 1.0 && this.rim_index == 2.0);
+        World.set_active(this.rim24, this.tyre_index == 1.0 && this.rim_index == 3.0);
+        World.set_active(this.rim31, this.tyre_index == 2.0 && this.rim_index == 0.0);
+        World.set_active(this.rim32, this.tyre_index == 2.0 && this.rim_index == 1.0);
+        World.set_active(this.rim33, this.tyre_index == 2.0 && this.rim_index == 2.0);
+        World.set_active(this.rim34, this.tyre_index == 2.0 && this.rim_index == 3.0);
+        World.set_active(this.rim41, this.tyre_index == 3.0 && this.rim_index == 0.0);
+        World.set_active(this.rim42, this.tyre_index == 3.0 && this.rim_index == 1.0);
+        World.set_active(this.rim43, this.tyre_index == 3.0 && this.rim_index == 2.0);
+        World.set_active(this.rim44, this.tyre_index == 3.0 && this.rim_index == 3.0);
+    }
+
+    fn refresh_car() {
+        one_of_4(this.tyre1, this.tyre2, this.tyre3, this.tyre4, this.tyre_index);
+        refresh_rims();
+        one_of_5(this.spoiler1, this.spoiler2, this.spoiler3, this.spoiler4, this.spoiler5, this.spoiler_index);
+        one_of_4(this.exhaust1, this.exhaust2, this.exhaust3, this.exhaust4, this.exhaust_index);
+        one_of_4(this.windows1, this.windows2, this.windows3, this.windows4, this.windows_index);
+        one_of_2(this.sunroof1, this.sunroof2, this.sunroof_index);
+        one_of_4(this.interior1, this.interior2, this.interior3, this.interior4, this.interior_index);
+        one_of_5(this.stripe1, this.stripe2, this.stripe3, this.stripe4, this.stripe5, this.stripe_index);
+        one_of_5(this.windscreen1, this.windscreen2, this.windscreen3, this.windscreen4, this.windscreen5, this.windscreen_index);
+
+        let paint = this.paint;
+        paint.sprite.tint.r = 0.15; paint.sprite.tint.g = 0.25; paint.sprite.tint.b = 0.72;
+        if this.paint_index == 1.0 { paint.sprite.tint.r = 0.76; paint.sprite.tint.g = 0.12; paint.sprite.tint.b = 0.10; }
+        else if this.paint_index == 2.0 { paint.sprite.tint.r = 0.10; paint.sprite.tint.g = 0.62; paint.sprite.tint.b = 0.28; }
+        else if this.paint_index == 3.0 { paint.sprite.tint.r = 0.92; paint.sprite.tint.g = 0.72; paint.sprite.tint.b = 0.14; }
+        else if this.paint_index == 4.0 { paint.sprite.tint.r = 0.12; paint.sprite.tint.g = 0.12; paint.sprite.tint.b = 0.14; }
+    }
+
+    fn update(dt: f32) {
+        refresh_layout();
+
+        if Ui.is_pressed(this.d_paint) || Ui.is_pressed(this.m_paint) { set_category(0.0); }
+        if Ui.is_pressed(this.d_tyres) || Ui.is_pressed(this.m_tyres) { set_category(1.0); }
+        if Ui.is_pressed(this.d_rims) || Ui.is_pressed(this.m_rims) { set_category(2.0); }
+        if Ui.is_pressed(this.d_spoiler) || Ui.is_pressed(this.m_spoiler) { set_category(3.0); }
+        if Ui.is_pressed(this.d_exhaust) || Ui.is_pressed(this.m_exhaust) { set_category(4.0); }
+        if Ui.is_pressed(this.d_windows) || Ui.is_pressed(this.m_windows) { set_category(5.0); }
+        if Ui.is_pressed(this.d_sunroof) || Ui.is_pressed(this.m_sunroof) { set_category(6.0); }
+        if Ui.is_pressed(this.d_interior) || Ui.is_pressed(this.m_interior) { set_category(7.0); }
+        if Ui.is_pressed(this.d_stripes) || Ui.is_pressed(this.m_stripes) { set_category(8.0); }
+        if Ui.is_pressed(this.d_windscreen) || Ui.is_pressed(this.m_windscreen) { set_category(9.0); }
+
+        if Ui.is_pressed(this.desktop_prev) || Ui.is_pressed(this.mobile_prev) || Input.just_pressed("ArrowLeft") { step(-1.0); }
+        if Ui.is_pressed(this.desktop_next) || Ui.is_pressed(this.mobile_next) || Input.just_pressed("ArrowRight") { step(1.0); }
+    }
+}

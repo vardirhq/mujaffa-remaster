@@ -189,6 +189,21 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y libasound2-dev
+          python -m pip install --disable-pip-version-check cairosvg
+
+      - name: Generate runtime car from preserved SWF
+        run: >-
+          python mujaffa/tools/prepare_runtime_art.py
+          --project mujaffa
+          --scale 4
+          --install-scene
+
+      - name: Verify generated runtime car
+        shell: bash
+        run: |
+          test "$(find mujaffa/assets/generated/car -name '*.png' | wc -l)" -ge 50
+          grep -q 'assets/generated/car/' mujaffa/main.scene.json
+          grep -q '"parent": "parity-car"' mujaffa/main.scene.json
 
       - name: Cache Sindri build artifacts
         uses: Swatinem/rust-cache@v2
@@ -209,13 +224,19 @@ jobs:
           --base /mujaffa-remaster/
           --build-id "$GITHUB_SHA"
 
-      - name: Verify export contains Decay game state
+      - name: Verify export contains Decay game state and car textures
         shell: bash
         run: |
           if ! find "$RUNNER_TEMP/mujaffa-export/assets" -type f \
             -path '*/scripts/game_state.decay' -print -quit | grep -q .; then
             echo 'Export is missing scripts/game_state.decay.' >&2
             find "$RUNNER_TEMP/mujaffa-export" -maxdepth 4 -type f -print >&2
+            exit 1
+          fi
+          if ! find "$RUNNER_TEMP/mujaffa-export/assets" -type f \
+            -path '*/assets/generated/car/*.png' -print -quit | grep -q .; then
+            echo 'Export is missing generated car textures.' >&2
+            find "$RUNNER_TEMP/mujaffa-export/assets" -maxdepth 6 -type f -print >&2
             exit 1
           fi
 

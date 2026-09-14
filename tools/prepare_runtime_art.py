@@ -22,18 +22,12 @@ def install_car_scene(project: Path, manifest: dict) -> int:
     scene_path = project / "main.scene.json"
     scene = json.loads(scene_path.read_text(encoding="utf-8"))
     entities = [e for e in scene["entities"] if not str(e.get("id", "")).startswith("car-layer-")]
-
     car = next((e for e in entities if e.get("id") == "parity-car"), None)
     if car is None:
         raise SystemExit("main.scene.json has no parity-car root")
-
-    # The root is moved by Decay. Every visual child uses the exact same canvas,
-    # so all pieces share one transform and line up at the origin. Keep the
-    # existing name because GameState deliberately finds this stable scene hook.
     car["disabled"] = True
     car["transform_3d"]["scale"] = [1.0, 1.0, 1.0]
     car["components"] = {"sindri.tags": {"tags": ["car", "mujaffa-car"]}}
-
     defaults = manifest["defaults"]
     outputs = manifest["outputs"]
     layer_entities = []
@@ -45,32 +39,17 @@ def install_car_scene(project: Path, manifest: dict) -> int:
         if not png:
             raise SystemExit(f"car layer {key!r} has no PNG")
         filename = Path(png).name
-        layer_entities.append(
-            {
-                "id": f"car-layer-{safe_id(label)}",
-                "name": f"Car {label}",
-                "parent": "parity-car",
-                "transform_3d": {
-                    "position": [0.0, 0.0, 0.0],
-                    "rotation": [0.0, 0.0, 0.0, 1.0],
-                    # The SWF car canvas is ~379x309 Flash units. Treating 100
-                    # Flash units as one Sindri world unit gives a useful first
-                    # parity scale while preserving the source aspect exactly.
-                    "scale": [3.791, 3.088, 1.0],
-                },
-                "components": {
-                    "sindri.sprite": {
-                        "texture": f"assets/generated/car/{filename}",
-                        "tint": [1.0, 1.0, 1.0, 1.0],
-                        "layer": render_layer,
-                    },
-                    "sindri.tags": {"tags": ["car-layer", safe_id(label)]},
-                },
-            }
-        )
+        layer_entities.append({
+            "id": f"car-layer-{safe_id(label)}",
+            "name": f"Car {label}",
+            "parent": "parity-car",
+            "transform_3d": {"position": [0.0, 0.0, 0.0], "rotation": [0.0, 0.0, 0.0, 1.0], "scale": [3.791, 3.088, 1.0]},
+            "components": {
+                "sindri.sprite": {"texture": f"assets/generated/car/{filename}", "tint": [1.0, 1.0, 1.0, 1.0], "layer": render_layer},
+                "sindri.tags": {"tags": ["car-layer", safe_id(label)]},
+            },
+        })
 
-    # Preserve the original body display-list order. Static pieces and the
-    # selected variant occupy the same slot the Flash timeline gave them.
     for slot in manifest["body_stack"]:
         if slot["kind"] == "static":
             key = slot["key"]
@@ -81,48 +60,70 @@ def install_car_scene(project: Path, manifest: dict) -> int:
             label = category
         add_piece(key, label, layer)
         layer += 1
-
-    # In sprite 875 the tyre assembly sits above the body (depth 242). Rims are
-    # nested inside that assembly and therefore render above the tyre artwork.
     tyre = defaults["daek"]
     rim = defaults["hjulkapsel"]
     add_piece(f"daek:{tyre}", "tyres", 80)
     add_piece(f"hjulkapsel:{tyre}:{rim}", "rims", 81)
-
     scene["entities"] = entities + layer_entities
     scene_path.write_text(json.dumps(scene, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
 
-    # The current parity slice historically hid the rectangle car while route
-    # selection was idle. Once we have real art, keeping it visible gives both
-    # people and the Chromium smoke test immediate proof that the layered car
-    # loaded. This is a build-time presentation patch only; gameplay state is
-    # still owned by GameState.
     script_path = project / "scripts" / "game_state.decay"
     script = script_path.read_text(encoding="utf-8")
     old = "World.set_active(this.car, this.phase > 0.0);"
     if old not in script:
         raise SystemExit("GameState car visibility hook changed; update runtime art installer")
     script_path.write_text(script.replace(old, "World.set_active(this.car, true);"), encoding="utf-8")
-
     return len(layer_entities)
 
 
+def install_showroom_art(raw_art: Path, project: Path) -> int:
+    """Copy canonical original showroom artwork out of the SWF extraction.
+
+    Character 934 is the full garage/showroom room visible at the original
+    `showroom` label (main timeline frame 730).  Keep a few adjacent source
+    pieces as reference/runtime-ready assets so later parity work can replace
+    the remaining invented UI without another extraction pass.
+    """
+    manifest = json.loads((raw_art / "manifest.json").read_text(encoding="utf-8"))
+    by_id = {item["character_id"]: item for item in manifest["items"]}
+    output = project / "assets" / "generated" / "showroom"
+    if output.exists():
+        shutil.rmtree(output)
+    output.mkdir(parents=True, exist_ok=True)
+    wanted = {
+        934: "original-showroom-background.png",
+        278: "original-blue-panel.png",
+        291: "original-info-frame.png",
+        891: "original-buy-background.png",
+    }
+    copied = 0
+    mapping = {}
+    for character_id, filename in wanted.items():
+        item = by_id.get(character_id)
+        if item is None or not item.get("png"):
+            raise SystemExit(f"reference extraction is missing showroom character {character_id}")
+        shutil.copy2(raw_art / item["png"], output / filename)
+        mapping[str(character_id)] = {"file": filename, "bounds": item["bounds"]}
+        copied += 1
+    (output / "manifest.json").write_text(json.dumps({
+        "source": "mujaffa_3juni_2003.swf",
+        "showroom_frame": 730,
+        "showroom_background_character": 934,
+        "assets": mapping,
+    }, indent=2) + "\n", encoding="utf-8")
+    return copied
+
+
 def main() -> int:
-    ap = argparse.ArgumentParser(description="Generate runtime-safe Mujaffa car textures from the preserved SWF")
+    ap = argparse.ArgumentParser(description="Generate runtime-safe Mujaffa art from the preserved SWF")
     ap.add_argument("--project", type=Path, default=Path("."))
     ap.add_argument("--scale", type=float, default=4.0)
-    ap.add_argument(
-        "--install-scene",
-        action="store_true",
-        help="replace the debug car in main.scene.json with generated layered sprites",
-    )
+    ap.add_argument("--install-scene", action="store_true", help="replace the debug car in main.scene.json with generated layered sprites")
     args = ap.parse_args()
-
     project = args.project.resolve()
     swf = project / "mujaffa_3juni_2003.swf"
     tools = project / "tools"
     output = project / "assets" / "generated" / "car"
-
     if not swf.is_file():
         raise SystemExit(f"missing reference SWF: {swf}")
 
@@ -130,32 +131,13 @@ def main() -> int:
         temp = Path(temp_dir)
         raw_art = temp / "reference-art"
         layers = temp / "car-layers"
-
-        run(
-            str(tools / "swf_art_extract.py"),
-            str(swf),
-            str(raw_art),
-            "--scale",
-            str(args.scale),
-            "--max-size",
-            "2048",
-        )
-        run(
-            str(tools / "swf_car_layers.py"),
-            str(swf),
-            str(raw_art),
-            str(layers),
-            "--scale",
-            str(args.scale),
-        )
-
+        run(str(tools / "swf_art_extract.py"), str(swf), str(raw_art), "--scale", str(args.scale), "--max-size", "2048")
+        run(str(tools / "swf_car_layers.py"), str(swf), str(raw_art), str(layers), "--scale", str(args.scale))
+        showroom_count = install_showroom_art(raw_art, project)
         if output.exists():
             shutil.rmtree(output)
         output.mkdir(parents=True, exist_ok=True)
-
         for png in (layers / "png").glob("*.png"):
-            # Keep the complete preview as a parity/debug reference too, even
-            # though runtime composition uses the individual layers below.
             shutil.copy2(png, output / png.name)
         manifest = json.loads((layers / "layers-manifest.json").read_text(encoding="utf-8"))
         shutil.copy2(layers / "layers-manifest.json", output / "layers-manifest.json")
@@ -163,16 +145,14 @@ def main() -> int:
     png_count = len(list(output.glob("*.png")))
     if png_count < 50:
         raise SystemExit(f"runtime car generation produced only {png_count} PNGs")
-
     installed = 0
     if args.install_scene:
         installed = install_car_scene(project, manifest)
         if installed < 10:
             raise SystemExit(f"runtime car scene installed only {installed} layers")
-
-    message = f"prepared {png_count} runtime car textures in {output}"
+    message = f"prepared {png_count} runtime car textures and {showroom_count} original showroom assets"
     if args.install_scene:
-        message += f" and installed {installed} composable scene layers"
+        message += f"; installed {installed} composable car layers"
     print(message)
     return 0
 

@@ -30,6 +30,9 @@ jobs:
           ref: ${{ steps.engine.outputs.ref }}
           path: sindri2
 
+      - name: Install Sindri Rust toolchain
+        uses: dtolnay/rust-toolchain@1.95.0
+
       - name: Verify editor still builds at the pin
         working-directory: sindri2
         run: cargo check --locked --package sindri-editor

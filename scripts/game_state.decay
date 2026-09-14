@@ -1,0 +1,70 @@
+// First executable Mujaffa parity slice.
+//
+// Keep gameplay state independent from presentation. Values whose original
+// defaults have not yet been verified are intentionally supplied by the scene
+// through @export fields rather than invented here.
+
+script GameState {
+    @export
+    let initial_cool: f32 = 0.0;
+
+    @export
+    let initial_energi: f32 = 0.0;
+
+    @export
+    let initial_penge: f32 = 0.0;
+
+    @export
+    let initial_respect: f32 = 0.0;
+
+    var cool: f32 = 0.0;
+    var cool_old: f32 = 0.0;
+    var energi: f32 = 0.0;
+    var penge: f32 = 0.0;
+    var respect: f32 = 0.0;
+    var koert: f32 = 0.0;
+
+    fn start() {
+        cool = initial_cool;
+        cool_old = initial_cool;
+        energi = initial_energi;
+        penge = initial_penge;
+        respect = initial_respect;
+        koert = 0.0;
+    }
+
+    fn snapshot_cool() {
+        cool_old = cool;
+    }
+
+    fn add_cool(amount: f32) {
+        cool += amount;
+    }
+
+    fn add_money(amount: f32) {
+        penge += amount;
+    }
+
+    fn spend_money(amount: f32) -> bool {
+        if amount < 0.0 {
+            return false;
+        }
+        if penge < amount {
+            return false;
+        }
+        penge -= amount;
+        return true;
+    }
+
+    fn add_respect(amount: f32) {
+        respect += amount;
+    }
+
+    fn change_energy(amount: f32) {
+        energi += amount;
+    }
+
+    fn mark_driven() {
+        koert = 1.0;
+    }
+}

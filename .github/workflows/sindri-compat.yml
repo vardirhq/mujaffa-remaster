@@ -74,6 +74,12 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y libasound2-dev
 
+      - name: Cache Sindri build artifacts
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: sindri2 -> target
+          key: mujaffa-${{ steps.engine.outputs.ref }}
+
       - name: Verify pinned editor builds
         working-directory: sindri2
         run: cargo check --package sindri-editor
@@ -86,6 +92,16 @@ jobs:
           "$RUNNER_TEMP/mujaffa-export"
           --base /mujaffa-remaster/
           --build-id "$GITHUB_SHA"
+
+      - name: Verify export contains Decay game state
+        shell: bash
+        run: |
+          if ! find "$RUNNER_TEMP/mujaffa-export/assets" -type f \
+            -path '*/scripts/game_state.decay' -print -quit | grep -q .; then
+            echo 'Export is missing scripts/game_state.decay.' >&2
+            find "$RUNNER_TEMP/mujaffa-export" -maxdepth 4 -type f -print >&2
+            exit 1
+          fi
 
       - name: Verify export did not copy private SWF reference
         shell: bash

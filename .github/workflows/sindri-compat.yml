@@ -46,6 +46,46 @@ jobs:
           path: analysis/*.json
           if-no-files-found: error
 
+  reference-art:
+    name: Extract original vector art
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out Mujaffa Remaster
+        uses: actions/checkout@v4
+
+      - name: Install SVG rasterizer
+        run: python -m pip install --disable-pip-version-check cairosvg
+
+      - name: Extract high-resolution vector art
+        run: >-
+          python tools/swf_art_extract.py
+          mujaffa_3juni_2003.swf
+          reference-art
+          --scale 4
+          --max-size 2048
+
+      - name: Verify complete vector extraction
+        shell: bash
+        run: |
+          test "$(find reference-art/svg -name '*.svg' | wc -l)" -eq 514
+          test "$(find reference-art/png -name '*.png' | wc -l)" -eq 514
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          manifest = json.loads(Path('reference-art/manifest.json').read_text())
+          assert manifest['shape_count'] == 514, manifest['shape_count']
+          assert all(item['png'] for item in manifest['items'])
+          PY
+
+      - name: Upload high-resolution art reference
+        uses: actions/upload-artifact@v4
+        with:
+          name: mujaffa-original-vector-art-4x
+          path: reference-art/
+          if-no-files-found: error
+          retention-days: 14
+
   external-project:
     runs-on: ubuntu-latest
     steps:

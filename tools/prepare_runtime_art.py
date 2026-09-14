@@ -91,6 +91,19 @@ def install_car_scene(project: Path, manifest: dict) -> int:
 
     scene["entities"] = entities + layer_entities
     scene_path.write_text(json.dumps(scene, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+
+    # The current parity slice historically hid the rectangle car while route
+    # selection was idle. Once we have real art, keeping it visible gives both
+    # people and the Chromium smoke test immediate proof that the layered car
+    # loaded. This is a build-time presentation patch only; gameplay state is
+    # still owned by GameState.
+    script_path = project / "scripts" / "game_state.decay"
+    script = script_path.read_text(encoding="utf-8")
+    old = "World.set_active(this.car, this.phase > 0.0);"
+    if old not in script:
+        raise SystemExit("GameState car visibility hook changed; update runtime art installer")
+    script_path.write_text(script.replace(old, "World.set_active(this.car, true);"), encoding="utf-8")
+
     return len(layer_entities)
 
 

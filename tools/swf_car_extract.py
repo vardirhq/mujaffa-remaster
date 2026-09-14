@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 from __future__ import annotations
-import argparse, base64, json, math, struct, re
+import argparse, json, math, struct, re
 from pathlib import Path
 
 SHAPE_TAGS={2,22,32}
@@ -139,7 +139,10 @@ def main():
     root_named={i.get('name'):i for i in root_disp if i.get('name')}
     car_body=root_named['karosseri']; tyres=root_named['dæk']; speakers=root_named['speakers']
 
-    body_disp=movie.display(car_body['character'],1)
+    # Sprite 875 executes karosseri.gotoAndStop("mujaffa"). The label is frame
+    # 5 of sprite 775, which adds body geometry absent from its setup frame 1.
+    body_frame=5
+    body_disp=movie.display(car_body['character'],body_frame)
     body_named={i.get('name'):i for i in body_disp if i.get('name')}
     discovered={k:{'character_id':v.get('character'),'depth':v['depth'],'matrix':v.get('matrix',IDENT)} for k,v in body_named.items()}
 
@@ -170,9 +173,11 @@ def main():
         categories[f'speaker_{n}']={'sprite':sid,'variants':[label for _,label in speaker_variant_frames[n]]}
 
     def car_leaves(overrides=None):
-        return (movie.leaves(root,1,overrides=overrides or {},only_name='karosseri') +
-                movie.leaves(root,1,overrides=overrides or {},only_name='dæk') +
-                movie.leaves(root,1,overrides=overrides or {},only_name='speakers'))
+        resolved={car_body['character']: body_frame}
+        resolved.update(overrides or {})
+        return (movie.leaves(root,1,overrides=resolved,only_name='karosseri') +
+                movie.leaves(root,1,overrides=resolved,only_name='dæk') +
+                movie.leaves(root,1,overrides=resolved,only_name='speakers'))
 
     sets=[]
     stock=car_leaves(); sets.append(stock)
@@ -193,14 +198,30 @@ def main():
     pad=4.0; canvas=(x0-pad,x1+pad,y0-pad,y1+pad); cw=canvas[1]-canvas[0]; ch=canvas[3]-canvas[2]
 
     def write_layer(name, leaves):
-        body=[]; unresolved=[]; defs=[]; mask_ids={}
+        body=[]; unresolved=[]; defs=[]; mask_ids={}; inline_serial=0
         def image_for(shape_id, matrix):
+            nonlocal inline_serial
             info=items.get(shape_id)
             if not info: return ''
             svg=(a.reference_art/info['svg']).read_text(encoding='utf-8')
-            encoded=base64.b64encode(svg.encode()).decode()
-            bx0,bx1,by0,by1=info['bounds']; ms=' '.join(f'{v:.8g}' for v in matrix)
-            return f'<image href="data:image/svg+xml;base64,{encoded}" x="{bx0}" y="{by0}" width="{bx1-bx0}" height="{by1-by0}" transform="matrix({ms})"/>'
+            view_match=re.search(r'viewBox="([^"]+)"',svg)
+            if not view_match: raise ValueError(f'shape {shape_id} SVG is missing a viewBox')
+            vx,vy,vw,vh=[float(value) for value in view_match.group(1).split()]
+            inner=svg[svg.find('>')+1:svg.rfind('</svg>')]
+
+            # CairoSVG clips data: <image> SVGs whose source viewBox uses
+            # negative coordinates. Inline the shape document instead; otherwise
+            # multi-part shapes such as both wheels are rendered as fragments.
+            inline_serial+=1
+            prefix=f's{shape_id}_{inline_serial}_'
+            for old_id in re.findall(r'id="([^"]+)"',inner):
+                inner=inner.replace(f'id="{old_id}"',f'id="{prefix}{old_id}"')
+                inner=inner.replace(f'url(#{old_id})',f'url(#{prefix}{old_id})')
+                inner=inner.replace(f'href="#{old_id}"',f'href="#{prefix}{old_id}"')
+                inner=inner.replace(f'xlink:href="#{old_id}"',f'xlink:href="#{prefix}{old_id}"')
+            ms=' '.join(f'{v:.8g}' for v in matrix)
+            return (f'<g transform="matrix({ms})"><svg x="{vx:.8g}" y="{vy:.8g}" width="{vw:.8g}" height="{vh:.8g}" '
+                    f'viewBox="{vx:.8g} {vy:.8g} {vw:.8g} {vh:.8g}" overflow="visible">{inner}</svg></g>')
         def ensure_mask(desc):
             key=(desc[0],tuple(round(v,7) for v in desc[1]))
             if key in mask_ids:return mask_ids[key]
@@ -233,7 +254,7 @@ def main():
 
     manifest={
       'source':a.swf.name,'root_sprite':875,'body_sprite':car_body['character'],'tyre_sprite':tyres['character'],'speaker_sprite':speakers['character'],
-      'canvas_bounds':canvas,'scale':a.scale,'root_instances':root_named,'body_named_instances':discovered,
+      'canvas_bounds':canvas,'scale':a.scale,'body_frame':body_frame,'root_instances':root_named,'body_named_instances':discovered,
       'speaker_instances':{k:{'character_id':v.get('character'),'depth':v['depth'],'matrix':v.get('matrix',IDENT)} for k,v in speaker_named.items()},
       'categories':categories,'outputs':outputs,
       'notes':['Paint is a tintable Flash Color transform, not a set of baked colour frames.','Number plate text is dynamic and must remain text in the remaster.','All PNGs share one registration canvas and may be stacked at the same origin.']

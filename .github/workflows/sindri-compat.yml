@@ -96,8 +96,12 @@ jobs:
       - name: Verify export contains Decay game state
         shell: bash
         run: |
-          test -f "$RUNNER_TEMP/mujaffa-export/assets/scripts/game_state.decay" ||
-            test -f "$RUNNER_TEMP/mujaffa-export/scripts/game_state.decay"
+          if ! find "$RUNNER_TEMP/mujaffa-export/assets" -type f \
+            -path '*/scripts/game_state.decay' -print -quit | grep -q .; then
+            echo 'Export is missing scripts/game_state.decay.' >&2
+            find "$RUNNER_TEMP/mujaffa-export" -maxdepth 4 -type f -print >&2
+            exit 1
+          fi
 
       - name: Verify export did not copy private SWF reference
         shell: bash

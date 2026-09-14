@@ -292,7 +292,7 @@ def inventory(path: Path) -> dict[str, object]:
     }
 
 
-def verify_muJaqqa_reference(report: dict[str, object]) -> list[str]:
+def verify_mujaffa_reference(report: dict[str, object]) -> list[str]:
     """Return invariant failures for the known Norwegian reference movie."""
     movie = report["movie"]
     summary = report["summary"]
@@ -350,7 +350,7 @@ def main() -> int:
         sys.stdout.write(encoded)
 
     if args.verify_reference:
-        failures = verify_muJaqqa_reference(report)
+        failures = verify_mujaffa_reference(report)
         if failures:
             for failure in failures:
                 print(f"reference mismatch: {failure}", file=sys.stderr)

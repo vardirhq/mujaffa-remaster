@@ -108,6 +108,36 @@ jobs:
           assert len(manifest['outputs']) >= 40
           PY
 
+      - name: Build composable car layers
+        run: >-
+          python tools/swf_car_layers.py
+          mujaffa_3juni_2003.swf
+          reference-art
+          reference-car-layers
+          --scale 4
+
+      - name: Verify composable car layers
+        shell: bash
+        run: |
+          test -f reference-car-layers/layers-manifest.json
+          test -f reference-car-layers/png/preview-stock.png
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          manifest = json.loads(Path('reference-car-layers/layers-manifest.json').read_text())
+          assert manifest['root_sprite'] == 875
+          assert manifest['body_sprite'] == 775
+          assert manifest['tyre_sprite'] == 781
+          assert manifest['defaults']['cam'] == 'uden'
+          assert manifest['paint']['runtime'] == 'tintable'
+          assert manifest['number_plate']['runtime'] == 'dynamic-text'
+          assert manifest['speakers']['persistent_layer_status'] == 'deferred'
+          assert 'cam' in manifest['body_categories']
+          assert len(manifest['body_stack']) >= 10
+          assert len(manifest['outputs']) >= 50
+          assert all(not value['unresolved'] for value in manifest['outputs'].values())
+          PY
+
       - name: Upload high-resolution art reference
         uses: actions/upload-artifact@v4
         with:
@@ -121,6 +151,14 @@ jobs:
         with:
           name: mujaffa-original-car-4x
           path: reference-car/
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Upload composable car layers
+        uses: actions/upload-artifact@v4
+        with:
+          name: mujaffa-composable-car-4x
+          path: reference-car-layers/
           if-no-files-found: error
           retention-days: 14
 

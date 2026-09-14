@@ -123,6 +123,7 @@ def main() -> int:
     if registered.exists():
         shutil.rmtree(registered)
     run(str(tools / "register_showroom_car.py"), str(output), str(registered), "--scale", str(args.scale))
+    run(str(tools / "build_showroom_reference.py"), "--project", str(project), "--scale", str(args.scale))
 
     png_count = len(list(output.glob("*.png")))
     if png_count < 50:

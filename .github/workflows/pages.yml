@@ -20,6 +20,7 @@ jobs:
   build:
     name: Build Mujaffa web export
     runs-on: ubuntu-latest
+    timeout-minutes: 25
     steps:
       - name: Check out Mujaffa Remaster
         uses: actions/checkout@v4
@@ -43,10 +44,10 @@ jobs:
         with:
           targets: wasm32-unknown-unknown
 
-      - name: Install Linux build dependencies
+      - name: Install Linux and browser dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y libasound2-dev
+          sudo apt-get install -y libasound2-dev libvulkan1 mesa-vulkan-drivers
 
       - name: Cache Sindri build artifacts
         uses: Swatinem/rust-cache@v2
@@ -58,6 +59,21 @@ jobs:
         uses: taiki-e/install-action@v2
         with:
           tool: wasm-pack@0.13.1
+
+      - name: Cache browser tooling
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/ms-playwright
+            sindri2/scripts/browser/node_modules
+          key: mujaffa-playwright-${{ runner.os }}-${{ steps.engine.outputs.ref }}
+
+      - name: Install browser tooling
+        working-directory: sindri2
+        run: |
+          npm install --prefix scripts/browser
+          npx --prefix scripts/browser playwright install-deps chromium
+          npx --prefix scripts/browser playwright install chromium
 
       - name: Build Sindri browser host
         working-directory: sindri2
@@ -93,6 +109,25 @@ jobs:
             echo 'Reference SWF leaked into the Pages payload.' >&2
             exit 1
           fi
+
+      - name: Smoke Mujaffa in Chromium
+        working-directory: sindri2
+        run: |
+          mkdir -p target/render-artifacts
+          SINDRI_EXPECT_ASSETS=1 \
+          SINDRI_EXPECT_ASSET_KINDS=scene,script \
+          SINDRI_BASE_PATH=/mujaffa-remaster/ \
+            node scripts/browser/smoke.mjs target/mujaffa-pages \
+            target/render-artifacts/mujaffa.png
+
+      - name: Upload browser capture
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mujaffa-browser-capture
+          path: sindri2/target/render-artifacts/mujaffa.png
+          if-no-files-found: warn
+          retention-days: 14
 
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v6

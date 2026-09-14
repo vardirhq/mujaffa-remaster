@@ -181,30 +181,38 @@ script GameState {
             }
         }
 
-        if Input.just_pressed("KeyR") {
+        if Input.just_pressed("R") {
             reset_game();
         }
     }
 
     fn refresh_visuals() {
+        // Entity references stored in fields are first copied to locals before
+        // reaching through them. This is the same pattern Sindri's own working
+        // HUD scripts use for references returned by World.find().
+        let route_one = this.route_one;
+        let route_two = this.route_two;
+        let route_three = this.route_three;
+        let car = this.car;
+
         // Three route markers are deliberately just debug geometry. They let a
         // Pages build prove state changes without tying rules to future art.
-        this.route_one.transform.scale.x = 1.35;
-        this.route_one.transform.scale.y = 0.42;
-        this.route_two.transform.scale.x = 1.35;
-        this.route_two.transform.scale.y = 0.42;
-        this.route_three.transform.scale.x = 1.35;
-        this.route_three.transform.scale.y = 0.42;
+        route_one.transform.scale.x = 1.35;
+        route_one.transform.scale.y = 0.42;
+        route_two.transform.scale.x = 1.35;
+        route_two.transform.scale.y = 0.42;
+        route_three.transform.scale.x = 1.35;
+        route_three.transform.scale.y = 0.42;
 
         if this.route == 1.0 {
-            this.route_one.transform.scale.x = 1.75;
-            this.car.transform.position.x = -3.0;
+            route_one.transform.scale.x = 1.75;
+            car.transform.position.x = -3.0;
         } else if this.route == 2.0 {
-            this.route_two.transform.scale.x = 1.75;
-            this.car.transform.position.x = 0.0;
+            route_two.transform.scale.x = 1.75;
+            car.transform.position.x = 0.0;
         } else {
-            this.route_three.transform.scale.x = 1.75;
-            this.car.transform.position.x = 3.0;
+            route_three.transform.scale.x = 1.75;
+            car.transform.position.x = 3.0;
         }
 
         World.set_active(this.car, this.phase > 0.0);

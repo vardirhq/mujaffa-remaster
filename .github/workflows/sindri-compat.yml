@@ -1,0 +1,52 @@
+name: Sindri compatibility
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  external-project:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out Mujaffa Remaster
+        uses: actions/checkout@v4
+        with:
+          path: mujaffa
+
+      - name: Read pinned Sindri revision
+        id: engine
+        shell: bash
+        run: echo "ref=$(tr -d '\r\n' < mujaffa/.sindri-engine)" >> "$GITHUB_OUTPUT"
+
+      - name: Check out pinned Sindri
+        uses: actions/checkout@v4
+        with:
+          repository: vardirhq/sindri2
+          ref: ${{ steps.engine.outputs.ref }}
+          path: sindri2
+
+      - name: Verify editor still builds at the pin
+        working-directory: sindri2
+        run: cargo check --locked --package sindri-editor
+
+      - name: Export project from outside the Sindri repository
+        working-directory: sindri2
+        run: >-
+          cargo run --locked --package sindri-export --bin sindri-export --
+          ../mujaffa
+          "$RUNNER_TEMP/mujaffa-export"
+          --base /mujaffa-remaster/
+          --build-id "$GITHUB_SHA"
+
+      - name: Verify export did not copy private SWF reference
+        shell: bash
+        run: |
+          if find "$RUNNER_TEMP/mujaffa-export" -name '*.swf' -print -quit | grep -q .; then
+            echo 'Reference SWF leaked into export.' >&2
+            exit 1
+          fi

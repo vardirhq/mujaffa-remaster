@@ -1,0 +1,5 @@
+format_version = 1
+
+[project]
+name = "Mujaffa Remaster"
+main_scene = "main.scene.json"

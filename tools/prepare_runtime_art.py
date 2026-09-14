@@ -99,6 +99,7 @@ def main() -> int:
     swf = project / "mujaffa_3juni_2003.swf"
     tools = project / "tools"
     output = project / "assets" / "generated" / "car"
+    registered = project / "assets" / "generated" / "car-stage"
     if not swf.is_file():
         raise SystemExit(f"missing reference SWF: {swf}")
 
@@ -119,15 +120,23 @@ def main() -> int:
         manifest = json.loads((layers / "layers-manifest.json").read_text(encoding="utf-8"))
         shutil.copy2(layers / "layers-manifest.json", output / "layers-manifest.json")
 
+    if registered.exists():
+        shutil.rmtree(registered)
+    run(str(tools / "register_showroom_car.py"), str(output), str(registered), "--scale", str(args.scale))
+
     png_count = len(list(output.glob("*.png")))
     if png_count < 50:
         raise SystemExit(f"runtime car generation produced only {png_count} PNGs")
+    registered_count = len(list(registered.glob("*.png")))
+    if registered_count < 50:
+        raise SystemExit(f"showroom car registration produced only {registered_count} PNGs")
+
     installed = 0
     if args.install_scene:
         installed = install_car_scene(project, manifest)
         if installed < 10:
             raise SystemExit(f"runtime car scene installed only {installed} layers")
-    message = f"prepared {png_count} runtime car textures and {showroom_count} positioned original showroom layers"
+    message = f"prepared {png_count} runtime car textures, {registered_count} stage-registered showroom car textures and {showroom_count} positioned original showroom layers"
     if args.install_scene:
         message += f"; installed {installed} composable car layers"
     print(message)

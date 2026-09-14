@@ -48,6 +48,25 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y libasound2-dev libvulkan1 mesa-vulkan-drivers
+          python -m pip install --disable-pip-version-check cairosvg
+
+      - name: Generate layered Mujaffa car
+        run: >-
+          python mujaffa/tools/prepare_runtime_art.py
+          --project mujaffa
+          --scale 4
+          --install-scene
+
+      - name: Verify layered car source
+        shell: bash
+        run: |
+          test -f mujaffa/assets/generated/car/layers-manifest.json
+          test -f mujaffa/assets/generated/car/paint-tintable.png
+          test -f mujaffa/assets/generated/car/daek-1.png
+          test -f mujaffa/assets/generated/car/hjulkapsel-1-standard.png
+          test "$(find mujaffa/assets/generated/car -name '*.png' | wc -l)" -ge 50
+          grep -q '"parent": "parity-car"' mujaffa/main.scene.json
+          grep -q 'assets/generated/car/' mujaffa/main.scene.json
 
       - name: Cache Sindri build artifacts
         uses: Swatinem/rust-cache@v2
@@ -105,6 +124,7 @@ jobs:
           test -f target/mujaffa-pages/pkg/sindri_gather_bg.wasm
           grep -q '"kind": "scene"' target/mujaffa-pages/assets/sindri.manifest.json
           grep -q '"kind": "script"' target/mujaffa-pages/assets/sindri.manifest.json
+          grep -q '"kind": "texture"' target/mujaffa-pages/assets/sindri.manifest.json
           if find target/mujaffa-pages -name '*.swf' -print -quit | grep -q .; then
             echo 'Reference SWF leaked into the Pages payload.' >&2
             exit 1
@@ -115,7 +135,7 @@ jobs:
         run: |
           mkdir -p target/render-artifacts
           SINDRI_EXPECT_ASSETS=1 \
-          SINDRI_EXPECT_ASSET_KINDS=scene,script \
+          SINDRI_EXPECT_ASSET_KINDS=scene,script,texture \
           SINDRI_BASE_PATH=/mujaffa-remaster/ \
             node scripts/browser/smoke.mjs target/mujaffa-pages \
             target/render-artifacts/mujaffa.png

@@ -17,7 +17,7 @@ jobs:
       - name: Check out Mujaffa Remaster
         uses: actions/checkout@v4
 
-      - name: Test inventory parser
+      - name: Test reference analysis tools
         run: python -m unittest discover -s tools -p 'test_*.py'
 
       - name: Inventory original SWF
@@ -27,11 +27,17 @@ jobs:
           --verify-reference
           --out analysis/swf-inventory.json
 
-      - name: Upload inventory report
+      - name: Map original ActionScript metadata
+        run: >-
+          python tools/swf_actions.py
+          mujaffa_3juni_2003.swf
+          --out analysis/swf-actions.json
+
+      - name: Upload reference reports
         uses: actions/upload-artifact@v4
         with:
-          name: swf-inventory
-          path: analysis/swf-inventory.json
+          name: swf-reference-analysis
+          path: analysis/*.json
           if-no-files-found: error
 
   external-project:

@@ -28,8 +28,8 @@ def install_car_scene(project: Path, manifest: dict) -> int:
         raise SystemExit("main.scene.json has no parity-car root")
 
     # The root is moved by Decay. Every visual child uses the exact same canvas,
-    # so all pieces share one transform and line up at the origin.
-    car["name"] = "Mujaffa Car"
+    # so all pieces share one transform and line up at the origin. Keep the
+    # existing name because GameState deliberately finds this stable scene hook.
     car["disabled"] = True
     car["transform_3d"]["scale"] = [1.0, 1.0, 1.0]
     car["components"] = {"sindri.tags": {"tags": ["car", "mujaffa-car"]}}

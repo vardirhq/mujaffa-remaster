@@ -57,7 +57,10 @@ jobs:
           --scale 4
           --install-scene
 
-      - name: Verify layered car source
+      - name: Install responsive garage scene
+        run: python mujaffa/tools/install_garage_scene.py --project mujaffa
+
+      - name: Verify garage source
         shell: bash
         run: |
           test -f mujaffa/assets/generated/car/layers-manifest.json
@@ -65,8 +68,10 @@ jobs:
           test -f mujaffa/assets/generated/car/daek-1.png
           test -f mujaffa/assets/generated/car/hjulkapsel-1-standard.png
           test "$(find mujaffa/assets/generated/car -name '*.png' | wc -l)" -ge 50
-          grep -q '"parent": "parity-car"' mujaffa/main.scene.json
-          grep -q 'assets/generated/car/' mujaffa/main.scene.json
+          grep -q '"name": "Garage Desktop UI"' mujaffa/main.scene.json
+          grep -q '"name": "Garage Mobile UI"' mujaffa/main.scene.json
+          grep -q 'scripts/garage.decay' mujaffa/main.scene.json
+          grep -q 'Garage Car spoiler-5' mujaffa/main.scene.json
 
       - name: Cache Sindri build artifacts
         uses: Swatinem/rust-cache@v2
@@ -107,7 +112,7 @@ jobs:
           --base /mujaffa-remaster/
           --build-id "${GITHUB_SHA:0:7}"
 
-      - name: Fit original square game window to the device
+      - name: Expose actual viewport to responsive garage
         run: >-
           python mujaffa/tools/patch_web_shell.py
           sindri2/target/mujaffa-pages/index.html
@@ -130,8 +135,7 @@ jobs:
           grep -q '"kind": "scene"' target/mujaffa-pages/assets/sindri.manifest.json
           grep -q '"kind": "script"' target/mujaffa-pages/assets/sindri.manifest.json
           grep -q '"kind": "texture"' target/mujaffa-pages/assets/sindri.manifest.json
-          grep -q 'width: min(100vw, 100dvh)' target/mujaffa-pages/index.html
-          grep -q 'aspect-ratio: 1 / 1' target/mujaffa-pages/index.html
+          grep -q 'height: 100dvh' target/mujaffa-pages/index.html
           if find target/mujaffa-pages -name '*.swf' -print -quit | grep -q .; then
             echo 'Reference SWF leaked into the Pages payload.' >&2
             exit 1

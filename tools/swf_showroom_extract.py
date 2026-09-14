@@ -7,18 +7,15 @@ import math
 import re
 from pathlib import Path
 
-from swf_car_extract import IDENT, Movie
+from swf_car_extract import Movie
 
-CANVAS = (0.0, 0.0, 500.0, 500.0)
-
-# Main-timeline frame 730 (`showroom`) placements recovered by swf_scene_map.py.
-# The manual original-game reference confirms that the visible workshop pose is
-# the fully coloured first frame of Mujaffa's presentation sprite, not the
-# line-art second frame we previously advanced to heuristically.
-SHOWROOM = {
-    "room": {"character": 934, "frame": 1, "matrix": (1.0, 0.0, 0.0, 1.0, 0.0, 0.0)},
-    "mujaffa": {"character": 869, "frame": 1, "matrix": (0.5999908447265625, 0.0, 0.0, 0.5999908447265625, 352.95, 157.7)},
-    "panel": {"character": 279, "frame": 1, "matrix": (1.0, 0.0, 0.0, 1.07794189453125, 200.9, 404.35)},
+# The manual reference is the VERKSTED/workshop screen. In the SWF that is main
+# timeline frame 722 (`køb`), not frame 730 (`showroom`). Using the showroom
+# objects was the reason our car, Mujaffa and props were all visibly misplaced.
+WORKSHOP = {
+    "room": {"character": 867, "frame": 1, "matrix": (1.0, 0.0, 0.0, 1.0, 0.0, 0.0)},
+    "mujaffa": {"character": 869, "frame": 1, "matrix": (0.5999908447265625, 0.0, 0.0, 0.5999908447265625, 426.95, 175.7)},
+    "panel": {"character": 383, "frame": 1, "matrix": (0.881744384765625, 0.0, 0.0, 0.881744384765625, 78.5, 288.0)},
 }
 
 
@@ -98,23 +95,26 @@ def main() -> None:
     art = json.loads((args.reference_art / "manifest.json").read_text(encoding="utf-8"))
     items = {item["character_id"]: item for item in art["items"]}
     outputs = {}
-    for name, spec in SHOWROOM.items():
+    # Preserve existing filenames because the runtime installer already consumes
+    # showroom-*.png. Their contents are now the canonical workshop state.
+    for name, spec in WORKSHOP.items():
         outputs[name] = render_layer(movie, args.reference_art, items, spec, f"showroom-{name}", args.out, args.scale)
         if outputs[name]["unresolved"]:
-            raise SystemExit(f"showroom layer {name} has unresolved shapes: {outputs[name]['unresolved']}")
+            raise SystemExit(f"workshop layer {name} has unresolved shapes: {outputs[name]['unresolved']}")
 
     (args.out / "showroom-manifest.json").write_text(
         json.dumps({
             "source": args.swf.name,
-            "main_timeline_frame": 730,
-            "label": "showroom",
+            "main_timeline_frame": 722,
+            "label": "køb",
+            "screen": "workshop",
             "canvas": [500, 500],
             "outputs": outputs,
-            "note": "Every PNG uses the original 500x500 stage registration and can be stacked at one origin. Mujaffa uses the coloured workshop pose confirmed by the original-game reference capture.",
+            "note": "Every PNG is registered to the original frame-722 workshop state. Filenames retain the historical showroom prefix for runtime compatibility.",
         }, indent=2, ensure_ascii=False) + "\n",
         encoding="utf-8",
     )
-    print(f"extracted {len(outputs)} positioned original showroom layers")
+    print(f"extracted {len(outputs)} positioned original workshop layers")
 
 
 if __name__ == "__main__":

@@ -1,0 +1,48 @@
+// Presentation-only companion for the garage. The main Garage script owns the
+// actual selected parts. This layer owns the phone drawer/current-category UI
+// and mirrors the body paint tint onto paintable spoiler artwork.
+script GaragePolish {
+    var drawer_open: bool = false;
+    var drawer: Entity = null;
+    var menu: Entity = null;
+    var categories: Entity = null;
+    var paint: Entity = null;
+    var spoiler1: Entity = null; var spoiler2: Entity = null; var spoiler3: Entity = null; var spoiler4: Entity = null; var spoiler5: Entity = null;
+    var b0: Entity = null; var b1: Entity = null; var b2: Entity = null; var b3: Entity = null; var b4: Entity = null;
+    var b5: Entity = null; var b6: Entity = null; var b7: Entity = null; var b8: Entity = null; var b9: Entity = null;
+    var t0: Entity = null; var t1: Entity = null; var t2: Entity = null; var t3: Entity = null; var t4: Entity = null;
+    var t5: Entity = null; var t6: Entity = null; var t7: Entity = null; var t8: Entity = null; var t9: Entity = null;
+
+    fn start() {
+        this.drawer = World.find("Mobile Category Drawer");
+        this.menu = World.find("Mobile Garage Menu");
+        this.categories = World.find("Mobile Categories Button");
+        this.paint = World.find("Garage Car paint-tintable");
+        this.spoiler1 = World.find("Garage Car spoiler-1"); this.spoiler2 = World.find("Garage Car spoiler-2");
+        this.spoiler3 = World.find("Garage Car spoiler-3"); this.spoiler4 = World.find("Garage Car spoiler-4"); this.spoiler5 = World.find("Garage Car spoiler-5");
+        this.b0=World.find("Mobile Category PAINT"); this.b1=World.find("Mobile Category TYRES"); this.b2=World.find("Mobile Category RIMS"); this.b3=World.find("Mobile Category SPOILER"); this.b4=World.find("Mobile Category EXHAUST");
+        this.b5=World.find("Mobile Category WINDOWS"); this.b6=World.find("Mobile Category SUNROOF"); this.b7=World.find("Mobile Category INTERIOR"); this.b8=World.find("Mobile Category STRIPES"); this.b9=World.find("Mobile Category WINDSCREEN");
+        this.t0=World.find("Mobile Current PAINT"); this.t1=World.find("Mobile Current TYRES"); this.t2=World.find("Mobile Current RIMS"); this.t3=World.find("Mobile Current SPOILER"); this.t4=World.find("Mobile Current EXHAUST");
+        this.t5=World.find("Mobile Current WINDOWS"); this.t6=World.find("Mobile Current SUNROOF"); this.t7=World.find("Mobile Current INTERIOR"); this.t8=World.find("Mobile Current STRIPES"); this.t9=World.find("Mobile Current WINDSCREEN");
+        show_title(0.0); World.set_active(this.drawer, false);
+    }
+
+    fn show_title(selected: f32) {
+        World.set_active(this.t0, selected==0.0); World.set_active(this.t1, selected==1.0); World.set_active(this.t2, selected==2.0); World.set_active(this.t3, selected==3.0); World.set_active(this.t4, selected==4.0);
+        World.set_active(this.t5, selected==5.0); World.set_active(this.t6, selected==6.0); World.set_active(this.t7, selected==7.0); World.set_active(this.t8, selected==8.0); World.set_active(this.t9, selected==9.0);
+    }
+
+    fn choose(index: f32) { show_title(index); this.drawer_open=false; World.set_active(this.drawer,false); }
+
+    fn tint_spoiler(entity: Entity, paint: Entity) {
+        let s=entity; let p=paint;
+        s.sprite.tint.r=p.sprite.tint.r; s.sprite.tint.g=p.sprite.tint.g; s.sprite.tint.b=p.sprite.tint.b;
+    }
+
+    fn update(dt: f32) {
+        if Ui.is_pressed(this.menu) || Ui.is_pressed(this.categories) { this.drawer_open=!this.drawer_open; World.set_active(this.drawer,this.drawer_open); }
+        if Ui.is_pressed(this.b0) { choose(0.0); } if Ui.is_pressed(this.b1) { choose(1.0); } if Ui.is_pressed(this.b2) { choose(2.0); } if Ui.is_pressed(this.b3) { choose(3.0); } if Ui.is_pressed(this.b4) { choose(4.0); }
+        if Ui.is_pressed(this.b5) { choose(5.0); } if Ui.is_pressed(this.b6) { choose(6.0); } if Ui.is_pressed(this.b7) { choose(7.0); } if Ui.is_pressed(this.b8) { choose(8.0); } if Ui.is_pressed(this.b9) { choose(9.0); }
+        tint_spoiler(this.spoiler1,this.paint); tint_spoiler(this.spoiler2,this.paint); tint_spoiler(this.spoiler3,this.paint); tint_spoiler(this.spoiler4,this.paint); tint_spoiler(this.spoiler5,this.paint);
+    }
+}

@@ -47,6 +47,29 @@ class SwfVariableTests(unittest.TestCase):
         self.assertEqual(report["writes"][0]["value"], "(random(4) + 1)")
         self.assertEqual(report["random_expressions"], ["random(4)"])
 
+    def test_preserves_boolean_range_expression(self) -> None:
+        payload = b"".join(
+            [
+                long_action(0x96, push_string("cool")),
+                bytes([0x1C]),
+                long_action(0x96, push_int(199)),
+                bytes([0x67]),
+                long_action(0x96, push_string("cool")),
+                bytes([0x1C]),
+                long_action(0x96, push_int(600)),
+                bytes([0x48]),
+                bytes([0x10]),
+                bytes([0x12]),
+                long_action(0x9D, struct.pack("<h", 0)),
+                b"\0",
+            ]
+        )
+        report = analyze(payload)
+        self.assertEqual(
+            report["conditions"][0]["condition"],
+            "!((var(cool) > 199) && (var(cool) < 600))",
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

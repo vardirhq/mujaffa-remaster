@@ -20,6 +20,28 @@
           "vertical_size": 10.0
         }
       }
+    },
+    {
+      "id": "game-state",
+      "name": "Game State",
+      "transform_3d": {
+        "position": [0.0, 0.0, 0.0],
+        "rotation": [0.0, 0.0, 0.0, 1.0],
+        "scale": [1.0, 1.0, 1.0]
+      },
+      "components": {
+        "sindri.script": {
+          "source": "scripts/game_state.decay",
+          "script": "GameState",
+          "properties": {
+            "initial_cool": 0.0,
+            "initial_energi": 0.0,
+            "initial_penge": 0.0,
+            "initial_respect": 0.0
+          },
+          "enabled": true
+        }
+      }
     }
   ]
 }

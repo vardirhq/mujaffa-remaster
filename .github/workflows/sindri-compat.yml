@@ -38,18 +38,14 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y libasound2-dev
 
-      # The external-project proof is the exporter below. Keep the editor build as
-      # a diagnostic while Sindri is pre-alpha, but do not let unrelated native
-      # editor dependencies prevent us from testing the actual project boundary.
-      - name: Check pinned editor build
-        continue-on-error: true
+      - name: Verify pinned editor builds
         working-directory: sindri2
-        run: cargo check --locked --package sindri-editor
+        run: cargo check --package sindri-editor
 
       - name: Export project from outside the Sindri repository
         working-directory: sindri2
         run: >-
-          cargo run --locked --package sindri-export --bin sindri-export --
+          cargo run --package sindri-export --bin sindri-export --
           ../mujaffa
           "$RUNNER_TEMP/mujaffa-export"
           --base /mujaffa-remaster/

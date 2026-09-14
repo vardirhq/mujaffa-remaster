@@ -1,7 +1,0 @@
-First playable parity slice controls
-
-1 / 2 / 3  Select original level destination
-Space      Advance: route select -> run -> result -> route select
-R          Reset to recovered frame-202 starting state
-
-The current shapes are debug presentation only.

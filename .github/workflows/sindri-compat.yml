@@ -33,6 +33,11 @@ jobs:
       - name: Install Sindri Rust toolchain
         uses: dtolnay/rust-toolchain@1.95.0
 
+      - name: Install Sindri Linux build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libasound2-dev
+
       - name: Verify editor still builds at the pin
         working-directory: sindri2
         run: cargo check --locked --package sindri-editor

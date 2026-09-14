@@ -107,6 +107,11 @@ jobs:
           --base /mujaffa-remaster/
           --build-id "${GITHUB_SHA:0:7}"
 
+      - name: Fit original square game window to the device
+        run: >-
+          python mujaffa/tools/patch_web_shell.py
+          sindri2/target/mujaffa-pages/index.html
+
       - name: Copy browser host into export
         working-directory: sindri2
         run: |
@@ -125,6 +130,8 @@ jobs:
           grep -q '"kind": "scene"' target/mujaffa-pages/assets/sindri.manifest.json
           grep -q '"kind": "script"' target/mujaffa-pages/assets/sindri.manifest.json
           grep -q '"kind": "texture"' target/mujaffa-pages/assets/sindri.manifest.json
+          grep -q 'width: min(100vw, 100dvh)' target/mujaffa-pages/index.html
+          grep -q 'aspect-ratio: 1 / 1' target/mujaffa-pages/index.html
           if find target/mujaffa-pages -name '*.swf' -print -quit | grep -q .; then
             echo 'Reference SWF leaked into the Pages payload.' >&2
             exit 1

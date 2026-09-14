@@ -47,11 +47,11 @@ jobs:
           python -m pip install --disable-pip-version-check cairosvg
       - name: Generate layered Mujaffa car and showroom art
         run: python mujaffa/tools/prepare_runtime_art.py --project mujaffa --scale 4 --install-scene
-      - name: Install responsive garage scene
+      - name: Install composable car layer entities
         run: python mujaffa/tools/install_garage_scene.py --project mujaffa
-      - name: Polish mobile garage and showroom
-        run: python mujaffa/tools/polish_garage_scene.py --project mujaffa
-      - name: Verify garage source
+      - name: Replace responsive scaffolding with original workshop
+        run: python mujaffa/tools/install_workshop_parity.py --project mujaffa
+      - name: Verify workshop source
         shell: bash
         run: |
           test -f mujaffa/assets/generated/car/layers-manifest.json
@@ -60,15 +60,15 @@ jobs:
           test -f mujaffa/assets/generated/showroom/showroom-mujaffa.png
           test -f mujaffa/assets/generated/showroom/showroom-panel.png
           test -f mujaffa/assets/generated/showroom/showroom-manifest.json
-          test -f mujaffa/assets/generated/garage-ui/category-spoiler.png
-          test -f mujaffa/assets/generated/garage-ui/garage.png
+          test -f mujaffa/assets/generated/workshop-ui/workshop-chrome.png
           test "$(find mujaffa/assets/generated/car -name '*.png' | wc -l)" -ge 50
           grep -q '"name": "Garage Desktop UI"' mujaffa/main.scene.json
-          grep -q '"name": "Original Showroom Mujaffa"' mujaffa/main.scene.json
-          grep -q '"name": "Original Showroom Control Panel"' mujaffa/main.scene.json
-          grep -q '"name": "Mobile Category Drawer"' mujaffa/main.scene.json
+          grep -q '"name": "Original Workshop Room"' mujaffa/main.scene.json
+          grep -q '"name": "Original Workshop Mujaffa"' mujaffa/main.scene.json
+          grep -q '"name": "Original Workshop Chrome"' mujaffa/main.scene.json
           grep -q 'scripts/garage.decay' mujaffa/main.scene.json
-          grep -q 'scripts/garage_polish.decay' mujaffa/main.scene.json
+          if grep -q 'Mobile Category Drawer' mujaffa/main.scene.json; then echo 'Responsive mobile drawer leaked into fixed workshop.' >&2; exit 1; fi
+          if grep -q 'scripts/garage_polish.decay' mujaffa/main.scene.json; then echo 'Legacy mobile polish controller leaked into fixed workshop.' >&2; exit 1; fi
       - name: Cache Sindri build artifacts
         uses: Swatinem/rust-cache@v2
         with:
@@ -97,7 +97,7 @@ jobs:
       - name: Export Mujaffa project
         working-directory: sindri2
         run: cargo run --quiet --package sindri-export --bin sindri-export -- ../mujaffa target/mujaffa-pages --base /mujaffa-remaster/ --build-id "${GITHUB_SHA:0:7}"
-      - name: Expose actual viewport to responsive garage
+      - name: Preserve original square game stage
         run: python mujaffa/tools/patch_web_shell.py sindri2/target/mujaffa-pages/index.html
       - name: Copy browser host into export
         working-directory: sindri2
@@ -116,7 +116,7 @@ jobs:
           grep -q '"kind": "scene"' target/mujaffa-pages/assets/sindri.manifest.json
           grep -q '"kind": "script"' target/mujaffa-pages/assets/sindri.manifest.json
           grep -q '"kind": "texture"' target/mujaffa-pages/assets/sindri.manifest.json
-          grep -q 'height: 100dvh' target/mujaffa-pages/index.html
+          grep -q 'aspect-ratio: 1 / 1' target/mujaffa-pages/index.html
           if find target/mujaffa-pages -name '*.swf' -print -quit | grep -q .; then echo 'Reference SWF leaked into the Pages payload.' >&2; exit 1; fi
       - name: Smoke Mujaffa in Chromium
         working-directory: sindri2

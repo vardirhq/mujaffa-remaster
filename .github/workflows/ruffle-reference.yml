@@ -1,0 +1,79 @@
+name: Ruffle reference capture
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - '.github/workflows/ruffle-reference.yml'
+      - 'mujaffa_3juni_2003.swf'
+
+permissions:
+  contents: read
+
+jobs:
+  capture:
+    name: Capture original SWF with Ruffle
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Check out Mujaffa Remaster
+        uses: actions/checkout@v4
+
+      - name: Install Ruffle exporter dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            pkg-config libasound2-dev libudev-dev libfontconfig-dev \
+            libfreetype6-dev libssl-dev default-jre-headless g++ \
+            libvulkan1 mesa-vulkan-drivers
+
+      - name: Check out Ruffle
+        uses: actions/checkout@v4
+        with:
+          repository: ruffle-rs/ruffle
+          ref: nightly-2026-09-09
+          path: ruffle
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Ruffle build
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: ruffle -> target
+          key: ruffle-exporter-nightly-2026-09-09
+
+      - name: Build Ruffle exporter
+        working-directory: ruffle
+        run: cargo build --locked --release --package exporter
+
+      - name: Capture original timeline frames
+        env:
+          WGPU_BACKEND: vulkan
+          LIBGL_ALWAYS_SOFTWARE: '1'
+        run: |
+          mkdir -p reference-captures/raw
+          # Capture enough frames to include the known showroom region. This is
+          # an experiment: ActionScript navigation may stop normal playback
+          # before frame 730, in which case the artifact/log tells us that and
+          # the next step is scripted Ruffle interaction rather than guessing.
+          ./ruffle/target/release/exporter \
+            mujaffa_3juni_2003.swf \
+            reference-captures/raw \
+            --frames 811
+
+      - name: Inventory captures
+        if: always()
+        run: |
+          echo 'Captured PNG count:'
+          find reference-captures/raw -type f -name '*.png' | wc -l || true
+          find reference-captures/raw -type f -name '*.png' | sort | tail -30 || true
+
+      - name: Upload original Ruffle captures
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mujaffa-original-ruffle-captures
+          path: reference-captures/
+          if-no-files-found: warn
+          retention-days: 14

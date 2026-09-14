@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 """Disassemble enough SWF ActionScript 1/2 metadata to map original behaviour.
 
-This is deliberately not an ActionScript VM. It walks main-timeline DoAction
-records, records their frame/label location, opcode mix, branch targets and
-literal strings. That is enough to turn the original game's control flow into
-a parity map without executing the SWF.
+This is deliberately not an ActionScript VM. It walks DoAction records on the
+main timeline *and inside DefineSprite timelines*, recording their location,
+opcode mix, branch targets and literal strings. Mujaffa keeps much of its live
+gameplay inside movie clips, so looking only at the root timeline misses most of
+the program.
 """
 
 from __future__ import annotations
@@ -15,8 +16,9 @@ import struct
 import sys
 from collections import Counter
 from pathlib import Path
+from typing import Iterator
 
-from swf_inventory import SwfError, _cstring, iter_tags, parse_header
+from swf_inventory import SwfError, Tag, _cstring, iter_tags, parse_header
 
 ACTION_NAMES = {
     0x04: "NextFrame",
@@ -159,9 +161,9 @@ def strings_from_push(payload: bytes) -> list[str]:
             pass
         elif kind in (4, 5, 8):  # Register, Boolean, Constant8
             cursor += 1
-        elif kind in (6,):  # Double
+        elif kind == 6:  # Double
             cursor += 8
-        elif kind in (7,):  # Integer
+        elif kind == 7:  # Integer
             cursor += 4
         elif kind == 9:  # Constant16
             cursor += 2
@@ -211,8 +213,10 @@ def branch_detail(code: int, payload: bytes, action_offset: int) -> dict[str, ob
         return {"frame": struct.unpack_from("<H", payload)[0]}
     if code in (0x99, 0x9D) and len(payload) >= 2:
         delta = struct.unpack_from("<h", payload)[0]
-        # Target is relative to the byte immediately after this action record.
-        return {"branch_delta": delta, "branch_target_offset": action_offset + 3 + len(payload) + delta}
+        return {
+            "branch_delta": delta,
+            "branch_target_offset": action_offset + 3 + len(payload) + delta,
+        }
     if code == 0x8A and len(payload) >= 3:
         frame, skip = struct.unpack_from("<HB", payload)
         return {"frame": frame, "skip_actions": skip}
@@ -221,56 +225,113 @@ def branch_detail(code: int, payload: bytes, action_offset: int) -> dict[str, ob
     return {}
 
 
+def iter_timeline_action_blocks(
+    tags: list[Tag],
+    *,
+    timeline: str = "main",
+    depth: int = 0,
+    sprite_id: int | None = None,
+    declared_frames: int | None = None,
+) -> Iterator[dict[str, object]]:
+    """Yield every DoAction block, recursively descending into DefineSprite.
+
+    A DefineSprite payload starts with UI16 SpriteId + UI16 FrameCount followed
+    by an ordinary SWF tag stream. Each sprite owns its own frame counter and
+    labels, so the context is tracked independently rather than pretending its
+    actions occur on a main-timeline frame.
+    """
+
+    frame = 1
+    label: str | None = None
+    for tag in tags:
+        if tag.code == 43:
+            label = _cstring(tag.payload)
+        elif tag.code == 12:
+            yield {
+                "timeline": timeline,
+                "depth": depth,
+                "sprite_id": sprite_id,
+                "declared_frames": declared_frames,
+                "frame": frame,
+                "label": label,
+                "payload": tag.payload,
+            }
+        elif tag.code == 39:
+            if len(tag.payload) < 4:
+                raise SwfError("truncated DefineSprite payload")
+            child_id, child_frames = struct.unpack_from("<HH", tag.payload, 0)
+            child_timeline = f"{timeline}/sprite:{child_id}"
+            child_tags = iter_tags(tag.payload, 4)
+            yield from iter_timeline_action_blocks(
+                child_tags,
+                timeline=child_timeline,
+                depth=depth + 1,
+                sprite_id=child_id,
+                declared_frames=child_frames,
+            )
+        elif tag.code == 1:
+            frame += 1
+            label = None
+
+
 def inspect(path: Path) -> dict[str, object]:
     raw = path.read_bytes()
     data, header = parse_header(raw)
     tags = iter_tags(data, header.tags_offset)
 
-    frame = 1
-    current_label: str | None = None
     blocks: list[dict[str, object]] = []
     opcode_counts: Counter[str] = Counter()
     all_strings: set[str] = set()
+    sprites_with_actions: set[int] = set()
+    max_depth = 0
 
-    for tag in tags:
-        if tag.code == 43:
-            current_label = _cstring(tag.payload)
-        elif tag.code == 12:
-            records = action_records(tag.payload)
-            actions = []
-            block_strings: set[str] = set()
-            for code, action_payload, action_offset in records:
-                name = ACTION_NAMES.get(code, f"Action0x{code:02X}")
-                opcode_counts[name] += 1
-                literals = direct_strings(code, action_payload)
-                block_strings.update(literals)
-                all_strings.update(literals)
-                action = {
-                    "offset": action_offset,
-                    "code": code,
-                    "name": name,
-                }
-                action.update(branch_detail(code, action_payload, action_offset))
-                if literals:
-                    action["strings"] = literals
-                actions.append(action)
-            blocks.append(
-                {
-                    "frame": frame,
-                    "label": current_label,
-                    "action_count": len(actions),
-                    "strings": sorted(block_strings, key=str.casefold),
-                    "actions": actions,
-                }
-            )
-        elif tag.code == 1:
-            frame += 1
-            current_label = None
+    for located in iter_timeline_action_blocks(tags):
+        records = action_records(located["payload"])
+        actions = []
+        block_strings: set[str] = set()
+        for code, action_payload, action_offset in records:
+            name = ACTION_NAMES.get(code, f"Action0x{code:02X}")
+            opcode_counts[name] += 1
+            literals = direct_strings(code, action_payload)
+            block_strings.update(literals)
+            all_strings.update(literals)
+            action = {
+                "offset": action_offset,
+                "code": code,
+                "name": name,
+            }
+            action.update(branch_detail(code, action_payload, action_offset))
+            if literals:
+                action["strings"] = literals
+            actions.append(action)
 
+        sprite_id = located["sprite_id"]
+        if isinstance(sprite_id, int):
+            sprites_with_actions.add(sprite_id)
+        max_depth = max(max_depth, int(located["depth"]))
+        blocks.append(
+            {
+                "timeline": located["timeline"],
+                "depth": located["depth"],
+                "sprite_id": sprite_id,
+                "declared_frames": located["declared_frames"],
+                "frame": located["frame"],
+                "label": located["label"],
+                "action_count": len(actions),
+                "strings": sorted(block_strings, key=str.casefold),
+                "actions": actions,
+            }
+        )
+
+    main_blocks = sum(1 for block in blocks if block["timeline"] == "main")
     return {
         "source": path.name,
         "summary": {
             "action_blocks": len(blocks),
+            "main_timeline_action_blocks": main_blocks,
+            "sprite_action_blocks": len(blocks) - main_blocks,
+            "sprites_with_actions": len(sprites_with_actions),
+            "max_timeline_depth": max_depth,
             "actions": sum(block["action_count"] for block in blocks),
             "unique_literal_strings": len(all_strings),
         },

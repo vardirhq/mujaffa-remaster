@@ -21,23 +21,16 @@ jobs:
         run: python -m unittest discover -s tools -p 'test_*.py'
 
       - name: Inventory original SWF
-        run: >-
-          python tools/swf_inventory.py
-          mujaffa_3juni_2003.swf
-          --verify-reference
-          --out analysis/swf-inventory.json
+        run: python tools/swf_inventory.py mujaffa_3juni_2003.swf --verify-reference --out analysis/swf-inventory.json
 
       - name: Map original ActionScript metadata
-        run: >-
-          python tools/swf_actions.py
-          mujaffa_3juni_2003.swf
-          --out analysis/swf-actions.json
+        run: python tools/swf_actions.py mujaffa_3juni_2003.swf --out analysis/swf-actions.json
 
       - name: Recover simple variable flow
-        run: >-
-          python tools/swf_variables.py
-          mujaffa_3juni_2003.swf
-          --out analysis/swf-variables.json
+        run: python tools/swf_variables.py mujaffa_3juni_2003.swf --out analysis/swf-variables.json
+
+      - name: Map original garage/showroom compositions
+        run: python tools/swf_scene_map.py mujaffa_3juni_2003.swf analysis/swf-showroom-scenes.json --from-frame 700 --to-frame 810
 
       - name: Upload reference reports
         uses: actions/upload-artifact@v4
@@ -53,18 +46,10 @@ jobs:
     steps:
       - name: Check out Mujaffa Remaster
         uses: actions/checkout@v4
-
       - name: Install SVG rasterizer
         run: python -m pip install --disable-pip-version-check cairosvg
-
       - name: Extract high-resolution vector art
-        run: >-
-          python tools/swf_art_extract.py
-          mujaffa_3juni_2003.swf
-          reference-art
-          --scale 4
-          --max-size 2048
-
+        run: python tools/swf_art_extract.py mujaffa_3juni_2003.swf reference-art --scale 4 --max-size 2048
       - name: Verify complete vector extraction
         shell: bash
         run: |
@@ -77,15 +62,8 @@ jobs:
           assert manifest['shape_count'] == 514, manifest['shape_count']
           assert all(item['png'] for item in manifest['items'])
           PY
-
       - name: Reconstruct customizable car
-        run: >-
-          python tools/swf_car_extract.py
-          mujaffa_3juni_2003.swf
-          reference-art
-          reference-car
-          --scale 4
-
+        run: python tools/swf_car_extract.py mujaffa_3juni_2003.swf reference-art reference-car --scale 4
       - name: Verify car reconstruction
         shell: bash
         run: |
@@ -95,10 +73,10 @@ jobs:
           import json
           from pathlib import Path
           manifest = json.loads(Path('reference-car/car-manifest.json').read_text())
-          assert manifest['root_sprite'] == 875, manifest['root_sprite']
-          assert manifest['body_sprite'] == 775, manifest['body_sprite']
-          assert manifest['tyre_sprite'] == 781, manifest['tyre_sprite']
-          assert manifest['speaker_sprite'] == 126, manifest['speaker_sprite']
+          assert manifest['root_sprite'] == 875
+          assert manifest['body_sprite'] == 775
+          assert manifest['tyre_sprite'] == 781
+          assert manifest['speaker_sprite'] == 126
           assert 'karosseri' in manifest['root_instances']
           assert 'dæk' in manifest['root_instances']
           assert 'speakers' in manifest['root_instances']
@@ -107,15 +85,8 @@ jobs:
           assert 'vinduer' in manifest['categories']
           assert len(manifest['outputs']) >= 40
           PY
-
       - name: Build composable car layers
-        run: >-
-          python tools/swf_car_layers.py
-          mujaffa_3juni_2003.swf
-          reference-art
-          reference-car-layers
-          --scale 4
-
+        run: python tools/swf_car_layers.py mujaffa_3juni_2003.swf reference-art reference-car-layers --scale 4
       - name: Verify composable car layers
         shell: bash
         run: |
@@ -137,7 +108,6 @@ jobs:
           assert len(manifest['outputs']) >= 50
           assert all(not value['unresolved'] for value in manifest['outputs'].values())
           PY
-
       - name: Upload high-resolution art reference
         uses: actions/upload-artifact@v4
         with:
@@ -145,7 +115,6 @@ jobs:
           path: reference-art/
           if-no-files-found: error
           retention-days: 14
-
       - name: Upload reconstructed car reference
         uses: actions/upload-artifact@v4
         with:
@@ -153,7 +122,6 @@ jobs:
           path: reference-car/
           if-no-files-found: error
           retention-days: 14
-
       - name: Upload composable car layers
         uses: actions/upload-artifact@v4
         with:
@@ -169,77 +137,53 @@ jobs:
         uses: actions/checkout@v4
         with:
           path: mujaffa
-
       - name: Read pinned Sindri revision
         id: engine
         shell: bash
         run: echo "ref=$(tr -d '\r\n' < mujaffa/.sindri-engine)" >> "$GITHUB_OUTPUT"
-
       - name: Check out pinned Sindri
         uses: actions/checkout@v4
         with:
           repository: vardirhq/sindri2
           ref: ${{ steps.engine.outputs.ref }}
           path: sindri2
-
       - name: Install Sindri Rust toolchain
         uses: dtolnay/rust-toolchain@1.95.0
-
       - name: Install Sindri Linux build dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y libasound2-dev
           python -m pip install --disable-pip-version-check cairosvg
-
       - name: Generate runtime car from preserved SWF
-        run: >-
-          python mujaffa/tools/prepare_runtime_art.py
-          --project mujaffa
-          --scale 4
-          --install-scene
-
+        run: python mujaffa/tools/prepare_runtime_art.py --project mujaffa --scale 4 --install-scene
       - name: Verify generated runtime car
         shell: bash
         run: |
           test "$(find mujaffa/assets/generated/car -name '*.png' | wc -l)" -ge 50
           grep -q 'assets/generated/car/' mujaffa/main.scene.json
           grep -q '"parent": "parity-car"' mujaffa/main.scene.json
-
       - name: Cache Sindri build artifacts
         uses: Swatinem/rust-cache@v2
         with:
           workspaces: sindri2 -> target
           key: mujaffa-${{ steps.engine.outputs.ref }}
-
       - name: Verify pinned editor builds
         working-directory: sindri2
         run: cargo check --package sindri-editor
-
       - name: Export project from outside the Sindri repository
         working-directory: sindri2
-        run: >-
-          cargo run --package sindri-export --bin sindri-export --
-          ../mujaffa
-          "$RUNNER_TEMP/mujaffa-export"
-          --base /mujaffa-remaster/
-          --build-id "$GITHUB_SHA"
-
+        run: cargo run --package sindri-export --bin sindri-export -- ../mujaffa "$RUNNER_TEMP/mujaffa-export" --base /mujaffa-remaster/ --build-id "$GITHUB_SHA"
       - name: Verify export contains Decay game state and car textures
         shell: bash
         run: |
-          if ! find "$RUNNER_TEMP/mujaffa-export/assets" -type f \
-            -path '*/scripts/game_state.decay' -print -quit | grep -q .; then
+          if ! find "$RUNNER_TEMP/mujaffa-export/assets" -type f -path '*/scripts/game_state.decay' -print -quit | grep -q .; then
             echo 'Export is missing scripts/game_state.decay.' >&2
-            find "$RUNNER_TEMP/mujaffa-export" -maxdepth 4 -type f -print >&2
             exit 1
           fi
-          if ! find "$RUNNER_TEMP/mujaffa-export/assets" -type f \
-            -path '*/assets/generated/car/*.png' -print -quit | grep -q .; then
+          if ! find "$RUNNER_TEMP/mujaffa-export/assets" -type f -path '*/assets/generated/car/*.png' -print -quit | grep -q .; then
             echo 'Export is missing generated car textures.' >&2
-            find "$RUNNER_TEMP/mujaffa-export/assets" -maxdepth 6 -type f -print >&2
             exit 1
           fi
-
       - name: Verify export did not copy private SWF reference
         shell: bash
         run: |

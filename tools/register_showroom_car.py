@@ -7,8 +7,11 @@ import json
 import math
 from pathlib import Path
 
-# Original main-timeline frame 730 (`showroom`) placement for character 875 (`bil`).
-CAR_MATRIX = (0.93231201171875, 0.0, 0.0, 0.93231201171875, 259.4, 180.95)
+# Original main-timeline frame 722 (`køb` / workshop) placement for character
+# 875 (`bil`). The previous value came from frame 730 (`showroom`), which is a
+# different screen and made the workshop car too large and far left.
+CAR_MATRIX = (0.93035888671875, 0.0, 0.0, 0.93035888671875, 329.65, 193.9)
+WORKSHOP_FRAME = 722
 
 
 def register_png(source: Path, target: Path, bounds: list[float], scale: float) -> None:
@@ -32,7 +35,7 @@ def register_png(source: Path, target: Path, bounds: list[float], scale: float) 
 
 
 def main() -> int:
-    ap = argparse.ArgumentParser(description="Register composable car PNGs to original 500x500 showroom stage")
+    ap = argparse.ArgumentParser(description="Register composable car PNGs to original 500x500 workshop stage")
     ap.add_argument("car_dir", type=Path)
     ap.add_argument("out", type=Path)
     ap.add_argument("--scale", type=float, default=4.0)
@@ -53,14 +56,15 @@ def main() -> int:
         count += 1
 
     (args.out / "stage-registration.json").write_text(json.dumps({
-        "main_timeline_frame": 730,
+        "main_timeline_frame": WORKSHOP_FRAME,
+        "label": "køb",
         "character_id": 875,
         "matrix": list(CAR_MATRIX),
         "canvas": [500, 500],
         "source_canvas_bounds": bounds,
         "registered_outputs": count,
-    }, indent=2) + "\n", encoding="utf-8")
-    print(f"registered {count} car layers to original showroom stage")
+    }, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    print(f"registered {count} car layers to original workshop stage")
     return 0
 
 

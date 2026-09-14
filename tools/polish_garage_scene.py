@@ -27,7 +27,7 @@ def ui_image(entity_id,name,parent,texture,position,scale,anchor="center",layer=
     return {"id":entity_id,"name":name,"parent":parent,"disabled":disabled,"transform_3d":transform(position,scale),"components":c}
 
 def world_shape(entity_id,name,position,scale,fill,layer=-4):
-    return {"id":entity_id,"name":name,"transform_3d":transform(position,scale),"components":{"sindri.shape":{"kind":"rectangle","fill":fill,"layer":layer}}}
+    return {"id":entity_id,"name":name,"transform_3d":transform(position,scale),"components":{"sindri.shape":{"kind":"rect","fill":fill,"layer":layer}}}
 
 def main():
     ap=argparse.ArgumentParser();ap.add_argument("--project",type=Path,default=Path("."));args=ap.parse_args()

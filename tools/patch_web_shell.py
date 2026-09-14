@@ -7,17 +7,16 @@ from pathlib import Path
 OLD = "canvas { display: block; width: 100vw; height: 100vh; touch-action: none; }"
 NEW = """canvas {
       display: block;
-      width: min(100vw, 100dvh);
-      height: min(100vw, 100dvh);
+      width: 100vw;
+      height: 100dvh;
       max-width: 100vw;
       max-height: 100dvh;
-      aspect-ratio: 1 / 1;
       touch-action: none;
     }"""
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Make the exported Mujaffa canvas preserve the original square game window responsively")
+    parser = argparse.ArgumentParser(description="Make the exported Mujaffa canvas follow the actual responsive viewport")
     parser.add_argument("index", type=Path)
     args = parser.parse_args()
 

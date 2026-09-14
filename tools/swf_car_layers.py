@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 import argparse
-import base64
 import json
 import math
 import re
@@ -57,7 +56,11 @@ def main() -> int:
     body_matrix = body_instance.get("matrix", IDENT)
     tyre_matrix = tyre_instance.get("matrix", IDENT)
 
-    body_display = movie.display(body_id, 1)
+    # Sprite 875 explicitly calls karosseri.gotoAndStop("mujaffa") on frame 2.
+    # Frame 5 of sprite 775 is labelled "mujaffa" and adds the missing body
+    # geometry. Frame 1 is only a partial setup state, not the showroom car.
+    BODY_FRAME = 5
+    body_display = movie.display(body_id, BODY_FRAME)
     body_by_depth = {item["depth"]: item for item in body_display}
     body_masks = [item for item in body_display if "clip_depth" in item and item.get("character") is not None]
     name_to_category = {instance_name: category for category, (instance_name, _, _) in BODY_PARTS.items()}
@@ -155,17 +158,40 @@ def main() -> int:
     width = x1 - x0
     height = y1 - y0
 
+    inline_serial = 0
+
     def image_for(shape_id: int, matrix) -> str:
+        nonlocal inline_serial
         info = items.get(shape_id)
         if not info:
             return ""
         svg = (args.reference_art / info["svg"]).read_text(encoding="utf-8")
-        encoded = base64.b64encode(svg.encode()).decode()
-        bx0, bx1, by0, by1 = info["bounds"]
+        view_match = re.search(r'viewBox="([^"]+)"', svg)
+        if not view_match:
+            raise ValueError(f"shape {shape_id} SVG is missing a viewBox")
+        vx, vy, vw, vh = [float(value) for value in view_match.group(1).split()]
+        inner = svg[svg.find(">") + 1:svg.rfind("</svg>")]
+
+        # Do not embed the extracted shape SVG through a data: <image>. CairoSVG
+        # clips those nested documents when their viewBox uses negative source
+        # coordinates, which mutilated multi-part shapes such as the two tyres.
+        # Inline the vector document so Flash coordinates survive exactly.
+        # Namespace paint-server/mask IDs because one shape may occur repeatedly.
+        inline_serial += 1
+        prefix = f"s{shape_id}_{inline_serial}_"
+        ids = re.findall(r'id="([^"]+)"', inner)
+        for old_id in ids:
+            inner = inner.replace(f'id="{old_id}"', f'id="{prefix}{old_id}"')
+            inner = inner.replace(f'url(#{old_id})', f'url(#{prefix}{old_id})')
+            inner = inner.replace(f'href="#{old_id}"', f'href="#{prefix}{old_id}"')
+            inner = inner.replace(f'xlink:href="#{old_id}"', f'xlink:href="#{prefix}{old_id}"')
+
         matrix_text = " ".join(f"{v:.8g}" for v in matrix)
         return (
-            f'<image href="data:image/svg+xml;base64,{encoded}" x="{bx0}" y="{by0}" '
-            f'width="{bx1-bx0}" height="{by1-by0}" transform="matrix({matrix_text})"/>'
+            f'<g transform="matrix({matrix_text})">'
+            f'<svg x="{vx:.8g}" y="{vy:.8g}" width="{vw:.8g}" height="{vh:.8g}" '
+            f'viewBox="{vx:.8g} {vy:.8g} {vw:.8g} {vh:.8g}" overflow="visible">'
+            f'{inner}</svg></g>'
         )
 
     def render_svg(leaves: list[dict]) -> tuple[str, list[int]]:
@@ -274,6 +300,7 @@ def main() -> int:
         "source": args.swf.name,
         "root_sprite": root,
         "body_sprite": body_id,
+        "body_frame": BODY_FRAME,
         "tyre_sprite": tyre_id,
         "canvas_bounds": canvas,
         "scale": args.scale,

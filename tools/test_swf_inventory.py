@@ -4,7 +4,7 @@ import unittest
 import zlib
 from pathlib import Path
 
-from swf_inventory import inventory, parse_header, verify_muJaqqa_reference
+from swf_inventory import inventory, parse_header, verify_mujaffa_reference
 
 
 def bits(value: int, width: int) -> str:
@@ -75,7 +75,7 @@ class SwfInventoryTests(unittest.TestCase):
                 "script_blocks": 67,
             },
         }
-        failures = verify_muJaqqa_reference(report)
+        failures = verify_mujaffa_reference(report)
         self.assertTrue(any("frame_count" in failure for failure in failures))
 
 

@@ -1,8 +1,12 @@
 # Mujaffa Remaster
 
-Private experimental remaster project built with [Sindri Engine](https://github.com/vardirhq/sindri2).
+A modern remaster/reimplementation of the Norwegian Mujaffa game, built as a
+standalone [Sindri Engine](https://github.com/vardirhq/sindri2) project.
 
-This repository is intentionally separate from the Sindri monorepo. During Sindri's pre-alpha stage it targets one exact engine commit, recorded in `.sindri-engine`, rather than claiming compatibility with a released SDK.
+The project is currently in **parity-first** development: behaviour from the
+Norwegian 1.6 SWF is recovered and reproduced before presentation is redesigned.
+The original SWF is reference material and must never be copied into exported
+builds.
 
 ## Development model
 
@@ -21,18 +25,41 @@ cd sindri2
 cargo run --package sindri-editor -- ../mujaffa-remaster
 ```
 
-The project root is defined by `sindri.toml`; the editor should discover `main.scene.json`, project-local assets, Decay scripts and Weave styles from that root.
+The project root is defined by `sindri.toml`; the editor discovers
+`main.scene.json`, project-local assets, Decay scripts and future Weave styles
+from that root.
+
+## Current playable parity slice
+
+The current development slice is intentionally visualized with simple debug
+geometry rather than replacement art.
+
+- `1`, `2`, `3` choose one of the three original level destinations.
+- `Space` advances route select -> run -> result -> route select.
+- `R` resets the game state.
+
+The slice already reproduces confirmed original initialization values, frame-794
+run resets/random encounter ranges and the five frame-529 street-cred status
+thresholds. See `docs/first-playable-slice.md` and `docs/parity-fixtures.md` for
+the evidence contract.
 
 ## Engine pin
 
-`.sindri-engine` contains the exact Sindri commit this project was last verified against. This is deliberately a development pin, not a semver compatibility promise.
+`.sindri-engine` contains the exact Sindri commit this project was last verified
+against. This is deliberately a development pin, not a semver compatibility
+promise.
 
-CI checks out that revision independently and verifies that the external project can still be exported by Sindri without living inside the engine repository.
+CI checks out that revision independently and verifies that the external project
+can still be exported by Sindri without living inside the engine repository.
+
+## Web build
+
+`main` is exported through Sindri and deployed to GitHub Pages. Pull requests
+build the same browser payload without deploying it, including a guard that
+fails if a `.swf` reference file enters the exported artifact.
 
 ## Reference material
 
-`mujaffa_3juni_2003.swf` is kept as private reference material for parity analysis. It is not part of the authored Sindri scene and should not be copied into distributable builds.
-
-## Status
-
-Bootstrap only. The first milestone is proving the external-project boundary before remaster gameplay work begins.
+`mujaffa_3juni_2003.swf` is currently kept in the repository as parity reference
+material while the project is young. It is not an authored Sindri asset and is
+explicitly excluded from distributable exports.

@@ -78,11 +78,49 @@ jobs:
           assert all(item['png'] for item in manifest['items'])
           PY
 
+      - name: Reconstruct customizable car
+        run: >-
+          python tools/swf_car_extract.py
+          mujaffa_3juni_2003.swf
+          reference-art
+          reference-car
+          --scale 4
+
+      - name: Verify car reconstruction
+        shell: bash
+        run: |
+          test -f reference-car/car-manifest.json
+          test -f reference-car/png/car-stock.png
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          manifest = json.loads(Path('reference-car/car-manifest.json').read_text())
+          assert manifest['root_sprite'] == 875, manifest['root_sprite']
+          assert manifest['body_sprite'] == 775, manifest['body_sprite']
+          assert manifest['tyre_sprite'] == 781, manifest['tyre_sprite']
+          assert manifest['speaker_sprite'] == 126, manifest['speaker_sprite']
+          assert 'karosseri' in manifest['root_instances']
+          assert 'dæk' in manifest['root_instances']
+          assert 'speakers' in manifest['root_instances']
+          assert 'hjulkapsel' in manifest['categories']
+          assert 'spoiler' in manifest['categories']
+          assert 'vinduer' in manifest['categories']
+          assert len(manifest['outputs']) >= 40
+          PY
+
       - name: Upload high-resolution art reference
         uses: actions/upload-artifact@v4
         with:
           name: mujaffa-original-vector-art-4x
           path: reference-art/
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Upload reconstructed car reference
+        uses: actions/upload-artifact@v4
+        with:
+          name: mujaffa-original-car-4x
+          path: reference-car/
           if-no-files-found: error
           retention-days: 14
 

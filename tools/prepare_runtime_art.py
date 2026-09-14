@@ -76,41 +76,16 @@ def install_car_scene(project: Path, manifest: dict) -> int:
     return len(layer_entities)
 
 
-def install_showroom_art(raw_art: Path, project: Path) -> int:
-    """Copy canonical original showroom artwork out of the SWF extraction.
-
-    Character 934 is the full garage/showroom room visible at the original
-    `showroom` label (main timeline frame 730).  Keep a few adjacent source
-    pieces as reference/runtime-ready assets so later parity work can replace
-    the remaining invented UI without another extraction pass.
-    """
-    manifest = json.loads((raw_art / "manifest.json").read_text(encoding="utf-8"))
-    by_id = {item["character_id"]: item for item in manifest["items"]}
+def install_showroom_art(showroom: Path, project: Path) -> int:
     output = project / "assets" / "generated" / "showroom"
     if output.exists():
         shutil.rmtree(output)
     output.mkdir(parents=True, exist_ok=True)
-    wanted = {
-        934: "original-showroom-background.png",
-        278: "original-blue-panel.png",
-        291: "original-info-frame.png",
-        891: "original-buy-background.png",
-    }
     copied = 0
-    mapping = {}
-    for character_id, filename in wanted.items():
-        item = by_id.get(character_id)
-        if item is None or not item.get("png"):
-            raise SystemExit(f"reference extraction is missing showroom character {character_id}")
-        shutil.copy2(raw_art / item["png"], output / filename)
-        mapping[str(character_id)] = {"file": filename, "bounds": item["bounds"]}
+    for png in (showroom / "png").glob("*.png"):
+        shutil.copy2(png, output / png.name)
         copied += 1
-    (output / "manifest.json").write_text(json.dumps({
-        "source": "mujaffa_3juni_2003.swf",
-        "showroom_frame": 730,
-        "showroom_background_character": 934,
-        "assets": mapping,
-    }, indent=2) + "\n", encoding="utf-8")
+    shutil.copy2(showroom / "showroom-manifest.json", output / "showroom-manifest.json")
     return copied
 
 
@@ -124,6 +99,7 @@ def main() -> int:
     swf = project / "mujaffa_3juni_2003.swf"
     tools = project / "tools"
     output = project / "assets" / "generated" / "car"
+    registered = project / "assets" / "generated" / "car-stage"
     if not swf.is_file():
         raise SystemExit(f"missing reference SWF: {swf}")
 
@@ -131,9 +107,11 @@ def main() -> int:
         temp = Path(temp_dir)
         raw_art = temp / "reference-art"
         layers = temp / "car-layers"
+        showroom = temp / "showroom"
         run(str(tools / "swf_art_extract.py"), str(swf), str(raw_art), "--scale", str(args.scale), "--max-size", "2048")
         run(str(tools / "swf_car_layers.py"), str(swf), str(raw_art), str(layers), "--scale", str(args.scale))
-        showroom_count = install_showroom_art(raw_art, project)
+        run(str(tools / "swf_showroom_extract.py"), str(swf), str(raw_art), str(showroom), "--scale", str(args.scale))
+        showroom_count = install_showroom_art(showroom, project)
         if output.exists():
             shutil.rmtree(output)
         output.mkdir(parents=True, exist_ok=True)
@@ -142,15 +120,24 @@ def main() -> int:
         manifest = json.loads((layers / "layers-manifest.json").read_text(encoding="utf-8"))
         shutil.copy2(layers / "layers-manifest.json", output / "layers-manifest.json")
 
+    if registered.exists():
+        shutil.rmtree(registered)
+    run(str(tools / "register_showroom_car.py"), str(output), str(registered), "--scale", str(args.scale))
+    run(str(tools / "build_showroom_reference.py"), "--project", str(project), "--scale", str(args.scale))
+
     png_count = len(list(output.glob("*.png")))
     if png_count < 50:
         raise SystemExit(f"runtime car generation produced only {png_count} PNGs")
+    registered_count = len(list(registered.glob("*.png")))
+    if registered_count < 50:
+        raise SystemExit(f"showroom car registration produced only {registered_count} PNGs")
+
     installed = 0
     if args.install_scene:
         installed = install_car_scene(project, manifest)
         if installed < 10:
             raise SystemExit(f"runtime car scene installed only {installed} layers")
-    message = f"prepared {png_count} runtime car textures and {showroom_count} original showroom assets"
+    message = f"prepared {png_count} runtime car textures, {registered_count} stage-registered showroom car textures and {showroom_count} positioned original showroom layers"
     if args.install_scene:
         message += f"; installed {installed} composable car layers"
     print(message)

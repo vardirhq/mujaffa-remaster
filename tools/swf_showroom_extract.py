@@ -9,13 +9,15 @@ from pathlib import Path
 
 from swf_car_extract import Movie
 
-# The manual reference is the VERKSTED/workshop screen. In the SWF that is main
-# timeline frame 722 (`køb`), not frame 730 (`showroom`). Using the showroom
-# objects was the reason our car, Mujaffa and props were all visibly misplaced.
+# Canonical VERKSTED state: main timeline frame 722 (`køb`).
 WORKSHOP = {
     "room": {"character": 867, "frame": 1, "matrix": (1.0, 0.0, 0.0, 1.0, 0.0, 0.0)},
     "mujaffa": {"character": 869, "frame": 1, "matrix": (0.5999908447265625, 0.0, 0.0, 0.5999908447265625, 426.95, 175.7)},
     "panel": {"character": 383, "frame": 1, "matrix": (0.881744384765625, 0.0, 0.0, 0.881744384765625, 78.5, 288.0)},
+    # Character 1 is the actual hand-drawn MUJAFFA SPILLET logo. The previous
+    # workshop chrome approximated it with italic text, which was both ugly and
+    # incorrectly overlapped with the workshop title.
+    "logo": {"character": 1, "frame": 1, "matrix": (0.3799896240234375, 0.0, 0.0, 0.3799896240234375, 72.9, 47.85)},
 }
 
 
@@ -95,8 +97,6 @@ def main() -> None:
     art = json.loads((args.reference_art / "manifest.json").read_text(encoding="utf-8"))
     items = {item["character_id"]: item for item in art["items"]}
     outputs = {}
-    # Preserve existing filenames because the runtime installer already consumes
-    # showroom-*.png. Their contents are now the canonical workshop state.
     for name, spec in WORKSHOP.items():
         outputs[name] = render_layer(movie, args.reference_art, items, spec, f"showroom-{name}", args.out, args.scale)
         if outputs[name]["unresolved"]:

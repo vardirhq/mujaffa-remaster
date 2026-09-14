@@ -33,6 +33,12 @@ jobs:
           mujaffa_3juni_2003.swf
           --out analysis/swf-actions.json
 
+      - name: Recover simple variable flow
+        run: >-
+          python tools/swf_variables.py
+          mujaffa_3juni_2003.swf
+          --out analysis/swf-variables.json
+
       - name: Upload reference reports
         uses: actions/upload-artifact@v4
         with:

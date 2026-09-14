@@ -26,11 +26,14 @@ def ui_image(entity_id,name,parent,texture,position,scale,anchor="center",layer=
     if button_label is not None:c["sindri.ui.button"]={"label":button_label}
     return {"id":entity_id,"name":name,"parent":parent,"disabled":disabled,"transform_3d":transform(position,scale),"components":c}
 
-def world_image(entity_id,name,texture,position=(0,0,-4.6),scale=(10.0,9.0,1.0),layer=-6):
+def world_image(entity_id,name,texture,layer):
+    # swf_showroom_extract emits a transparent 500x500 PNG using the original
+    # Flash stage registration. A 10x10 world sprite therefore maps exactly to
+    # the orthographic 500x500 reference stage with no hand-tuned offsets.
     return {
         "id":entity_id,
         "name":name,
-        "transform_3d":transform(position,scale),
+        "transform_3d":transform((0.0,0.0,-4.0),(10.0,10.0,1.0)),
         "components":{
             "sindri.sprite":{"texture":texture,"tint":[1,1,1,1],"layer":layer},
             "sindri.tags":{"tags":["garage-art","original-swf-art"]},
@@ -44,20 +47,17 @@ def main():
     for key,label in CATEGORIES:
         make_label(art,f"category-{key}",label,"#66d9c0",480,150);make_label(art,f"current-{key}",label,"#e5b45f",520,140)
 
-    # The previous pass invented a generic modern garage around the original
-    # BMW. Remove that scaffolding. The canonical room is SWF character 934,
-    # present at the original `showroom` label on main timeline frame 730.
     prefixes=("garage-ui-mobile-category-","garage-ui-mobile-prev","garage-ui-mobile-next","garage-polish-")
     scene["entities"]=[e for e in scene["entities"] if not str(e.get("id","")).startswith(prefixes)]
-    scene["entities"].append(world_image(
-        "garage-polish-original-showroom",
-        "Original Mujaffa Showroom",
-        "assets/generated/showroom/original-showroom-background.png",
-        (0.0,0.35,-4.6),
-        (10.8,9.7,1.0),
-        -6,
-    ))
+    scene["entities"].extend([
+        world_image("garage-polish-original-showroom","Original Mujaffa Showroom","assets/generated/showroom/showroom-room.png",-6),
+        world_image("garage-polish-original-mujaffa","Original Showroom Mujaffa","assets/generated/showroom/showroom-mujaffa.png",5),
+        world_image("garage-polish-original-panel","Original Showroom Control Panel","assets/generated/showroom/showroom-panel.png",20),
+    ])
 
+    # These remain temporary mobile interaction controls. They are intentionally
+    # kept separate from the original-world art so the next parity passes can
+    # replace their visuals without touching customization state or car logic.
     tex=lambda n:f"assets/generated/garage-ui/{n}.png"
     scene["entities"].extend([
         ui_image("garage-polish-mobile-title","Mobile Garage Title","garage-ui-mobile",tex("garage"),(-0.04,0.88,0),(0.58,0.105,1),"top",125),
@@ -74,5 +74,5 @@ def main():
         scene["entities"].append(ui_image(f"garage-ui-mobile-category-{key}",f"Mobile Category {label}","garage-polish-mobile-drawer",tex(f"category-{key}"),(x,y,0),(0.43,0.145,1),"bottom",134,label))
     scene["entities"].append({"id":"garage-polish-controller","name":"Garage Polish Controller","transform_3d":transform(),"components":{"sindri.script":{"source":"scripts/garage_polish.decay","script":"GaragePolish","properties":{},"enabled":True}}})
     scene_path.write_text(json.dumps(scene,indent=2,ensure_ascii=False)+"\n",encoding="utf-8")
-    print("polished garage using original SWF showroom artwork and responsive controls")
+    print("polished garage with registered original showroom, Mujaffa and control panel layers")
 if __name__=="__main__":main()

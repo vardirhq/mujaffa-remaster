@@ -12,11 +12,12 @@ from swf_car_extract import IDENT, Movie
 CANVAS = (0.0, 0.0, 500.0, 500.0)
 
 # Main-timeline frame 730 (`showroom`) placements recovered by swf_scene_map.py.
-# Mujaffa (869) first appears at frame 721 and has an 8-frame timeline, so
-# frame 730 corresponds to local frame 2 when allowed to advance normally.
+# The manual original-game reference confirms that the visible workshop pose is
+# the fully coloured first frame of Mujaffa's presentation sprite, not the
+# line-art second frame we previously advanced to heuristically.
 SHOWROOM = {
     "room": {"character": 934, "frame": 1, "matrix": (1.0, 0.0, 0.0, 1.0, 0.0, 0.0)},
-    "mujaffa": {"character": 869, "frame": 2, "matrix": (0.5999908447265625, 0.0, 0.0, 0.5999908447265625, 352.95, 157.7)},
+    "mujaffa": {"character": 869, "frame": 1, "matrix": (0.5999908447265625, 0.0, 0.0, 0.5999908447265625, 352.95, 157.7)},
     "panel": {"character": 279, "frame": 1, "matrix": (1.0, 0.0, 0.0, 1.07794189453125, 200.9, 404.35)},
 }
 
@@ -109,7 +110,7 @@ def main() -> None:
             "label": "showroom",
             "canvas": [500, 500],
             "outputs": outputs,
-            "note": "Every PNG uses the original 500x500 stage registration and can be stacked at one origin.",
+            "note": "Every PNG uses the original 500x500 stage registration and can be stacked at one origin. Mujaffa uses the coloured workshop pose confirmed by the original-game reference capture.",
         }, indent=2, ensure_ascii=False) + "\n",
         encoding="utf-8",
     )

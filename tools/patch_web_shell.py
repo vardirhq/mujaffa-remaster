@@ -5,18 +5,23 @@ import argparse
 from pathlib import Path
 
 OLD = "canvas { display: block; width: 100vw; height: 100vh; touch-action: none; }"
-NEW = """canvas {
+NEW = """body {
+      display: grid;
+      place-items: center;
+      min-height: 100dvh;
+      background: #111318;
+    }
+    canvas {
       display: block;
-      width: 100vw;
-      height: 100dvh;
-      max-width: 100vw;
-      max-height: 100dvh;
+      width: min(100vw, 100dvh);
+      height: min(100vw, 100dvh);
+      aspect-ratio: 1 / 1;
       touch-action: none;
     }"""
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Make the exported Mujaffa canvas follow the actual responsive viewport")
+    parser = argparse.ArgumentParser(description="Keep Mujaffa's original square stage intact on every viewport")
     parser.add_argument("index", type=Path)
     args = parser.parse_args()
 

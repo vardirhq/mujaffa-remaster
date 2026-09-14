@@ -1,0 +1,120 @@
+name: Mujaffa Pages
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: mujaffa-pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build Mujaffa web export
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out Mujaffa Remaster
+        uses: actions/checkout@v4
+        with:
+          path: mujaffa
+
+      - name: Read pinned Sindri revision
+        id: engine
+        shell: bash
+        run: echo "ref=$(tr -d '\r\n' < mujaffa/.sindri-engine)" >> "$GITHUB_OUTPUT"
+
+      - name: Check out pinned Sindri
+        uses: actions/checkout@v4
+        with:
+          repository: vardirhq/sindri2
+          ref: ${{ steps.engine.outputs.ref }}
+          path: sindri2
+
+      - name: Install Sindri Rust toolchain
+        uses: dtolnay/rust-toolchain@1.95.0
+        with:
+          targets: wasm32-unknown-unknown
+
+      - name: Install Linux build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libasound2-dev
+
+      - name: Cache Sindri build artifacts
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: sindri2 -> target
+          key: mujaffa-pages-${{ steps.engine.outputs.ref }}
+
+      - name: Install wasm-pack
+        uses: taiki-e/install-action@v2
+        with:
+          tool: wasm-pack@0.13.1
+
+      - name: Build Sindri browser host
+        working-directory: sindri2
+        run: wasm-pack build game --target web --release --out-dir pkg
+
+      - name: Export Mujaffa project
+        working-directory: sindri2
+        run: >-
+          cargo run --quiet --package sindri-export --bin sindri-export --
+          ../mujaffa
+          target/mujaffa-pages
+          --base /mujaffa-remaster/
+          --build-id "${GITHUB_SHA:0:7}"
+
+      - name: Copy browser host into export
+        working-directory: sindri2
+        run: |
+          mkdir -p target/mujaffa-pages/pkg
+          cp -R game/pkg/. target/mujaffa-pages/pkg/
+          touch target/mujaffa-pages/.nojekyll
+
+      - name: Verify Pages payload
+        working-directory: sindri2
+        shell: bash
+        run: |
+          test -f target/mujaffa-pages/index.html
+          test -f target/mujaffa-pages/assets/sindri.manifest.json
+          test -f target/mujaffa-pages/pkg/sindri_gather.js
+          test -f target/mujaffa-pages/pkg/sindri_gather_bg.wasm
+          grep -q '"kind": "scene"' target/mujaffa-pages/assets/sindri.manifest.json
+          grep -q '"kind": "script"' target/mujaffa-pages/assets/sindri.manifest.json
+          if find target/mujaffa-pages -name '*.swf' -print -quit | grep -q .; then
+            echo 'Reference SWF leaked into the Pages payload.' >&2
+            exit 1
+          fi
+
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v6
+        if: github.event_name != 'pull_request'
+        with:
+          enablement: true
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v5
+        if: github.event_name != 'pull_request'
+        with:
+          path: sindri2/target/mujaffa-pages
+
+  deploy:
+    name: Deploy Mujaffa
+    needs: build
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Publish GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v5

@@ -17,7 +17,264 @@
           "far": 100.0,
           "near": 0.1,
           "projection": "orthographic",
-          "vertical_size": 10.0
+          "vertical_size": 10.0,
+          "fit": "shorter"
+        }
+      }
+    },
+    {
+      "id": "backdrop",
+      "name": "Backdrop",
+      "transform_3d": {
+        "position": [0.0, 0.0, -5.0],
+        "rotation": [0.0, 0.0, 0.0, 1.0],
+        "scale": [12.0, 8.0, 1.0]
+      },
+      "components": {
+        "sindri.shape": {
+          "kind": "rect",
+          "count": 4.0,
+          "fill": [0.035, 0.035, 0.045, 1.0],
+          "stroke": [0.0, 0.0, 0.0, 0.0],
+          "stroke_width": 0.0,
+          "corner_radius": 0.0,
+          "dashes": 0.0,
+          "dash_duty": 0.5,
+          "sweep_start": 0.0,
+          "sweep_turns": 1.0,
+          "blend": "over",
+          "layer": -10
+        }
+      }
+    },
+    {
+      "id": "route-1",
+      "name": "Route 1",
+      "transform_3d": {
+        "position": [-3.0, 2.0, 0.0],
+        "rotation": [0.0, 0.0, 0.0, 1.0],
+        "scale": [1.35, 0.42, 1.0]
+      },
+      "components": {
+        "sindri.shape": {
+          "kind": "rect",
+          "count": 4.0,
+          "fill": [0.18, 0.55, 0.92, 1.0],
+          "stroke": [0.75, 0.9, 1.0, 1.0],
+          "stroke_width": 0.08,
+          "corner_radius": 0.1,
+          "dashes": 0.0,
+          "dash_duty": 0.5,
+          "sweep_start": 0.0,
+          "sweep_turns": 1.0,
+          "blend": "over",
+          "layer": 10
+        }
+      }
+    },
+    {
+      "id": "route-2",
+      "name": "Route 2",
+      "transform_3d": {
+        "position": [0.0, 2.0, 0.0],
+        "rotation": [0.0, 0.0, 0.0, 1.0],
+        "scale": [1.35, 0.42, 1.0]
+      },
+      "components": {
+        "sindri.shape": {
+          "kind": "rect",
+          "count": 4.0,
+          "fill": [0.52, 0.25, 0.78, 1.0],
+          "stroke": [0.9, 0.78, 1.0, 1.0],
+          "stroke_width": 0.08,
+          "corner_radius": 0.1,
+          "dashes": 0.0,
+          "dash_duty": 0.5,
+          "sweep_start": 0.0,
+          "sweep_turns": 1.0,
+          "blend": "over",
+          "layer": 10
+        }
+      }
+    },
+    {
+      "id": "route-3",
+      "name": "Route 3",
+      "transform_3d": {
+        "position": [3.0, 2.0, 0.0],
+        "rotation": [0.0, 0.0, 0.0, 1.0],
+        "scale": [1.35, 0.42, 1.0]
+      },
+      "components": {
+        "sindri.shape": {
+          "kind": "rect",
+          "count": 4.0,
+          "fill": [0.16, 0.72, 0.45, 1.0],
+          "stroke": [0.72, 1.0, 0.86, 1.0],
+          "stroke_width": 0.08,
+          "corner_radius": 0.1,
+          "dashes": 0.0,
+          "dash_duty": 0.5,
+          "sweep_start": 0.0,
+          "sweep_turns": 1.0,
+          "blend": "over",
+          "layer": 10
+        }
+      }
+    },
+    {
+      "id": "parity-car",
+      "name": "Parity Car",
+      "disabled": true,
+      "transform_3d": {
+        "position": [-3.0, -0.3, 0.0],
+        "rotation": [0.0, 0.0, 0.0, 1.0],
+        "scale": [1.5, 0.65, 1.0]
+      },
+      "components": {
+        "sindri.shape": {
+          "kind": "rect",
+          "count": 4.0,
+          "fill": [0.95, 0.72, 0.16, 1.0],
+          "stroke": [1.0, 0.93, 0.55, 1.0],
+          "stroke_width": 0.1,
+          "corner_radius": 0.12,
+          "dashes": 0.0,
+          "dash_duty": 0.5,
+          "sweep_start": 0.0,
+          "sweep_turns": 1.0,
+          "blend": "over",
+          "layer": 15
+        }
+      }
+    },
+    {
+      "id": "status-1",
+      "name": "Status 1",
+      "disabled": true,
+      "transform_3d": {
+        "position": [-2.4, -3.0, 0.0],
+        "rotation": [0.0, 0.0, 0.0, 1.0],
+        "scale": [0.35, 0.35, 1.0]
+      },
+      "components": {
+        "sindri.shape": {
+          "kind": "ellipse",
+          "count": 24.0,
+          "fill": [0.96, 0.3, 0.24, 1.0],
+          "stroke": [1.0, 0.75, 0.72, 1.0],
+          "stroke_width": 0.08,
+          "corner_radius": 0.0,
+          "dashes": 0.0,
+          "dash_duty": 0.5,
+          "sweep_start": 0.0,
+          "sweep_turns": 1.0,
+          "blend": "over",
+          "layer": 20
+        }
+      }
+    },
+    {
+      "id": "status-2",
+      "name": "Status 2",
+      "disabled": true,
+      "transform_3d": {
+        "position": [-1.2, -3.0, 0.0],
+        "rotation": [0.0, 0.0, 0.0, 1.0],
+        "scale": [0.35, 0.35, 1.0]
+      },
+      "components": {
+        "sindri.shape": {
+          "kind": "ellipse",
+          "count": 24.0,
+          "fill": [0.98, 0.55, 0.2, 1.0],
+          "stroke": [1.0, 0.85, 0.55, 1.0],
+          "stroke_width": 0.08,
+          "corner_radius": 0.0,
+          "dashes": 0.0,
+          "dash_duty": 0.5,
+          "sweep_start": 0.0,
+          "sweep_turns": 1.0,
+          "blend": "over",
+          "layer": 20
+        }
+      }
+    },
+    {
+      "id": "status-3",
+      "name": "Status 3",
+      "disabled": true,
+      "transform_3d": {
+        "position": [0.0, -3.0, 0.0],
+        "rotation": [0.0, 0.0, 0.0, 1.0],
+        "scale": [0.35, 0.35, 1.0]
+      },
+      "components": {
+        "sindri.shape": {
+          "kind": "ellipse",
+          "count": 24.0,
+          "fill": [0.96, 0.83, 0.2, 1.0],
+          "stroke": [1.0, 0.95, 0.58, 1.0],
+          "stroke_width": 0.08,
+          "corner_radius": 0.0,
+          "dashes": 0.0,
+          "dash_duty": 0.5,
+          "sweep_start": 0.0,
+          "sweep_turns": 1.0,
+          "blend": "over",
+          "layer": 20
+        }
+      }
+    },
+    {
+      "id": "status-4",
+      "name": "Status 4",
+      "disabled": true,
+      "transform_3d": {
+        "position": [1.2, -3.0, 0.0],
+        "rotation": [0.0, 0.0, 0.0, 1.0],
+        "scale": [0.35, 0.35, 1.0]
+      },
+      "components": {
+        "sindri.shape": {
+          "kind": "ellipse",
+          "count": 24.0,
+          "fill": [0.32, 0.84, 0.4, 1.0],
+          "stroke": [0.75, 1.0, 0.78, 1.0],
+          "stroke_width": 0.08,
+          "corner_radius": 0.0,
+          "dashes": 0.0,
+          "dash_duty": 0.5,
+          "sweep_start": 0.0,
+          "sweep_turns": 1.0,
+          "blend": "over",
+          "layer": 20
+        }
+      }
+    },
+    {
+      "id": "status-5",
+      "name": "Status 5",
+      "disabled": true,
+      "transform_3d": {
+        "position": [2.4, -3.0, 0.0],
+        "rotation": [0.0, 0.0, 0.0, 1.0],
+        "scale": [0.35, 0.35, 1.0]
+      },
+      "components": {
+        "sindri.shape": {
+          "kind": "ellipse",
+          "count": 24.0,
+          "fill": [0.18, 0.7, 0.95, 1.0],
+          "stroke": [0.7, 0.92, 1.0, 1.0],
+          "stroke_width": 0.08,
+          "corner_radius": 0.0,
+          "dashes": 0.0,
+          "dash_duty": 0.5,
+          "sweep_start": 0.0,
+          "sweep_turns": 1.0,
+          "blend": "over",
+          "layer": 20
         }
       }
     },
@@ -34,10 +291,7 @@
           "source": "scripts/game_state.decay",
           "script": "GameState",
           "properties": {
-            "initial_cool": 0.0,
-            "initial_energi": 0.0,
-            "initial_penge": 0.0,
-            "initial_respect": 0.0
+            "parity_seed": 2003.0
           },
           "enabled": true
         }

@@ -2,9 +2,9 @@
 """Recover simple variable reads/writes from main-timeline ActionScript 1/2.
 
 This is intentionally a symbolic stack walker, not a Flash VM. It resolves
-ActionPush constants, follows simple arithmetic/comparison expressions and
-records SetVariable/GetVariable operations. Unsupported actions invalidate the
-symbolic stack rather than pretending we understood them.
+ActionPush constants, follows simple arithmetic/comparison/boolean expressions
+and records SetVariable/GetVariable operations. Unsupported actions invalidate
+the symbolic stack rather than pretending we understood them.
 """
 
 from __future__ import annotations
@@ -133,6 +133,10 @@ def analyze(payload: bytes) -> dict[str, object]:
             binary(stack, "*")
         elif code == 0x0D:
             binary(stack, "/")
+        elif code == 0x10:
+            binary(stack, "&&")
+        elif code == 0x11:
+            binary(stack, "||")
         elif code == 0x21:
             binary(stack, "++")
         elif code in (0x0E, 0x13, 0x49):

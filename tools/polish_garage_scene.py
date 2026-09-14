@@ -26,8 +26,16 @@ def ui_image(entity_id,name,parent,texture,position,scale,anchor="center",layer=
     if button_label is not None:c["sindri.ui.button"]={"label":button_label}
     return {"id":entity_id,"name":name,"parent":parent,"disabled":disabled,"transform_3d":transform(position,scale),"components":c}
 
-def world_shape(entity_id,name,position,scale,fill,layer=-4):
-    return {"id":entity_id,"name":name,"transform_3d":transform(position,scale),"components":{"sindri.shape":{"kind":"rect","fill":fill,"layer":layer}}}
+def world_image(entity_id,name,texture,position=(0,0,-4.6),scale=(10.0,9.0,1.0),layer=-6):
+    return {
+        "id":entity_id,
+        "name":name,
+        "transform_3d":transform(position,scale),
+        "components":{
+            "sindri.sprite":{"texture":texture,"tint":[1,1,1,1],"layer":layer},
+            "sindri.tags":{"tags":["garage-art","original-swf-art"]},
+        },
+    }
 
 def main():
     ap=argparse.ArgumentParser();ap.add_argument("--project",type=Path,default=Path("."));args=ap.parse_args()
@@ -35,17 +43,21 @@ def main():
     make_label(art,"menu","MENU","#e5b45f",360,150);make_label(art,"previous","‹  PREVIOUS","#66d9c0",480,160);make_label(art,"next","NEXT  ›","#66d9c0",480,160);make_label(art,"customize","CUSTOMIZE","#e5b45f",560,150);make_label(art,"garage","MUJAFFA GARAGE","#66d9c0",620,150)
     for key,label in CATEGORIES:
         make_label(art,f"category-{key}",label,"#66d9c0",480,150);make_label(art,f"current-{key}",label,"#e5b45f",520,140)
+
+    # The previous pass invented a generic modern garage around the original
+    # BMW. Remove that scaffolding. The canonical room is SWF character 934,
+    # present at the original `showroom` label on main timeline frame 730.
     prefixes=("garage-ui-mobile-category-","garage-ui-mobile-prev","garage-ui-mobile-next","garage-polish-")
     scene["entities"]=[e for e in scene["entities"] if not str(e.get("id","")).startswith(prefixes)]
-    scene["entities"].extend([
-        world_shape("garage-polish-floor","Garage Floor",(0,-2.8,-4.5),(16,3.4,1),[0.10,0.105,0.11,1],-5),
-        world_shape("garage-polish-platform","Garage Car Platform",(0,-1.0,-3.5),(6.8,0.28,1),[0.22,0.23,0.24,1],-3),
-        world_shape("garage-polish-platform-accent","Garage Platform Accent",(0,-0.82,-3.4),(6.1,0.06,1),[0.18,0.70,0.60,1],-2),
-        world_shape("garage-polish-wall-band","Garage Wall Band",(0,2.6,-4.4),(18,0.16,1),[0.82,0.52,0.18,1],-4),
-        world_shape("garage-polish-pillar-left","Garage Left Pillar",(-5.2,0,-4.2),(0.34,10,1),[0.14,0.145,0.15,1],-3),
-        world_shape("garage-polish-pillar-right","Garage Right Pillar",(5.2,0,-4.2),(0.34,10,1),[0.14,0.145,0.15,1],-3),
-        world_shape("garage-polish-light-left","Garage Left Light",(-2.4,3.5,-3.8),(3.2,0.10,1),[0.78,0.84,0.82,1],-2),
-        world_shape("garage-polish-light-right","Garage Right Light",(2.4,3.5,-3.8),(3.2,0.10,1),[0.78,0.84,0.82,1],-2),])
+    scene["entities"].append(world_image(
+        "garage-polish-original-showroom",
+        "Original Mujaffa Showroom",
+        "assets/generated/showroom/original-showroom-background.png",
+        (0.0,0.35,-4.6),
+        (10.8,9.7,1.0),
+        -6,
+    ))
+
     tex=lambda n:f"assets/generated/garage-ui/{n}.png"
     scene["entities"].extend([
         ui_image("garage-polish-mobile-title","Mobile Garage Title","garage-ui-mobile",tex("garage"),(-0.04,0.88,0),(0.58,0.105,1),"top",125),
@@ -62,5 +74,5 @@ def main():
         scene["entities"].append(ui_image(f"garage-ui-mobile-category-{key}",f"Mobile Category {label}","garage-polish-mobile-drawer",tex(f"category-{key}"),(x,y,0),(0.43,0.145,1),"bottom",134,label))
     scene["entities"].append({"id":"garage-polish-controller","name":"Garage Polish Controller","transform_3d":transform(),"components":{"sindri.script":{"source":"scripts/garage_polish.decay","script":"GaragePolish","properties":{},"enabled":True}}})
     scene_path.write_text(json.dumps(scene,indent=2,ensure_ascii=False)+"\n",encoding="utf-8")
-    print("polished garage with labeled mobile sheet, category drawer, and showroom graphics")
+    print("polished garage using original SWF showroom artwork and responsive controls")
 if __name__=="__main__":main()

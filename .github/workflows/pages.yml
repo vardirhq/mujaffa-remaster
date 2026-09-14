@@ -26,64 +26,52 @@ jobs:
         uses: actions/checkout@v4
         with:
           path: mujaffa
-
       - name: Read pinned Sindri revision
         id: engine
         shell: bash
         run: echo "ref=$(tr -d '\r\n' < mujaffa/.sindri-engine)" >> "$GITHUB_OUTPUT"
-
       - name: Check out pinned Sindri
         uses: actions/checkout@v4
         with:
           repository: vardirhq/sindri2
           ref: ${{ steps.engine.outputs.ref }}
           path: sindri2
-
       - name: Install Sindri Rust toolchain
         uses: dtolnay/rust-toolchain@1.95.0
         with:
           targets: wasm32-unknown-unknown
-
       - name: Install Linux and browser dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y libasound2-dev libvulkan1 mesa-vulkan-drivers
           python -m pip install --disable-pip-version-check cairosvg
-
       - name: Generate layered Mujaffa car
-        run: >-
-          python mujaffa/tools/prepare_runtime_art.py
-          --project mujaffa
-          --scale 4
-          --install-scene
-
+        run: python mujaffa/tools/prepare_runtime_art.py --project mujaffa --scale 4 --install-scene
       - name: Install responsive garage scene
         run: python mujaffa/tools/install_garage_scene.py --project mujaffa
-
+      - name: Polish mobile garage and showroom
+        run: python mujaffa/tools/polish_garage_scene.py --project mujaffa
       - name: Verify garage source
         shell: bash
         run: |
           test -f mujaffa/assets/generated/car/layers-manifest.json
           test -f mujaffa/assets/generated/car/paint-tintable.png
-          test -f mujaffa/assets/generated/car/daek-1.png
-          test -f mujaffa/assets/generated/car/hjulkapsel-1-standard.png
+          test -f mujaffa/assets/generated/garage-ui/category-spoiler.png
+          test -f mujaffa/assets/generated/garage-ui/garage.png
           test "$(find mujaffa/assets/generated/car -name '*.png' | wc -l)" -ge 50
           grep -q '"name": "Garage Desktop UI"' mujaffa/main.scene.json
-          grep -q '"name": "Garage Mobile UI"' mujaffa/main.scene.json
+          grep -q '"name": "Mobile Category Drawer"' mujaffa/main.scene.json
           grep -q 'scripts/garage.decay' mujaffa/main.scene.json
-          grep -q 'Garage Car spoiler-5' mujaffa/main.scene.json
-
+          grep -q 'scripts/garage_polish.decay' mujaffa/main.scene.json
       - name: Cache Sindri build artifacts
         uses: Swatinem/rust-cache@v2
         with:
           workspaces: sindri2 -> target
           key: mujaffa-pages-${{ steps.engine.outputs.ref }}
-
       - name: Install wasm-pack
         uses: taiki-e/install-action@v2
         with:
           tool: wasm-pack@0.13.1
-
       - name: Cache browser tooling
         uses: actions/cache@v4
         with:
@@ -91,39 +79,26 @@ jobs:
             ~/.cache/ms-playwright
             sindri2/scripts/browser/node_modules
           key: mujaffa-playwright-${{ runner.os }}-${{ steps.engine.outputs.ref }}
-
       - name: Install browser tooling
         working-directory: sindri2
         run: |
           npm install --prefix scripts/browser
           npx --prefix scripts/browser playwright install-deps chromium
           npx --prefix scripts/browser playwright install chromium
-
       - name: Build Sindri browser host
         working-directory: sindri2
         run: wasm-pack build game --target web --release --out-dir pkg
-
       - name: Export Mujaffa project
         working-directory: sindri2
-        run: >-
-          cargo run --quiet --package sindri-export --bin sindri-export --
-          ../mujaffa
-          target/mujaffa-pages
-          --base /mujaffa-remaster/
-          --build-id "${GITHUB_SHA:0:7}"
-
+        run: cargo run --quiet --package sindri-export --bin sindri-export -- ../mujaffa target/mujaffa-pages --base /mujaffa-remaster/ --build-id "${GITHUB_SHA:0:7}"
       - name: Expose actual viewport to responsive garage
-        run: >-
-          python mujaffa/tools/patch_web_shell.py
-          sindri2/target/mujaffa-pages/index.html
-
+        run: python mujaffa/tools/patch_web_shell.py sindri2/target/mujaffa-pages/index.html
       - name: Copy browser host into export
         working-directory: sindri2
         run: |
           mkdir -p target/mujaffa-pages/pkg
           cp -R game/pkg/. target/mujaffa-pages/pkg/
           touch target/mujaffa-pages/.nojekyll
-
       - name: Verify Pages payload
         working-directory: sindri2
         shell: bash
@@ -136,21 +111,12 @@ jobs:
           grep -q '"kind": "script"' target/mujaffa-pages/assets/sindri.manifest.json
           grep -q '"kind": "texture"' target/mujaffa-pages/assets/sindri.manifest.json
           grep -q 'height: 100dvh' target/mujaffa-pages/index.html
-          if find target/mujaffa-pages -name '*.swf' -print -quit | grep -q .; then
-            echo 'Reference SWF leaked into the Pages payload.' >&2
-            exit 1
-          fi
-
+          if find target/mujaffa-pages -name '*.swf' -print -quit | grep -q .; then echo 'Reference SWF leaked into the Pages payload.' >&2; exit 1; fi
       - name: Smoke Mujaffa in Chromium
         working-directory: sindri2
         run: |
           mkdir -p target/render-artifacts
-          SINDRI_EXPECT_ASSETS=1 \
-          SINDRI_EXPECT_ASSET_KINDS=scene,script,texture \
-          SINDRI_BASE_PATH=/mujaffa-remaster/ \
-            node scripts/browser/smoke.mjs target/mujaffa-pages \
-            target/render-artifacts/mujaffa.png
-
+          SINDRI_EXPECT_ASSETS=1 SINDRI_EXPECT_ASSET_KINDS=scene,script,texture SINDRI_BASE_PATH=/mujaffa-remaster/ node scripts/browser/smoke.mjs target/mujaffa-pages target/render-artifacts/mujaffa.png
       - name: Upload browser capture
         if: always()
         uses: actions/upload-artifact@v4
@@ -159,19 +125,16 @@ jobs:
           path: sindri2/target/render-artifacts/mujaffa.png
           if-no-files-found: warn
           retention-days: 14
-
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v6
         if: github.event_name != 'pull_request'
         with:
           enablement: true
-
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v5
         if: github.event_name != 'pull_request'
         with:
           path: sindri2/target/mujaffa-pages
-
   deploy:
     name: Deploy Mujaffa
     needs: build

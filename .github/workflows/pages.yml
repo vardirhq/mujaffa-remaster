@@ -79,7 +79,7 @@ jobs:
           grep -q '"name": "Original Workshop Mujaffa"' mujaffa/main.scene.json
           grep -q '"name": "Original Workshop Chrome"' mujaffa/main.scene.json
           grep -q '"name": "Workshop State"' mujaffa/main.scene.json
-          test "$(grep -c '"id": "workshop-category-[^"]*"' mujaffa/main.scene.json)" -eq 13
+          python -c 'import json; entities=json.load(open("mujaffa/main.scene.json"))["entities"]; buttons=[e for e in entities if e.get("id", "").startswith("workshop-category-") and e.get("id") != "workshop-category-controller"]; assert len(buttons) == 13, f"expected 13 workshop category buttons, got {len(buttons)}"'
           if grep -q 'Mobile Category Drawer' mujaffa/main.scene.json; then echo 'Responsive mobile drawer leaked into fixed workshop.' >&2; exit 1; fi
           if grep -q 'scripts/garage_polish.decay' mujaffa/main.scene.json; then echo 'Legacy mobile polish controller leaked into fixed workshop.' >&2; exit 1; fi
       - name: Cache Sindri build artifacts

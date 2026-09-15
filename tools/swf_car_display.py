@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Display-list helpers that preserve Flash CXFORMWITHALPHA opacity."""
+"""Display-list helpers that preserve Flash CXFORMWITHALPHA transforms."""
 from __future__ import annotations
 import struct
 import swf_car_extract as base
@@ -7,6 +7,7 @@ import swf_car_extract as base
 IDENT = base.IDENT
 mul = base.mul
 transform_bounds = base.transform_bounds
+IDENT_CX = {"mult": [256, 256, 256, 256], "add": [0, 0, 0, 0]}
 
 
 def read_cxform_alpha(data: bytes, offset: int):
@@ -34,21 +35,42 @@ def place2(payload: bytes):
 base.place2 = place2
 
 
-def combine_alpha(parent: float, cxform) -> float:
-    if not cxform: return parent
-    mult = cxform["mult"][3] / 256.0
-    add = cxform["add"][3]
-    return max(0.0, min(1.0, parent * mult + add / 255.0))
+def combine_cxform(parent, child):
+    """Compose SWF colour transforms in display-tree order.
+
+    Each channel is C' = C * mult/256 + add. Applying child then parent gives
+    a combined multiplier and an additive term scaled by the parent multiplier.
+    Keep fixed-point-ish values until SVG emission so nested transforms retain
+    the same semantics as Flash.
+    """
+    if not parent: parent = IDENT_CX
+    if not child: return {"mult": list(parent["mult"]), "add": list(parent["add"])}
+    pm, pa = parent["mult"], parent["add"]
+    cm, ca = child["mult"], child["add"]
+    return {
+        "mult": [pm[i] * cm[i] / 256.0 for i in range(4)],
+        "add": [pa[i] + ca[i] * pm[i] / 256.0 for i in range(4)],
+    }
+
+
+def svg_filter_values(cxform):
+    """Return normalized slope/intercept pairs for feComponentTransfer."""
+    cxform = cxform or IDENT_CX
+    return [
+        (cxform["mult"][i] / 256.0, cxform["add"][i] / 255.0)
+        for i in range(4)
+    ]
 
 
 class Movie(base.Movie):
     def leaves(self, cid: int, frame: int = 1, matrix=IDENT, path=(), overrides=None,
-               skip_names=frozenset(), only_name=None, seen=(), masks=(), alpha=1.0):
+               skip_names=frozenset(), only_name=None, seen=(), masks=(), cxform=None):
         overrides = overrides or {}
+        cxform = cxform or IDENT_CX
         if cid in seen: return []
         kind = self.types.get(cid)
         if kind in base.SHAPE_TAGS:
-            return [{"shape": cid, "matrix": matrix, "path": path, "masks": masks, "alpha": alpha}]
+            return [{"shape": cid, "matrix": matrix, "path": path, "masks": masks, "cxform": cxform}]
         if kind != 39 or cid not in self.sprites: return []
         out = []; display = self.display(cid, overrides.get(cid, frame))
         local_masks = [i for i in display if "clip_depth" in i and i.get("character") is not None]
@@ -58,12 +80,12 @@ class Movie(base.Movie):
             name = item.get("name")
             if name in skip_names or (only_name is not None and name != only_name): continue
             child_matrix = mul(matrix, item.get("matrix", IDENT))
-            child_alpha = combine_alpha(alpha, item.get("cxform"))
+            child_cx = combine_cxform(cxform, item.get("cxform"))
             active = list(masks)
             for mask_item in local_masks:
                 if mask_item["depth"] < item["depth"] <= mask_item["clip_depth"]:
                     active.append((mask_item["character"], mul(matrix, mask_item.get("matrix", IDENT))))
             child_path = path + ((name if name else f'#{item["depth"]}:{child}'),)
             out.extend(self.leaves(child, 1, child_matrix, child_path, overrides, skip_names,
-                                   None, seen + (cid,), tuple(active), child_alpha))
+                                   None, seen + (cid,), tuple(active), child_cx))
         return out

@@ -1,4 +1,6 @@
-// Decay-safe category router for the fixed workshop.
+// Category router for the fixed original workshop.
+// The selected category is published through Sindri's Game blackboard so every
+// workshop system can react to the same state instead of keeping private copies.
 script WorkshopCategoryController {
     var category: f32 = 0.0;
     var paint: Entity = null;
@@ -14,6 +16,7 @@ script WorkshopCategoryController {
     var trinket: Entity = null;
     var horn: Entity = null;
     var camera: Entity = null;
+    var marker: Entity = null;
 
     fn start() {
         this.paint = World.find("Workshop Category LAKKERING");
@@ -29,21 +32,30 @@ script WorkshopCategoryController {
         this.trinket = World.find("Workshop Category BILNIPS");
         this.horn = World.find("Workshop Category BÅT-HORN");
         this.camera = World.find("Workshop Category BMW CAM");
+        this.marker = World.find("Workshop Category Marker");
+        set_category(0.0);
+    }
+
+    fn set_category(value: f32) {
+        this.category = value;
+        Game.set("workshop.category", value);
+        let marker = this.marker;
+        marker.transform.position.y = 0.5 - (137.0 + 25.0 * value) / 500.0;
     }
 
     fn update(dt: f32) {
-        if Ui.is_pressed(this.paint) { this.category = 0.0; }
-        if Ui.is_pressed(this.audio) { this.category = 1.0; }
-        if Ui.is_pressed(this.spoiler) { this.category = 2.0; }
-        if Ui.is_pressed(this.exhaust) { this.category = 3.0; }
-        if Ui.is_pressed(this.rims) { this.category = 4.0; }
-        if Ui.is_pressed(this.tyres) { this.category = 5.0; }
-        if Ui.is_pressed(this.windows) { this.category = 6.0; }
-        if Ui.is_pressed(this.sunroof) { this.category = 7.0; }
-        if Ui.is_pressed(this.plate) { this.category = 8.0; }
-        if Ui.is_pressed(this.interior) { this.category = 9.0; }
-        if Ui.is_pressed(this.trinket) { this.category = 10.0; }
-        if Ui.is_pressed(this.horn) { this.category = 11.0; }
-        if Ui.is_pressed(this.camera) { this.category = 12.0; }
+        if Ui.is_pressed(this.paint) { set_category(0.0); }
+        if Ui.is_pressed(this.audio) { set_category(1.0); }
+        if Ui.is_pressed(this.spoiler) { set_category(2.0); }
+        if Ui.is_pressed(this.exhaust) { set_category(3.0); }
+        if Ui.is_pressed(this.rims) { set_category(4.0); }
+        if Ui.is_pressed(this.tyres) { set_category(5.0); }
+        if Ui.is_pressed(this.windows) { set_category(6.0); }
+        if Ui.is_pressed(this.sunroof) { set_category(7.0); }
+        if Ui.is_pressed(this.plate) { set_category(8.0); }
+        if Ui.is_pressed(this.interior) { set_category(9.0); }
+        if Ui.is_pressed(this.trinket) { set_category(10.0); }
+        if Ui.is_pressed(this.horn) { set_category(11.0); }
+        if Ui.is_pressed(this.camera) { set_category(12.0); }
     }
 }

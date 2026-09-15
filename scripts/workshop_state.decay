@@ -1,0 +1,37 @@
+// Canonical workshop state for the Mujaffa BMW.
+// Prices and cred are deliberately kept separate from the temporary free-play
+// switch. Free testing must never destroy the recovered economy data.
+script WorkshopState {
+    var free_purchases: bool = true;
+    var money: f32 = 5000.0;
+    var street_cred: f32 = 0.0;
+    var bmw_count: f32 = 1.0;
+    var category: f32 = 0.0;
+    var paint: f32 = 0.0;
+    var audio: f32 = 0.0;
+    var spoiler: f32 = 0.0;
+    var exhaust: f32 = 0.0;
+    var rims: f32 = 0.0;
+    var tyres: f32 = 0.0;
+    var windows: f32 = 0.0;
+    var sunroof: f32 = 0.0;
+    var plate: f32 = 0.0;
+    var interior: f32 = 0.0;
+    var trinket: f32 = 0.0;
+    var horn: f32 = 0.0;
+    var camera: f32 = 0.0;
+    var stripe: f32 = 0.0;
+
+    fn purchase(price: f32, cred: f32) -> bool {
+        if this.free_purchases {
+            this.street_cred = this.street_cred + cred;
+            return true;
+        }
+        if this.money < price { return false; }
+        this.money = this.money - price;
+        this.street_cred = this.street_cred + cred;
+        return true;
+    }
+
+    fn set_category(value: f32) { this.category = value; }
+}

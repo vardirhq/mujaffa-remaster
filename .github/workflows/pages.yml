@@ -44,7 +44,13 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y libasound2-dev libvulkan1 mesa-vulkan-drivers
-          python -m pip install --disable-pip-version-check cairosvg
+          python -m pip install --disable-pip-version-check cairosvg pytest
+      - name: Validate workshop state/catalogue
+        working-directory: mujaffa
+        run: |
+          python tools/workshop_catalog.py
+          python tools/workshop_free_mode_check.py
+          pytest -q tests/test_workshop_catalog.py tests/test_workshop_state_contract.py tests/test_workshop_controller.py tests/test_workshop_interactivity.py
       - name: Generate layered Mujaffa car and showroom art
         run: python mujaffa/tools/prepare_runtime_art.py --project mujaffa --scale 4 --install-scene
       - name: Install composable car layer entities
@@ -53,6 +59,8 @@ jobs:
         run: python mujaffa/tools/install_workshop_parity.py --project mujaffa
       - name: Refine workshop chrome against original capture
         run: python mujaffa/tools/refine_workshop_chrome.py --project mujaffa
+      - name: Install workshop interaction layer
+        run: python mujaffa/tools/install_workshop_interactivity.py --project mujaffa
       - name: Verify workshop source
         shell: bash
         run: |
@@ -68,7 +76,8 @@ jobs:
           grep -q '"name": "Original Workshop Room"' mujaffa/main.scene.json
           grep -q '"name": "Original Workshop Mujaffa"' mujaffa/main.scene.json
           grep -q '"name": "Original Workshop Chrome"' mujaffa/main.scene.json
-          grep -q 'scripts/garage.decay' mujaffa/main.scene.json
+          grep -q '"name": "Workshop State"' mujaffa/main.scene.json
+          test "$(grep -c '"name": "Workshop Category' mujaffa/main.scene.json)" -eq 13
           if grep -q 'Mobile Category Drawer' mujaffa/main.scene.json; then echo 'Responsive mobile drawer leaked into fixed workshop.' >&2; exit 1; fi
           if grep -q 'scripts/garage_polish.decay' mujaffa/main.scene.json; then echo 'Legacy mobile polish controller leaked into fixed workshop.' >&2; exit 1; fi
       - name: Cache Sindri build artifacts

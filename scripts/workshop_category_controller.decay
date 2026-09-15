@@ -1,22 +1,19 @@
 // Category router for the fixed original workshop.
-// The selected category is published through Sindri's Game blackboard so every
-// workshop system can react to the same state instead of keeping private copies.
+// Selection is shared through the Game blackboard and immediately reflected in
+// the visible lower workshop panel.
 script WorkshopCategoryController {
     var category: f32 = 0.0;
-    var paint: Entity = null;
-    var audio: Entity = null;
-    var spoiler: Entity = null;
-    var exhaust: Entity = null;
-    var rims: Entity = null;
-    var tyres: Entity = null;
-    var windows: Entity = null;
-    var sunroof: Entity = null;
-    var plate: Entity = null;
-    var interior: Entity = null;
-    var trinket: Entity = null;
-    var horn: Entity = null;
-    var camera: Entity = null;
-    var marker: Entity = null;
+    var paint: Entity = null; var audio: Entity = null; var spoiler: Entity = null;
+    var exhaust: Entity = null; var rims: Entity = null; var tyres: Entity = null;
+    var windows: Entity = null; var sunroof: Entity = null; var plate: Entity = null;
+    var interior: Entity = null; var trinket: Entity = null; var horn: Entity = null;
+    var camera: Entity = null; var marker: Entity = null;
+    var panel_audio: Entity = null; var panel_spoiler: Entity = null;
+    var panel_exhaust: Entity = null; var panel_rims: Entity = null;
+    var panel_tyres: Entity = null; var panel_windows: Entity = null;
+    var panel_sunroof: Entity = null; var panel_plate: Entity = null;
+    var panel_interior: Entity = null; var panel_trinket: Entity = null;
+    var panel_horn: Entity = null; var panel_camera: Entity = null;
 
     fn start() {
         this.paint = World.find("Workshop Category LAKKERING");
@@ -33,7 +30,34 @@ script WorkshopCategoryController {
         this.horn = World.find("Workshop Category BÅT-HORN");
         this.camera = World.find("Workshop Category BMW CAM");
         this.marker = World.find("Workshop Category Marker");
+        this.panel_audio = World.find("Workshop Panel BILSTEREO");
+        this.panel_spoiler = World.find("Workshop Panel SPOILER");
+        this.panel_exhaust = World.find("Workshop Panel EKSOSANLEGG");
+        this.panel_rims = World.find("Workshop Panel FELGER");
+        this.panel_tyres = World.find("Workshop Panel DEKK");
+        this.panel_windows = World.find("Workshop Panel RUTER");
+        this.panel_sunroof = World.find("Workshop Panel SOLTAK");
+        this.panel_plate = World.find("Workshop Panel NUMMERSKILT");
+        this.panel_interior = World.find("Workshop Panel SETETREKK");
+        this.panel_trinket = World.find("Workshop Panel BILNIPS");
+        this.panel_horn = World.find("Workshop Panel BÅT-HORN");
+        this.panel_camera = World.find("Workshop Panel BMW CAM");
         set_category(0.0);
+    }
+
+    fn refresh_panels() {
+        World.set_active(this.panel_audio, this.category == 1.0);
+        World.set_active(this.panel_spoiler, this.category == 2.0);
+        World.set_active(this.panel_exhaust, this.category == 3.0);
+        World.set_active(this.panel_rims, this.category == 4.0);
+        World.set_active(this.panel_tyres, this.category == 5.0);
+        World.set_active(this.panel_windows, this.category == 6.0);
+        World.set_active(this.panel_sunroof, this.category == 7.0);
+        World.set_active(this.panel_plate, this.category == 8.0);
+        World.set_active(this.panel_interior, this.category == 9.0);
+        World.set_active(this.panel_trinket, this.category == 10.0);
+        World.set_active(this.panel_horn, this.category == 11.0);
+        World.set_active(this.panel_camera, this.category == 12.0);
     }
 
     fn set_category(value: f32) {
@@ -41,6 +65,7 @@ script WorkshopCategoryController {
         Game.set("workshop.category", value);
         let marker = this.marker;
         marker.transform.position.y = 0.5 - (137.0 + 25.0 * value) / 500.0;
+        refresh_panels();
     }
 
     fn update(dt: f32) {

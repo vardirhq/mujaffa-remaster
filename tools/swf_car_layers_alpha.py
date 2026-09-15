@@ -1,5 +1,12 @@
 #!/usr/bin/env python3
-"""Build the workshop car with the original display state and full CXFORM support."""
+"""Build the workshop car with the original display state and CXFORM support.
+
+CairoSVG does not implement SVG feComponentTransfer. Earlier parity passes
+encoded Flash CXFORMWITHALPHA entirely through that filter, so the intermediate
+SVG described the transform while the PNG rasterizer silently discarded it.
+Alpha multiplication is therefore emitted as ordinary SVG group opacity, which
+CairoSVG explicitly supports and which survives into the PNG Sindri renders.
+"""
 from __future__ import annotations
 from pathlib import Path
 
@@ -9,15 +16,8 @@ source = source.replace(
     "from swf_car_extract import IDENT, Movie, mul, transform_bounds",
     "from swf_car_display import IDENT, IDENT_CX, Movie, combine_cxform, mul, transform_bounds, svg_filter_values",
 )
-
-# The workshop capture is the resting car, not the later `mujaffa` animation
-# state. Frames 5+ add shapes 773/774, which are the driver/foreground animation
-# pieces visible in our bad reconstruction. Frame 1 contains the clean parked car.
 source = source.replace("BODY_FRAME = 5", "BODY_FRAME = 1")
 
-# swf_car_layers manually enters the body and tyre instances, so Movie.leaves
-# never sees those two PlaceObject2 records. Carry their colour transforms into
-# the manually flattened children rather than silently dropping them.
 source = source.replace(
     "masks=tuple(active_masks),\n        )",
     "masks=tuple(active_masks),\n            cxform=combine_cxform(body_instance.get(\"cxform\"), item.get(\"cxform\")),\n        )",
@@ -34,9 +34,6 @@ source = source.replace(
     1,
 )
 
-# Character 61 sits at depth 1 of the car root, below body and tyres. It is the
-# original under-car shadow/glow. The old composable builder selected only the
-# named body/tyre/speaker instances and therefore threw this root artwork away.
 needle = '''    slots: list[dict[str, object]] = []
     all_persistent: list[dict] = []
     body_layers: dict[str, list[dict]] = {}
@@ -59,15 +56,28 @@ if needle not in source:
     raise SystemExit("swf_car_layers.py body-stack hook changed")
 source = source.replace(needle, replacement, 1)
 
-# Apply every recovered RGBA transform at rasterization time.
 needle = '            element = image_for(leaf["shape"], leaf["matrix"])\n'
 replacement = needle + '''            values = svg_filter_values(leaf.get("cxform"))
-            if any(abs(s - 1.0) > 1e-7 or abs(i) > 1e-7 for s, i in values):
+            rgb_values = values[:3]
+            alpha_slope, alpha_intercept = values[3]
+
+            # Flash alpha multiplier -> SVG group opacity. Unlike
+            # feComponentTransfer this is actually implemented by CairoSVG.
+            if abs(alpha_intercept) < 1e-9 and abs(alpha_slope - 1.0) > 1e-7:
+                opacity = max(0.0, min(1.0, alpha_slope))
+                element = f'<g opacity="{opacity:.8g}">{element}</g>'
+
+            # Retain non-alpha/additive CXFORM information in the diagnostic SVG.
+            # CairoSVG ignores this filter, so alpha parity never depends on it.
+            needs_rgb = any(abs(s - 1.0) > 1e-7 or abs(i) > 1e-7 for s, i in rgb_values)
+            needs_alpha_add = abs(alpha_intercept) > 1e-9
+            if needs_rgb or needs_alpha_add:
                 fid = f"cx{len(defs)+1}_{inline_serial}"
                 channels = ("R", "G", "B", "A")
+                filter_values = values if needs_alpha_add else rgb_values + [(1.0, 0.0)]
                 funcs = "".join(
                     f'<feFunc{channel} type="linear" slope="{slope:.8g}" intercept="{intercept:.8g}"/>'
-                    for channel, (slope, intercept) in zip(channels, values)
+                    for channel, (slope, intercept) in zip(channels, filter_values)
                 )
                 defs.append(f'<filter id="{fid}" color-interpolation-filters="sRGB"><feComponentTransfer>{funcs}</feComponentTransfer></filter>')
                 element = f'<g filter="url(#{fid})">{element}</g>'

@@ -36,12 +36,21 @@ def main():
     args = ap.parse_args()
     scene_path = args.project / "main.scene.json"
     scene = json.loads(scene_path.read_text(encoding="utf-8"))
-    removed = {"workshop-state", "workshop-category-controller"}
+    removed = {"workshop-state", "workshop-category-controller", "workshop-category-marker"}
     scene["entities"] = [
         e for e in scene["entities"]
         if not str(e.get("id", "")).startswith("workshop-category-") and e.get("id") not in removed
     ]
     scene["entities"].extend(button(entry, i) for i, entry in enumerate(CATEGORIES))
+    scene["entities"].append({
+        "id": "workshop-category-marker",
+        "name": "Workshop Category Marker",
+        "parent": "garage-ui-desktop",
+        "transform_3d": transform((-0.892, 0.5 - 137 / 500.0, 0.0), (0.012, 0.012, 1.0)),
+        "components": {
+            "sindri.ui.shape": {"kind": "rect", "fill": [0.05, 0.08, 0.18, 1.0], "anchor": "center", "layer": 245},
+        },
+    })
     scene["entities"].append({
         "id": "workshop-state", "name": "Workshop State",
         "transform_3d": transform((0, 0, 0), (1, 1, 1)),

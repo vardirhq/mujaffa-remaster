@@ -51,6 +51,8 @@ jobs:
         run: python mujaffa/tools/install_garage_scene.py --project mujaffa
       - name: Replace responsive scaffolding with original workshop
         run: python mujaffa/tools/install_workshop_parity.py --project mujaffa
+      - name: Refine workshop chrome against original capture
+        run: python mujaffa/tools/refine_workshop_chrome.py --project mujaffa
       - name: Verify workshop source
         shell: bash
         run: |

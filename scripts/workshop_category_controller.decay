@@ -1,112 +1,74 @@
 // Category router for the fixed original workshop.
-// Selection is shared through the Game blackboard and immediately reflected in
-// the visible lower workshop panel.
 script WorkshopCategoryController {
     var category: f32 = 0.0;
     var paint: Entity = null; var audio: Entity = null; var spoiler: Entity = null;
     var exhaust: Entity = null; var rims: Entity = null; var tyres: Entity = null;
     var windows: Entity = null; var sunroof: Entity = null; var plate: Entity = null;
-    var interior: Entity = null; var trinket: Entity = null; var horn: Entity = null;
-    var camera: Entity = null;
-    var panel_audio: Entity = null; var panel_spoiler: Entity = null;
-    var panel_exhaust: Entity = null; var panel_rims: Entity = null;
-    var panel_tyres: Entity = null; var panel_windows: Entity = null;
-    var panel_sunroof: Entity = null; var panel_plate: Entity = null;
-    var panel_interior: Entity = null; var panel_trinket: Entity = null;
-    var panel_horn: Entity = null; var panel_camera: Entity = null;
+    var interior: Entity = null; var trinket: Entity = null; var horn: Entity = null; var camera: Entity = null;
+    var panel_audio: Entity = null; var panel_spoiler: Entity = null; var panel_exhaust: Entity = null;
+    var panel_rims: Entity = null; var panel_tyres: Entity = null; var panel_windows: Entity = null;
+    var panel_sunroof: Entity = null; var panel_plate: Entity = null; var panel_interior: Entity = null;
+    var panel_trinket: Entity = null; var panel_horn: Entity = null; var panel_camera: Entity = null;
+    var paint_change: Entity = null; var stripe_none: Entity = null; var stripe_white: Entity = null;
+    var stripe_green: Entity = null; var stripe_black: Entity = null; var stripe_pink: Entity = null;
 
     fn start() {
-        this.paint = World.find("Workshop Category LAKKERING");
-        this.audio = World.find("Workshop Category BILSTEREO");
-        this.spoiler = World.find("Workshop Category SPOILER");
-        this.exhaust = World.find("Workshop Category EKSOSANLEGG");
-        this.rims = World.find("Workshop Category FELGER");
-        this.tyres = World.find("Workshop Category DEKK");
-        this.windows = World.find("Workshop Category RUTER");
-        this.sunroof = World.find("Workshop Category SOLTAK");
-        this.plate = World.find("Workshop Category NUMMERSKILT");
-        this.interior = World.find("Workshop Category SETETREKK");
-        this.trinket = World.find("Workshop Category BILNIPS");
-        this.horn = World.find("Workshop Category BÅT-HORN");
+        this.paint = World.find("Workshop Category LAKKERING"); this.audio = World.find("Workshop Category BILSTEREO");
+        this.spoiler = World.find("Workshop Category SPOILER"); this.exhaust = World.find("Workshop Category EKSOSANLEGG");
+        this.rims = World.find("Workshop Category FELGER"); this.tyres = World.find("Workshop Category DEKK");
+        this.windows = World.find("Workshop Category RUTER"); this.sunroof = World.find("Workshop Category SOLTAK");
+        this.plate = World.find("Workshop Category NUMMERSKILT"); this.interior = World.find("Workshop Category SETETREKK");
+        this.trinket = World.find("Workshop Category BILNIPS"); this.horn = World.find("Workshop Category BÅT-HORN");
         this.camera = World.find("Workshop Category BMW CAM");
-        this.panel_audio = World.find("Workshop Panel BILSTEREO");
-        this.panel_spoiler = World.find("Workshop Panel SPOILER");
-        this.panel_exhaust = World.find("Workshop Panel EKSOSANLEGG");
-        this.panel_rims = World.find("Workshop Panel FELGER");
-        this.panel_tyres = World.find("Workshop Panel DEKK");
-        this.panel_windows = World.find("Workshop Panel RUTER");
-        this.panel_sunroof = World.find("Workshop Panel SOLTAK");
-        this.panel_plate = World.find("Workshop Panel NUMMERSKILT");
-        this.panel_interior = World.find("Workshop Panel SETETREKK");
-        this.panel_trinket = World.find("Workshop Panel BILNIPS");
-        this.panel_horn = World.find("Workshop Panel BÅT-HORN");
-        this.panel_camera = World.find("Workshop Panel BMW CAM");
-        layout_controls();
-        set_category(0.0);
+        this.panel_audio = World.find("Workshop Panel BILSTEREO"); this.panel_spoiler = World.find("Workshop Panel SPOILER");
+        this.panel_exhaust = World.find("Workshop Panel EKSOSANLEGG"); this.panel_rims = World.find("Workshop Panel FELGER");
+        this.panel_tyres = World.find("Workshop Panel DEKK"); this.panel_windows = World.find("Workshop Panel RUTER");
+        this.panel_sunroof = World.find("Workshop Panel SOLTAK"); this.panel_plate = World.find("Workshop Panel NUMMERSKILT");
+        this.panel_interior = World.find("Workshop Panel SETETREKK"); this.panel_trinket = World.find("Workshop Panel BILNIPS");
+        this.panel_horn = World.find("Workshop Panel BÅT-HORN"); this.panel_camera = World.find("Workshop Panel BMW CAM");
+        this.paint_change = World.find("Workshop Paint Change"); this.stripe_none = World.find("Workshop Stripe None");
+        this.stripe_white = World.find("Workshop Stripe White"); this.stripe_green = World.find("Workshop Stripe Green");
+        this.stripe_black = World.find("Workshop Stripe Black"); this.stripe_pink = World.find("Workshop Stripe Pink");
+        layout_controls(); set_category(0.0);
     }
 
     fn layout_button(entity: Entity, index: f32, unit: f32) {
         entity.transform.position.x = (72.5 - 250.0) * unit;
         entity.transform.position.y = (250.0 - (137.0 + 25.0 * index)) * unit;
-        entity.transform.scale.x = 145.0 * unit;
-        entity.transform.scale.y = 24.0 * unit;
+        entity.transform.scale.x = 145.0 * unit; entity.transform.scale.y = 24.0 * unit;
     }
 
     fn layout_controls() {
-        // Screen UI is two units tall. Scale the fixed 500px stage by the
-        // shorter viewport dimension so its real button images remain aligned
-        // with the square workshop artwork on portrait and landscape screens.
         let unit = 0.004 * min(Viewport.aspect, 1.0);
-        layout_button(this.paint, 0.0, unit);
-        layout_button(this.audio, 1.0, unit);
-        layout_button(this.spoiler, 2.0, unit);
-        layout_button(this.exhaust, 3.0, unit);
-        layout_button(this.rims, 4.0, unit);
-        layout_button(this.tyres, 5.0, unit);
-        layout_button(this.windows, 6.0, unit);
-        layout_button(this.sunroof, 7.0, unit);
-        layout_button(this.plate, 8.0, unit);
-        layout_button(this.interior, 9.0, unit);
-        layout_button(this.trinket, 10.0, unit);
-        layout_button(this.horn, 11.0, unit);
-        layout_button(this.camera, 12.0, unit);
+        layout_button(this.paint,0.0,unit); layout_button(this.audio,1.0,unit); layout_button(this.spoiler,2.0,unit);
+        layout_button(this.exhaust,3.0,unit); layout_button(this.rims,4.0,unit); layout_button(this.tyres,5.0,unit);
+        layout_button(this.windows,6.0,unit); layout_button(this.sunroof,7.0,unit); layout_button(this.plate,8.0,unit);
+        layout_button(this.interior,9.0,unit); layout_button(this.trinket,10.0,unit); layout_button(this.horn,11.0,unit); layout_button(this.camera,12.0,unit);
     }
 
     fn refresh_panels() {
-        World.set_active(this.panel_audio, this.category == 1.0);
-        World.set_active(this.panel_spoiler, this.category == 2.0);
-        World.set_active(this.panel_exhaust, this.category == 3.0);
-        World.set_active(this.panel_rims, this.category == 4.0);
-        World.set_active(this.panel_tyres, this.category == 5.0);
-        World.set_active(this.panel_windows, this.category == 6.0);
-        World.set_active(this.panel_sunroof, this.category == 7.0);
-        World.set_active(this.panel_plate, this.category == 8.0);
-        World.set_active(this.panel_interior, this.category == 9.0);
-        World.set_active(this.panel_trinket, this.category == 10.0);
-        World.set_active(this.panel_horn, this.category == 11.0);
-        World.set_active(this.panel_camera, this.category == 12.0);
+        let painting = this.category == 0.0;
+        World.set_active(this.paint_change, painting); World.set_active(this.stripe_none, painting);
+        World.set_active(this.stripe_white, painting); World.set_active(this.stripe_green, painting);
+        World.set_active(this.stripe_black, painting); World.set_active(this.stripe_pink, painting);
+        World.set_active(this.panel_audio, this.category == 1.0); World.set_active(this.panel_spoiler, this.category == 2.0);
+        World.set_active(this.panel_exhaust, this.category == 3.0); World.set_active(this.panel_rims, this.category == 4.0);
+        World.set_active(this.panel_tyres, this.category == 5.0); World.set_active(this.panel_windows, this.category == 6.0);
+        World.set_active(this.panel_sunroof, this.category == 7.0); World.set_active(this.panel_plate, this.category == 8.0);
+        World.set_active(this.panel_interior, this.category == 9.0); World.set_active(this.panel_trinket, this.category == 10.0);
+        World.set_active(this.panel_horn, this.category == 11.0); World.set_active(this.panel_camera, this.category == 12.0);
     }
 
-    fn set_category(value: f32) {
-        this.category = value;
-        Game.set("workshop.category", value);
-        refresh_panels();
-    }
+    fn set_category(value: f32) { this.category = value; Game.set("workshop.category", value); refresh_panels(); }
 
     fn update(dt: f32) {
         layout_controls();
-        if Ui.is_pressed(this.paint) { set_category(0.0); }
-        if Ui.is_pressed(this.audio) { set_category(1.0); }
-        if Ui.is_pressed(this.spoiler) { set_category(2.0); }
-        if Ui.is_pressed(this.exhaust) { set_category(3.0); }
-        if Ui.is_pressed(this.rims) { set_category(4.0); }
-        if Ui.is_pressed(this.tyres) { set_category(5.0); }
-        if Ui.is_pressed(this.windows) { set_category(6.0); }
-        if Ui.is_pressed(this.sunroof) { set_category(7.0); }
-        if Ui.is_pressed(this.plate) { set_category(8.0); }
-        if Ui.is_pressed(this.interior) { set_category(9.0); }
-        if Ui.is_pressed(this.trinket) { set_category(10.0); }
-        if Ui.is_pressed(this.horn) { set_category(11.0); }
+        if Ui.is_pressed(this.paint) { set_category(0.0); } if Ui.is_pressed(this.audio) { set_category(1.0); }
+        if Ui.is_pressed(this.spoiler) { set_category(2.0); } if Ui.is_pressed(this.exhaust) { set_category(3.0); }
+        if Ui.is_pressed(this.rims) { set_category(4.0); } if Ui.is_pressed(this.tyres) { set_category(5.0); }
+        if Ui.is_pressed(this.windows) { set_category(6.0); } if Ui.is_pressed(this.sunroof) { set_category(7.0); }
+        if Ui.is_pressed(this.plate) { set_category(8.0); } if Ui.is_pressed(this.interior) { set_category(9.0); }
+        if Ui.is_pressed(this.trinket) { set_category(10.0); } if Ui.is_pressed(this.horn) { set_category(11.0); }
         if Ui.is_pressed(this.camera) { set_category(12.0); }
     }
 }

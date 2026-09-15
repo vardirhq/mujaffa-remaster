@@ -63,13 +63,13 @@ def make_chrome(out: Path) -> None:
         buttons.append(f'''{marker}{star}<rect x="27" y="{y-10}" width="102" height="17" rx="3" fill="#2ca2c8" stroke="#121421" stroke-width="2"/><text x="78" y="{y+2}" text-anchor="middle" font-size="11" font-weight="700" fill="#15151b">{label}</text>''')
         y += 25
 
+    # The hand-drawn MUJAFFA SPILLET logo is now rendered from original SWF
+    # character 1, so this chrome intentionally does not fake it with text.
     svg = f'''<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="1000" viewBox="0 0 500 500">
       <rect x="0" y="0" width="500" height="500" fill="none"/>
       <rect x="0" y="0" width="500" height="34" fill="#070936"/>
       <rect x="0" y="34" width="500" height="29" fill="#41608d"/>
-      <text x="101" y="28" font-size="32" font-style="italic" font-weight="900" fill="#ef332f" stroke="#111" stroke-width="1.2">MUJAFFA</text>
-      <text x="103" y="53" font-size="28" font-style="italic" font-weight="900" fill="#ef332f" stroke="#111" stroke-width="1.2">SPILLET</text>
-      <text x="258" y="27" text-anchor="middle" font-size="25" font-weight="700" fill="#30517d">BHAIAS VERKSTED</text>
+      <text x="307" y="27" text-anchor="middle" font-size="25" font-weight="700" fill="#30517d">BHAIAS VERKSTED</text>
       <rect x="0" y="55" width="500" height="25" fill="#2d9dc0"/>
       <text x="151" y="72" font-size="11" font-weight="700" fill="#111">PENGER:</text><text x="204" y="72" font-size="14" font-weight="700" fill="#e8f3f0">5000</text>
       <text x="269" y="72" font-size="11" font-weight="700" fill="#111">BMW:</text><text x="309" y="72" font-size="14" font-weight="700" fill="#e8f3f0">1</text>
@@ -114,19 +114,16 @@ def main() -> int:
     remove_prefixes = ("garage-ui-", "garage-polish-")
     scene["entities"] = [e for e in scene["entities"] if not str(e.get("id", "")).startswith(remove_prefixes) and e.get("id") not in ("garage-controller",)]
 
-    # Canonical fixed stage. No phone-specific composition, drawers, sheets or
-    # hamburger menus. The original 500x500 game scales as one intact surface.
     scene["entities"].extend([
         world_image("workshop-room", "Original Workshop Room", "assets/generated/showroom/showroom-room.png", -6),
         world_image("workshop-mujaffa", "Original Workshop Mujaffa", "assets/generated/showroom/showroom-mujaffa.png", 20),
         world_image("workshop-panel", "Original Workshop Panel", "assets/generated/showroom/showroom-panel.png", 90),
         world_image("workshop-chrome", "Original Workshop Chrome", "assets/generated/workshop-ui/workshop-chrome.png", 120),
+        world_image("workshop-logo", "Original Mujaffa Logo", "assets/generated/showroom/showroom-logo.png", 130),
         {"id": "garage-ui-desktop", "name": "Garage Desktop UI", "transform_3d": transform(), "components": {"sindri.ui.shape": {"kind": "rect", "fill": [0,0,0,0], "anchor": "center", "layer": 199}}},
         {"id": "garage-ui-mobile", "name": "Garage Mobile UI", "disabled": True, "transform_3d": transform(), "components": {"sindri.ui.shape": {"kind": "rect", "fill": [0,0,0,0], "anchor": "center", "layer": 199}}},
     ])
 
-    # Interactive hit boxes follow the original left-hand equipment list. They
-    # are intentionally invisible: the visible controls are the workshop art.
     mapped = [
         ("paint", "PAINT"), ("spoiler", "SPOILER"), ("exhaust", "EXHAUST"),
         ("rims", "RIMS"), ("tyres", "TYRES"), ("windows", "WINDOWS"),
@@ -136,14 +133,10 @@ def main() -> int:
     for key, label in mapped:
         scene["entities"].append(ui_button(f"garage-ui-desktop-category-{key}", f"Desktop Category {label}", (-0.695, row_y[key], 0.0), (0.20, 0.042, 1.0), label))
 
-    # Dummy category entities preserve the current Garage script's expected
-    # lookup surface for categories that live as workshop sub-options.
     scene["entities"].append(ui_button("garage-ui-desktop-category-stripes", "Desktop Category STRIPES", (0.69,-0.22,0), (0.24,0.12,1), "STRIPES"))
     scene["entities"].extend([
         ui_button("garage-ui-desktop-prev", "Desktop Previous Part", (-0.46,0.445,0), (0.025,0.05,1), "Previous"),
         ui_button("garage-ui-desktop-next", "Desktop Next Part", (-0.40,0.445,0), (0.025,0.05,1), "Next"),
-        # Hidden mobile aliases stop the legacy controller from looking up null
-        # while guaranteeing there is no mobile-specific presentation.
         {**ui_button("garage-ui-mobile-prev", "Mobile Previous Part", (0,0,0), (0.001,0.001,1), "Previous", True), "parent":"garage-ui-mobile"},
         {**ui_button("garage-ui-mobile-next", "Mobile Next Part", (0,0,0), (0.001,0.001,1), "Next", True), "parent":"garage-ui-mobile"},
     ])
@@ -156,8 +149,6 @@ def main() -> int:
     })
     scene_path.write_text(json.dumps(scene, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
 
-    # Patch only the legacy responsive layout branch. Customization logic stays
-    # shared and unchanged; presentation is now permanently the original stage.
     garage = project / "scripts" / "garage.decay"
     text = garage.read_text(encoding="utf-8")
     old = '''    fn refresh_layout() {\n        let aspect = max(Viewport.aspect, 0.001);\n        let phone = aspect < 0.78;\n        World.set_active(this.mobile, phone);\n        World.set_active(this.desktop, !phone);\n        let car = this.car;\n        if phone {\n            car.transform.position.x = 0.0;\n            car.transform.position.y = 1.25;\n            car.transform.scale.x = 0.72;\n            car.transform.scale.y = 0.72;\n        } else {\n            car.transform.position.x = 0.55;\n            car.transform.position.y = 0.10;\n            car.transform.scale.x = 1.0;\n            car.transform.scale.y = 1.0;\n        }\n    }'''
@@ -165,7 +156,7 @@ def main() -> int:
     if old not in text:
         raise SystemExit("Garage.refresh_layout changed; update fixed workshop installer")
     garage.write_text(text.replace(old, new, 1), encoding="utf-8")
-    print("installed fixed 500x500 original-style workshop; no mobile-specific UI remains")
+    print("installed frame-722 500x500 original workshop parity layout")
     return 0
 
 

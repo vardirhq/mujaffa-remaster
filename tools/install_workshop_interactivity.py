@@ -48,7 +48,7 @@ def main():
         "components": {"sindri.script": {
             "source": "scripts/workshop_state.decay",
             "script": "WorkshopState",
-            "properties": {"free_purchases": True},
+            "properties": {},
             "enabled": True,
         }},
     })

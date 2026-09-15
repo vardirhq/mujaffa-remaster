@@ -109,7 +109,7 @@ def main() -> int:
         layers = temp / "car-layers"
         showroom = temp / "showroom"
         run(str(tools / "swf_art_extract_fixed.py"), str(swf), str(raw_art), "--scale", str(args.scale), "--max-size", "2048")
-        run(str(tools / "swf_car_layers.py"), str(swf), str(raw_art), str(layers), "--scale", str(args.scale))
+        run(str(tools / "swf_car_layers_alpha.py"), str(swf), str(raw_art), str(layers), "--scale", str(args.scale))
         run(str(tools / "swf_showroom_extract.py"), str(swf), str(raw_art), str(showroom), "--scale", str(args.scale))
         showroom_count = install_showroom_art(showroom, project)
         if output.exists():

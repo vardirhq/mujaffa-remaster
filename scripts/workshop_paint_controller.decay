@@ -1,0 +1,102 @@
+// Functional LAKKERING category for the fixed original workshop.
+// Paint/stripe selections are shared through Game state so later showroom and
+// driving scenes can consume the same canonical BMW appearance.
+script WorkshopPaintController {
+    var paint_index: f32 = 0.0;
+    var stripe_index: f32 = 0.0;
+
+    var change_paint: Entity = null;
+    var stripe_none: Entity = null; var stripe_white: Entity = null;
+    var stripe_green: Entity = null; var stripe_black: Entity = null; var stripe_pink: Entity = null;
+
+    var paint: Entity = null;
+    var stripe0: Entity = null; var stripe1: Entity = null; var stripe2: Entity = null;
+    var stripe3: Entity = null; var stripe4: Entity = null;
+
+    fn start() {
+        this.change_paint = World.find("Workshop Paint Change");
+        this.stripe_none = World.find("Workshop Stripe None");
+        this.stripe_white = World.find("Workshop Stripe White");
+        this.stripe_green = World.find("Workshop Stripe Green");
+        this.stripe_black = World.find("Workshop Stripe Black");
+        this.stripe_pink = World.find("Workshop Stripe Pink");
+
+        this.paint = World.find("Garage Car paint-tintable");
+        this.stripe0 = World.find("Garage Car farvestribe-empty");
+        this.stripe1 = World.find("Garage Car farvestribe-hvid");
+        this.stripe2 = World.find("Garage Car farvestribe-grøn");
+        this.stripe3 = World.find("Garage Car farvestribe-sort");
+        this.stripe4 = World.find("Garage Car farvestribe-pink");
+
+        Game.set("workshop.paint", this.paint_index);
+        Game.set("workshop.stripe", this.stripe_index);
+        layout_controls();
+        refresh_car();
+    }
+
+    fn layout_control(entity: Entity, x: f32, y: f32, w: f32, h: f32, unit: f32) {
+        entity.transform.position.x = (x - 250.0) * unit;
+        entity.transform.position.y = (250.0 - y) * unit;
+        entity.transform.scale.x = w * unit;
+        entity.transform.scale.y = h * unit;
+    }
+
+    fn layout_controls() {
+        let unit = 0.004 * min(Viewport.aspect, 1.0);
+        layout_control(this.change_paint, 205.0, 433.0, 56.0, 38.0, unit);
+        layout_control(this.stripe_none, 359.0, 400.0, 34.0, 26.0, unit);
+        layout_control(this.stripe_white, 397.0, 400.0, 34.0, 26.0, unit);
+        layout_control(this.stripe_green, 359.0, 430.0, 34.0, 26.0, unit);
+        layout_control(this.stripe_black, 397.0, 430.0, 34.0, 26.0, unit);
+        layout_control(this.stripe_pink, 435.0, 430.0, 34.0, 26.0, unit);
+    }
+
+    fn set_paint(index: f32) {
+        this.paint_index = index;
+        Game.set("workshop.paint", index);
+        refresh_paint();
+    }
+
+    fn next_paint() {
+        let next = this.paint_index + 1.0;
+        if next >= 5.0 { set_paint(0.0); }
+        else { set_paint(next); }
+    }
+
+    fn set_stripe(index: f32) {
+        this.stripe_index = index;
+        Game.set("workshop.stripe", index);
+        refresh_stripe();
+    }
+
+    fn refresh_paint() {
+        let body = this.paint;
+        // Current five-colour workshop palette. Keep this isolated here so the
+        // exact SWF colour-transform values can replace it without UI changes.
+        body.sprite.tint.r = 0.15; body.sprite.tint.g = 0.25; body.sprite.tint.b = 0.72;
+        if this.paint_index == 1.0 { body.sprite.tint.r = 0.76; body.sprite.tint.g = 0.12; body.sprite.tint.b = 0.10; }
+        else if this.paint_index == 2.0 { body.sprite.tint.r = 0.10; body.sprite.tint.g = 0.62; body.sprite.tint.b = 0.28; }
+        else if this.paint_index == 3.0 { body.sprite.tint.r = 0.92; body.sprite.tint.g = 0.72; body.sprite.tint.b = 0.14; }
+        else if this.paint_index == 4.0 { body.sprite.tint.r = 0.12; body.sprite.tint.g = 0.12; body.sprite.tint.b = 0.14; }
+    }
+
+    fn refresh_stripe() {
+        World.set_active(this.stripe0, this.stripe_index == 0.0);
+        World.set_active(this.stripe1, this.stripe_index == 1.0);
+        World.set_active(this.stripe2, this.stripe_index == 2.0);
+        World.set_active(this.stripe3, this.stripe_index == 3.0);
+        World.set_active(this.stripe4, this.stripe_index == 4.0);
+    }
+
+    fn refresh_car() { refresh_paint(); refresh_stripe(); }
+
+    fn update(dt: f32) {
+        layout_controls();
+        if Ui.is_pressed(this.change_paint) { next_paint(); }
+        if Ui.is_pressed(this.stripe_none) { set_stripe(0.0); }
+        if Ui.is_pressed(this.stripe_white) { set_stripe(1.0); }
+        if Ui.is_pressed(this.stripe_green) { set_stripe(2.0); }
+        if Ui.is_pressed(this.stripe_black) { set_stripe(3.0); }
+        if Ui.is_pressed(this.stripe_pink) { set_stripe(4.0); }
+    }
+}

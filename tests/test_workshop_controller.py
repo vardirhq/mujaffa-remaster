@@ -11,8 +11,9 @@ def test_controller_routes_every_original_category():
 
 def test_category_is_shared_and_visible():
     text = Path("scripts/workshop_category_controller.decay").read_text(encoding="utf-8")
-    assert 'Game.set("workshop.category", value);' in text
-    assert "refresh_panels();" in text
+    compact = "".join(text.split())
+    assert 'Game.set("workshop.category",value);' in compact
+    assert "refresh_panels();" in compact
     assert "this.marker.transform" not in text
     for entry in CATEGORIES[1:]:
         assert f'World.find("Workshop Panel {entry["label"]}")' in text

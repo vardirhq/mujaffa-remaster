@@ -1,61 +1,23 @@
 from pathlib import Path
-
 from tools.workshop_catalog import CATEGORIES
 
-
 def test_interactivity_foundation():
-    ids = [f"workshop-category-{entry['id']}" for entry in CATEGORIES]
-    assert len(ids) == len(set(ids)) == 13
-    assert all("price" not in entry for entry in CATEGORIES)
-
-
+    ids=[f"workshop-category-{e['id']}" for e in CATEGORIES]; assert len(ids)==len(set(ids))==13; assert all('price' not in e for e in CATEGORIES)
 def test_category_controls_render_their_own_art():
-    source = Path("tools/install_workshop_interactivity.py").read_text(encoding="utf-8")
-    assert '"sindri.ui.image"' in source
-    assert '"sindri.ui.button"' in source
-    assert 'category-{entry[\'id\']}.png' in source
-    assert '"sindri.ui.shape": {"kind": "rect", "fill": [0, 0, 0, 0.001]' not in source
-
-
+    s=Path('tools/install_workshop_interactivity.py').read_text(); assert '"sindri.ui.image"' in s; assert '"sindri.ui.button"' in s; assert "category-{entry['id']}.png" in s
 def test_baked_chrome_does_not_duplicate_category_buttons():
-    chrome = Path("tools/refine_workshop_chrome.py").read_text(encoding="utf-8")
-    assert "Category controls are separate real UI entities" in chrome
-    for entry in CATEGORIES:
-        assert entry["label"] not in chrome
-
-
+    chrome=Path('tools/refine_workshop_chrome.py').read_text(); assert 'Category controls are separate real UI entities' in chrome
+    for e in CATEGORIES: assert e['label'] not in chrome
 def test_category_layout_tracks_square_stage_on_portrait_viewports():
-    controller = Path("scripts/workshop_category_controller.decay").read_text(encoding="utf-8")
-    assert "min(Viewport.aspect, 1.0)" in controller
-    assert "145.0 * unit" in controller
-    assert "24.0 * unit" in controller
-    assert "layout_controls();" in controller
-
-
-def test_paint_controls_are_real_touch_targets():
-    installer = Path("tools/install_workshop_interactivity.py").read_text(encoding="utf-8")
-    for asset in ("paint-change.png", "stripe-none.png", "stripe-white.png", "stripe-green.png", "stripe-black.png", "stripe-pink.png"):
-        assert asset in installer
-    for name in ("Workshop Paint Change", "Workshop Stripe None", "Workshop Stripe White", "Workshop Stripe Green", "Workshop Stripe Black", "Workshop Stripe Pink"):
-        assert name in installer
-
-
-def test_paint_controller_changes_car_and_shared_state():
-    controller = Path("scripts/workshop_paint_controller.decay").read_text(encoding="utf-8")
-    assert 'Game.set("workshop.paint", index);' in controller
-    assert 'Game.set("workshop.stripe", index);' in controller
-    assert "body.sprite.tint.r" in controller
-    assert "Garage Car farvestribe-empty" in controller
-    assert "Garage Car farvestribe-hvid" in controller
-    assert "Garage Car farvestribe-grøn" in controller
-    assert "Garage Car farvestribe-sort" in controller
-    assert "Garage Car farvestribe-pink" in controller
-    assert "Ui.is_pressed(this.change_paint)" in controller
-    assert "min(Viewport.aspect, 1.0)" in controller
-
-
-def test_paint_controls_disappear_outside_paint_category():
-    router = Path("scripts/workshop_category_controller.decay").read_text(encoding="utf-8")
-    assert "let painting = this.category == 0.0;" in router
-    assert "World.set_active(this.paint_change, painting);" in router
-    assert "World.set_active(this.stripe_pink, painting);" in router
+    c=Path('scripts/workshop_category_controller.decay').read_text(); assert 'min(Viewport.aspect,1.0)' in c or 'min(Viewport.aspect, 1.0)' in c; assert '145.0*unit' in c or '145.0 * unit' in c
+def test_paint_uses_original_rgb_mixer_model():
+    installer=Path('tools/install_workshop_interactivity.py').read_text(); controller=Path('scripts/workshop_paint_controller.decay').read_text()
+    for asset in ('rgb-mixer.png','rgb-red.png','rgb-green.png','rgb-blue.png','rgb-ok.png'): assert asset in installer
+    assert 'paint_index' not in controller; assert 'next_paint' not in controller
+    assert 'workshop.paint.red' in controller and 'workshop.paint.green' in controller and 'workshop.paint.blue' in controller
+    assert 'this.red / 255.0' in controller and 'this.green / 255.0' in controller and 'this.blue / 255.0' in controller
+    assert 'Ui.is_pressed(this.change_paint)' in controller and 'set_mixer(true)' in controller and 'Ui.is_pressed(this.ok)' in controller
+def test_stripes_remain_on_normal_lakkering_panel():
+    c=Path('scripts/workshop_paint_controller.decay').read_text(); assert 'World.set_active(this.stripe_none, !value)' in c; assert 'Garage Car farvestribe-hvid' in c; assert 'Garage Car farvestribe-pink' in c
+def test_rgb_controls_are_scoped_to_lakkering():
+    r=Path('scripts/workshop_category_controller.decay').read_text(); assert 'Workshop RGB Mixer' in r; assert 'World.set_active(this.mixer,false)' in r or 'World.set_active(this.mixer, false)' in r

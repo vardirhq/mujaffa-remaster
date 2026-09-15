@@ -21,7 +21,32 @@ script WorkshopPaintController {
         this.paint = World.find("Garage Car paint-tintable");
         this.stripe0 = World.find("Garage Car farvestribe-empty"); this.stripe1 = World.find("Garage Car farvestribe-hvid");
         this.stripe2 = World.find("Garage Car farvestribe-grøn"); this.stripe3 = World.find("Garage Car farvestribe-sort"); this.stripe4 = World.find("Garage Car farvestribe-pink");
-        publish_rgb(); refresh_paint(); refresh_stripe(); set_mixer(false);
+        layout_controls(); publish_rgb(); refresh_paint(); refresh_stripe(); set_mixer(false);
+    }
+
+    fn place(entity: Entity, x: f32, y: f32, w: f32, h: f32, unit: f32) {
+        entity.transform.position.x = (x - 250.0) * unit;
+        entity.transform.position.y = (250.0 - y) * unit;
+        entity.transform.scale.x = w * unit;
+        entity.transform.scale.y = h * unit;
+    }
+
+    fn layout_controls() {
+        // Match the same fixed 500x500 ScreenUi mapping as the category rail.
+        // These are stage pixels, not viewport pixels.
+        let unit = 0.004 * min(Viewport.aspect, 1.0);
+        place(this.change_paint, 205.0, 433.0, 56.0, 38.0, unit);
+        place(this.stripe_none, 359.0, 400.0, 34.0, 26.0, unit);
+        place(this.stripe_white, 397.0, 400.0, 34.0, 26.0, unit);
+        place(this.stripe_green, 359.0, 430.0, 34.0, 26.0, unit);
+        place(this.stripe_black, 397.0, 430.0, 34.0, 26.0, unit);
+        place(this.stripe_pink, 435.0, 430.0, 34.0, 26.0, unit);
+        // Original tint screen occupies exactly the workshop's lower panel.
+        place(this.mixer, 324.5, 406.5, 343.0, 111.0, unit);
+        place(this.red_track, 185.0, 407.0, 18.0, 78.0, unit);
+        place(this.green_track, 213.0, 407.0, 18.0, 78.0, unit);
+        place(this.blue_track, 241.0, 407.0, 18.0, 78.0, unit);
+        place(this.ok, 459.0, 431.0, 54.0, 38.0, unit);
     }
 
     fn publish_rgb() {
@@ -49,6 +74,7 @@ script WorkshopPaintController {
         World.set_active(this.stripe2, this.stripe_index == 2.0); World.set_active(this.stripe3, this.stripe_index == 3.0); World.set_active(this.stripe4, this.stripe_index == 4.0);
     }
     fn update(dt: f32) {
+        layout_controls();
         if Ui.is_pressed(this.change_paint) { this.saved_red=this.red; this.saved_green=this.green; this.saved_blue=this.blue; set_mixer(true); }
         if this.mixing {
             if Ui.is_pressed(this.red_track) { cycle_red(); } if Ui.is_pressed(this.green_track) { cycle_green(); } if Ui.is_pressed(this.blue_track) { cycle_blue(); }

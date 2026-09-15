@@ -42,7 +42,41 @@ script WorkshopCategoryController {
         this.panel_trinket = World.find("Workshop Panel BILNIPS");
         this.panel_horn = World.find("Workshop Panel BÅT-HORN");
         this.panel_camera = World.find("Workshop Panel BMW CAM");
+        layout_controls();
         set_category(0.0);
+    }
+
+    fn layout_button(entity: Entity, index: f32, unit: f32) {
+        entity.transform.position.x = (72.5 - 250.0) * unit;
+        entity.transform.position.y = (250.0 - (137.0 + 25.0 * index)) * unit;
+        entity.transform.scale.x = 145.0 * unit;
+        entity.transform.scale.y = 24.0 * unit;
+    }
+
+    fn layout_controls() {
+        // The workshop itself is a square world-space stage fitted to the
+        // shorter viewport dimension. Screen UI uses a two-unit-tall overlay,
+        // so on portrait screens one stage pixel is scaled by the aspect ratio.
+        // Keeping the visible image and its button on this same transform makes
+        // touch and artwork coincide at every viewport shape.
+        let unit = 0.004 * min(Viewport.aspect, 1.0);
+        layout_button(this.paint, 0.0, unit);
+        layout_button(this.audio, 1.0, unit);
+        layout_button(this.spoiler, 2.0, unit);
+        layout_button(this.exhaust, 3.0, unit);
+        layout_button(this.rims, 4.0, unit);
+        layout_button(this.tyres, 5.0, unit);
+        layout_button(this.windows, 6.0, unit);
+        layout_button(this.sunroof, 7.0, unit);
+        layout_button(this.plate, 8.0, unit);
+        layout_button(this.interior, 9.0, unit);
+        layout_button(this.trinket, 10.0, unit);
+        layout_button(this.horn, 11.0, unit);
+        layout_button(this.camera, 12.0, unit);
+        this.marker.transform.position.x = (20.0 - 250.0) * unit;
+        this.marker.transform.position.y = (250.0 - (137.0 + 25.0 * this.category)) * unit;
+        this.marker.transform.scale.x = 8.0 * unit;
+        this.marker.transform.scale.y = 8.0 * unit;
     }
 
     fn refresh_panels() {
@@ -63,12 +97,12 @@ script WorkshopCategoryController {
     fn set_category(value: f32) {
         this.category = value;
         Game.set("workshop.category", value);
-        let marker = this.marker;
-        marker.transform.position.y = 1.0 - (137.0 + 25.0 * value) / 250.0;
         refresh_panels();
+        layout_controls();
     }
 
     fn update(dt: f32) {
+        layout_controls();
         if Ui.is_pressed(this.paint) { set_category(0.0); }
         if Ui.is_pressed(this.audio) { set_category(1.0); }
         if Ui.is_pressed(this.spoiler) { set_category(2.0); }

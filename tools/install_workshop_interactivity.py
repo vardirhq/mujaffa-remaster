@@ -18,18 +18,33 @@ def transform(position, scale):
 
 
 def stage_x(px: float) -> float:
-    """Convert a 500px stage x coordinate to Sindri's -1..1 overlay space."""
     return px / 250.0 - 1.0
 
 
 def stage_y(px: float) -> float:
-    """Convert a 500px stage y coordinate to Sindri's +1..-1 overlay space."""
     return 1.0 - px / 250.0
 
 
 def stage_size(px: float) -> float:
-    """Convert a pixel extent on the 500px stage to overlay units."""
     return px / 250.0
+
+
+def burst() -> str:
+    pts = "11,0 14,5 20,3 19,9 25,11 20,15 22,21 15,19 11,24 8,19 2,21 4,15 0,11 5,8 3,3 9,5"
+    return f'<g transform="translate(2 0) scale(.72)"><polygon points="{pts}" fill="#ffd719" stroke="#111" stroke-width="1.4"/><text x="11.5" y="14" text-anchor="middle" font-size="8" font-weight="700" font-style="italic" fill="#111">ny</text></g>'
+
+
+def make_button(out: Path, entry):
+    """Render one category row as its own asset so the visible control is the hit target."""
+    out.mkdir(parents=True, exist_ok=True)
+    label = entry["label"]
+    badge = burst() if label in ("BÅT-HORN", "BMW CAM") else ""
+    svg = f'''<svg xmlns="http://www.w3.org/2000/svg" width="145" height="24" viewBox="0 0 145 24">
+      {badge}
+      <rect x="27" y="3" width="102" height="16" rx="3" fill="#2ca2c8" stroke="#111827" stroke-width="2"/>
+      <text x="78" y="14.5" text-anchor="middle" font-family="Arial,sans-serif" font-size="10.5" font-weight="700" fill="#15151b">{label}</text>
+    </svg>'''
+    cairosvg.svg2png(bytestring=svg.encode("utf-8"), write_to=str(out / f"category-{entry['id']}.png"), output_width=580, output_height=96)
 
 
 def button(entry, index):
@@ -38,25 +53,23 @@ def button(entry, index):
         "id": f"workshop-category-{entry['id']}",
         "name": f"Workshop Category {entry['label']}",
         "parent": "garage-ui-desktop",
-        # The chrome buttons are 102x17 px centred at x=78. Sindri UI transforms
-        # use a two-unit-high overlay, not 0..1 normalized coordinates.
         "transform_3d": transform(
-            (stage_x(78), stage_y(center_y), 0.0),
-            (stage_size(102), stage_size(17), 1.0),
+            (stage_x(72.5), stage_y(center_y), 0.0),
+            (stage_size(145), stage_size(24), 1.0),
         ),
         "components": {
-            "sindri.ui.shape": {"kind": "rect", "fill": [0, 0, 0, 0.001], "anchor": "center", "layer": 240},
+            "sindri.ui.image": {
+                "texture": f"assets/generated/workshop-ui/category-{entry['id']}.png",
+                "tint": [1, 1, 1, 1],
+                "anchor": "center",
+                "layer": 240,
+            },
             "sindri.ui.button": {"label": entry["label"]},
         },
     }
 
 
 def make_panel(out: Path, entry):
-    """Make a transparent full-stage overlay for categories not yet SWF-recovered.
-
-    We deliberately show only the authentic category name. Options, prices and
-    copy must come from the SWF rather than being invented by this scaffolding.
-    """
     out.mkdir(parents=True, exist_ok=True)
     label = entry["label"]
     svg = f'''<svg xmlns="http://www.w3.org/2000/svg" width="500" height="500">
@@ -96,9 +109,11 @@ def main():
         and e.get("id") not in removed
     ]
 
-    panel_dir = args.project / "assets" / "generated" / "workshop-ui"
+    asset_dir = args.project / "assets" / "generated" / "workshop-ui"
+    for entry in CATEGORIES:
+        make_button(asset_dir, entry)
     for entry in CATEGORIES[1:]:
-        make_panel(panel_dir, entry)
+        make_panel(asset_dir, entry)
         scene["entities"].append(panel_entity(entry))
 
     scene["entities"].extend(button(entry, i) for i, entry in enumerate(CATEGORIES))

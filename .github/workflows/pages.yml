@@ -79,7 +79,7 @@ jobs:
           grep -q '"name": "Original Workshop Mujaffa"' mujaffa/main.scene.json
           grep -q '"name": "Original Workshop Chrome"' mujaffa/main.scene.json
           grep -q '"name": "Workshop State"' mujaffa/main.scene.json
-          test "$(grep -c '"name": "Workshop Category' mujaffa/main.scene.json)" -eq 13
+          test "$(grep -c '"id": "workshop-category-[^"]*"' mujaffa/main.scene.json)" -eq 13
           if grep -q 'Mobile Category Drawer' mujaffa/main.scene.json; then echo 'Responsive mobile drawer leaked into fixed workshop.' >&2; exit 1; fi
           if grep -q 'scripts/garage_polish.decay' mujaffa/main.scene.json; then echo 'Legacy mobile polish controller leaked into fixed workshop.' >&2; exit 1; fi
       - name: Cache Sindri build artifacts

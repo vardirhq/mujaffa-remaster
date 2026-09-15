@@ -68,7 +68,7 @@ def main():
     args = ap.parse_args()
     scene_path = args.project / "main.scene.json"
     scene = json.loads(scene_path.read_text(encoding="utf-8"))
-    removed = {"workshop-state", "workshop-category-controller", "workshop-category-marker"}
+    removed = {"workshop-state", "workshop-category-controller", "workshop-category-marker", "workshop-selection-marker"}
     scene["entities"] = [
         e for e in scene["entities"]
         if not str(e.get("id", "")).startswith("workshop-category-")
@@ -83,7 +83,7 @@ def main():
 
     scene["entities"].extend(button(entry, i) for i, entry in enumerate(CATEGORIES))
     scene["entities"].append({
-        "id": "workshop-category-marker",
+        "id": "workshop-selection-marker",
         "name": "Workshop Category Marker",
         "parent": "garage-ui-desktop",
         "transform_3d": transform((-0.892, 0.5 - 137 / 500.0, 0.0), (0.012, 0.012, 1.0)),

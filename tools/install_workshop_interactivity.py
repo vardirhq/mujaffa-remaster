@@ -17,13 +17,33 @@ def transform(position, scale):
     return {"position": list(position), "rotation": [0.0, 0.0, 0.0, 1.0], "scale": list(scale)}
 
 
+def stage_x(px: float) -> float:
+    """Convert a 500px stage x coordinate to Sindri's -1..1 overlay space."""
+    return px / 250.0 - 1.0
+
+
+def stage_y(px: float) -> float:
+    """Convert a 500px stage y coordinate to Sindri's +1..-1 overlay space."""
+    return 1.0 - px / 250.0
+
+
+def stage_size(px: float) -> float:
+    """Convert a pixel extent on the 500px stage to overlay units."""
+    return px / 250.0
+
+
 def button(entry, index):
-    stage_y = 137 + 25 * index
+    center_y = 137 + 25 * index
     return {
         "id": f"workshop-category-{entry['id']}",
         "name": f"Workshop Category {entry['label']}",
         "parent": "garage-ui-desktop",
-        "transform_3d": transform((-0.695, 0.5 - stage_y / 500.0, 0.0), (0.20, 0.034, 1.0)),
+        # The chrome buttons are 102x17 px centred at x=78. Sindri UI transforms
+        # use a two-unit-high overlay, not 0..1 normalized coordinates.
+        "transform_3d": transform(
+            (stage_x(78), stage_y(center_y), 0.0),
+            (stage_size(102), stage_size(17), 1.0),
+        ),
         "components": {
             "sindri.ui.shape": {"kind": "rect", "fill": [0, 0, 0, 0.001], "anchor": "center", "layer": 240},
             "sindri.ui.button": {"label": entry["label"]},
@@ -86,7 +106,7 @@ def main():
         "id": "workshop-selection-marker",
         "name": "Workshop Category Marker",
         "parent": "garage-ui-desktop",
-        "transform_3d": transform((-0.892, 0.5 - 137 / 500.0, 0.0), (0.012, 0.012, 1.0)),
+        "transform_3d": transform((stage_x(20), stage_y(137), 0.0), (stage_size(8), stage_size(8), 1.0)),
         "components": {
             "sindri.ui.shape": {"kind": "rect", "fill": [0.05, 0.08, 0.18, 1.0], "anchor": "center", "layer": 245},
         },

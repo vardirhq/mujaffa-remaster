@@ -7,7 +7,7 @@ script WorkshopCategoryController {
     var exhaust: Entity = null; var rims: Entity = null; var tyres: Entity = null;
     var windows: Entity = null; var sunroof: Entity = null; var plate: Entity = null;
     var interior: Entity = null; var trinket: Entity = null; var horn: Entity = null;
-    var camera: Entity = null; var marker: Entity = null;
+    var camera: Entity = null;
     var panel_audio: Entity = null; var panel_spoiler: Entity = null;
     var panel_exhaust: Entity = null; var panel_rims: Entity = null;
     var panel_tyres: Entity = null; var panel_windows: Entity = null;
@@ -29,7 +29,6 @@ script WorkshopCategoryController {
         this.trinket = World.find("Workshop Category BILNIPS");
         this.horn = World.find("Workshop Category BÅT-HORN");
         this.camera = World.find("Workshop Category BMW CAM");
-        this.marker = World.find("Workshop Category Marker");
         this.panel_audio = World.find("Workshop Panel BILSTEREO");
         this.panel_spoiler = World.find("Workshop Panel SPOILER");
         this.panel_exhaust = World.find("Workshop Panel EKSOSANLEGG");
@@ -54,11 +53,9 @@ script WorkshopCategoryController {
     }
 
     fn layout_controls() {
-        // The workshop itself is a square world-space stage fitted to the
-        // shorter viewport dimension. Screen UI uses a two-unit-tall overlay,
-        // so on portrait screens one stage pixel is scaled by the aspect ratio.
-        // Keeping the visible image and its button on this same transform makes
-        // touch and artwork coincide at every viewport shape.
+        // Screen UI is two units tall. Scale the fixed 500px stage by the
+        // shorter viewport dimension so its real button images remain aligned
+        // with the square workshop artwork on portrait and landscape screens.
         let unit = 0.004 * min(Viewport.aspect, 1.0);
         layout_button(this.paint, 0.0, unit);
         layout_button(this.audio, 1.0, unit);
@@ -73,10 +70,6 @@ script WorkshopCategoryController {
         layout_button(this.trinket, 10.0, unit);
         layout_button(this.horn, 11.0, unit);
         layout_button(this.camera, 12.0, unit);
-        this.marker.transform.position.x = (20.0 - 250.0) * unit;
-        this.marker.transform.position.y = (250.0 - (137.0 + 25.0 * this.category)) * unit;
-        this.marker.transform.scale.x = 8.0 * unit;
-        this.marker.transform.scale.y = 8.0 * unit;
     }
 
     fn refresh_panels() {
@@ -98,7 +91,6 @@ script WorkshopCategoryController {
         this.category = value;
         Game.set("workshop.category", value);
         refresh_panels();
-        layout_controls();
     }
 
     fn update(dt: f32) {

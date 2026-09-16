@@ -85,4 +85,15 @@ def decode_define_font2(payload: bytes, tag_code: int) -> dict[str, object]:
         glyphs[i]["code"]=code
         try:glyphs[i]["character"]=chr(code)
         except ValueError:pass
-    return {"name":name,"bold":bool(flags&1),"italic":bool(flags&2),"ansi":bool(flags&0x10),"unicode":bool(flags&0x20),"shift_jis":bool(flags&0x40),"has_layout":has_layout,"units_per_em":20480 if tag_code==75 else 1024,"glyphs":glyphs}
+    result={"name":name,"bold":bool(flags&1),"italic":bool(flags&2),"ansi":bool(flags&0x10),"unicode":bool(flags&0x20),"shift_jis":bool(flags&0x40),"has_layout":has_layout,"units_per_em":20480 if tag_code==75 else 1024,"glyphs":glyphs}
+    if has_layout:
+        # Ascent, descent and leading are what an EditText needs to put its first
+        # baseline where Flash put it; a static DefineText carries its own
+        # offsets and never asks. They are in EM units, like the glyphs.
+        o=code_offset+count*code_size
+        if o+6>len(payload):raise SwfError("truncated font layout")
+        result["ascent"],result["descent"],result["leading"]=struct.unpack_from("<HHh",payload,o)
+        o+=6
+        if o+count*2<=len(payload):
+            result["advances"]=[struct.unpack_from("<h",payload,o+i*2)[0] for i in range(count)]
+    return result

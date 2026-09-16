@@ -1,17 +1,175 @@
-// Navigation boundary for the classic title scene.
+// The classic title screen: the original opening's navigation and its screens.
 //
-// Presentation will be replaced with SWF-recovered artwork as title evidence is
-// extracted. Scene ownership and the transition into gameplay are stable now.
+// Everything visible here is recovered artwork placed on the original 500x500
+// stage, so this script never draws. It owns three things: which screen is
+// showing, which state each original button is drawn in, and the two semantic
+// actions the original's own release handlers proved -- start the game, and
+// read the instructions.
+//
+// `page` is the whole of the state. 0 is the title; 1 to 5 are the original's
+// five instruction pages, reached by the same Next and Previous buttons the
+// original reaches them with.
 script Title {
-    var start_button: Entity = null;
+    var page: f32 = 0.0;
+
+    var title_screen: Entity = null;
+    var page_1: Entity = null;
+    var page_2: Entity = null;
+    var page_3: Entity = null;
+    var page_4: Entity = null;
+    var page_5: Entity = null;
+
+    var arm: Entity = null;
+    var mouth: Entity = null;
+    var prompt: Entity = null;
+
+    var begin: Entity = null;
+    var begin_up: Entity = null;
+    var begin_over: Entity = null;
+    var begin_down: Entity = null;
+
+    var guide: Entity = null;
+    var guide_up: Entity = null;
+    var guide_over: Entity = null;
+    var guide_down: Entity = null;
+
+    var next: Entity = null;
+    var next_up: Entity = null;
+    var next_over: Entity = null;
+    var next_down: Entity = null;
+
+    var previous: Entity = null;
+    var previous_up: Entity = null;
+    var previous_over: Entity = null;
+    var previous_down: Entity = null;
+
+    var play: Entity = null;
+    var play_up: Entity = null;
+    var play_over: Entity = null;
+    var play_down: Entity = null;
 
     fn start() {
-        this.start_button = World.find("Title Start");
+        this.title_screen = World.find("Title Backdrop");
+        this.page_1 = World.find("Instructions Page 1");
+        this.page_2 = World.find("Instructions Page 2");
+        this.page_3 = World.find("Instructions Page 3");
+        this.page_4 = World.find("Instructions Page 4");
+        this.page_5 = World.find("Instructions Page 5");
+
+        this.arm = World.find("Title Mujaffa Arm");
+        this.mouth = World.find("Title Mujaffa Mouth");
+        this.prompt = World.find("Title Prompt");
+
+        this.begin = World.find("Title Start");
+        this.begin_up = World.find("Title Start Up");
+        this.begin_over = World.find("Title Start Over");
+        this.begin_down = World.find("Title Start Down");
+
+        this.guide = World.find("Title Instructions");
+        this.guide_up = World.find("Title Instructions Up");
+        this.guide_over = World.find("Title Instructions Over");
+        this.guide_down = World.find("Title Instructions Down");
+
+        this.next = World.find("Instructions Next");
+        this.next_up = World.find("Instructions Next Up");
+        this.next_over = World.find("Instructions Next Over");
+        this.next_down = World.find("Instructions Next Down");
+
+        this.previous = World.find("Instructions Previous");
+        this.previous_up = World.find("Instructions Previous Up");
+        this.previous_over = World.find("Instructions Previous Over");
+        this.previous_down = World.find("Instructions Previous Down");
+
+        this.play = World.find("Instructions Start");
+        this.play_up = World.find("Instructions Start Up");
+        this.play_over = World.find("Instructions Start Over");
+        this.play_down = World.find("Instructions Start Down");
+
+        layout();
+        show(0.0);
+    }
+
+    // The classic stage is 500x500 whatever shape the window is, so a control's
+    // hit area is placed from the original's own stage pixels. The overlay is
+    // two units tall and `aspect` units wide either side of centre, which is
+    // what makes 2/500 the conversion and `min(aspect, 1)` the part of it the
+    // square stage actually occupies.
+    fn place(control: Entity, x: f32, y: f32, w: f32, h: f32, unit: f32) {
+        control.transform.position.x = (x + w * 0.5 - 250.0) * unit;
+        control.transform.position.y = (250.0 - (y + h * 0.5)) * unit;
+        control.transform.scale.x = w * unit;
+        control.transform.scale.y = h * unit;
+    }
+
+    fn layout() {
+        let unit = 0.004 * min(Viewport.aspect, 1.0);
+        place(this.begin, 220.7, 466.5, 132.0, 22.0, unit);
+        place(this.guide, 356.65, 466.5, 137.15, 22.0, unit);
+        place(this.next, 381.2, 471.4, 111.0, 22.0, unit);
+        place(this.previous, 253.7, 471.4, 119.55, 22.0, unit);
+        place(this.play, 374.1, 471.4, 122.35, 22.0, unit);
+    }
+
+    // An original button is three drawings, and which one shows is the whole of
+    // its feedback: idle, the red caption the original pops up on hover, and the
+    // pressed plate.
+    fn draw_control(control: Entity, up: Entity, over: Entity, down: Entity, shown: bool) {
+        let held = shown && Ui.is_held(control);
+        let hovered = shown && Ui.is_hovered(control) && !held;
+        World.set_active(down, held);
+        World.set_active(over, hovered);
+        World.set_active(up, shown && !hovered && !held);
+    }
+
+    fn show(value: f32) {
+        this.page = value;
+        let titled = value == 0.0;
+        World.set_active(this.title_screen, titled);
+        World.set_active(this.arm, titled);
+        World.set_active(this.mouth, titled);
+        World.set_active(this.prompt, titled);
+        World.set_active(this.page_1, value == 1.0);
+        World.set_active(this.page_2, value == 2.0);
+        World.set_active(this.page_3, value == 3.0);
+        World.set_active(this.page_4, value == 4.0);
+        World.set_active(this.page_5, value == 5.0);
+
+        World.set_active(this.begin, titled);
+        World.set_active(this.guide, titled);
+        // The original's instruction run has Next on every page but the last and
+        // Previous on every page but the first, and only the last page offers
+        // the game.
+        World.set_active(this.next, value >= 1.0 && value <= 4.0);
+        World.set_active(this.previous, value >= 2.0);
+        World.set_active(this.play, value == 5.0);
     }
 
     fn update(dt: f32) {
-        if Ui.is_pressed(this.start_button) {
-            Scene.go("main.scene.json");
+        layout();
+
+        draw_control(this.begin, this.begin_up, this.begin_over, this.begin_down, this.page == 0.0);
+        draw_control(this.guide, this.guide_up, this.guide_over, this.guide_down, this.page == 0.0);
+        draw_control(this.next, this.next_up, this.next_over, this.next_down, this.page >= 1.0 && this.page <= 4.0);
+        draw_control(this.previous, this.previous_up, this.previous_over, this.previous_down, this.page >= 2.0);
+        draw_control(this.play, this.play_up, this.play_over, this.play_down, this.page == 5.0);
+
+        if this.page == 0.0 {
+            if Ui.is_pressed(this.begin) {
+                Scene.go("main.scene.json");
+            }
+            if Ui.is_pressed(this.guide) {
+                show(1.0);
+            }
+        } else {
+            if Ui.is_pressed(this.next) {
+                show(min(this.page + 1.0, 5.0));
+            }
+            if Ui.is_pressed(this.previous) {
+                show(max(this.page - 1.0, 1.0));
+            }
+            if Ui.is_pressed(this.play) {
+                Scene.go("main.scene.json");
+            }
         }
     }
 }

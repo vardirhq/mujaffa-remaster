@@ -232,6 +232,12 @@ def parse_shape(code: int, payload: bytes):
     line_bits = bits.u(4)
     x = y = 0
     fill0 = fill1 = line = 0
+    # A style-change record carrying new styles *replaces* the style arrays, and
+    # every index after it is 1-based into the replacement rather than into
+    # everything defined so far. Appending and indexing from the front instead
+    # is why a multi-part character used to come out wearing the colours of
+    # whatever was drawn before its last style reset.
+    fill_base = line_base = 0
     fill_edges: dict[int, list[Edge]] = {}
     line_edges: dict[int, list[Edge]] = {}
 
@@ -262,11 +268,13 @@ def parse_shape(code: int, payload: bytes):
                 )
 
             if fill1:
-                fill_edges.setdefault(fill1, []).append(edge)
+                fill_edges.setdefault(fill_base + fill1, []).append(edge)
             if fill0:
-                fill_edges.setdefault(fill0, []).append(Edge(edge.end, edge.control, edge.start))
+                fill_edges.setdefault(fill_base + fill0, []).append(
+                    Edge(edge.end, edge.control, edge.start)
+                )
             if line:
-                line_edges.setdefault(line, []).append(edge)
+                line_edges.setdefault(line_base + line, []).append(edge)
             continue
 
         flags = bits.u(5)
@@ -286,6 +294,7 @@ def parse_shape(code: int, payload: bytes):
             offset = bits.off
             offset, new_fills = read_fill_array(payload, offset, shape_version)
             offset, new_lines = read_line_array(payload, offset, shape_version)
+            fill_base, line_base = len(fills), len(lines)
             fills.extend(new_fills)
             lines.extend(new_lines)
             bits = BitReader(payload, offset * 8)

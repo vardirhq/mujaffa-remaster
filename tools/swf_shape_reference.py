@@ -214,6 +214,14 @@ def decode_shape_records(payload: bytes, offset: int, shape_version: int) -> dic
             offset = bits.byte_offset
             offset, new_fills = _fill_array(payload, offset, shape_version)
             offset, new_lines = _line_array(payload, offset, shape_version)
+            # New styles *replace* the arrays: every style index after this
+            # record is 1-based into the replacement, not into everything
+            # defined so far. `fills`/`lines` keep the whole history so the
+            # evidence stays complete, and the base says where the live array
+            # starts. A renderer that ignores it paints a character in the
+            # colours of whatever was drawn before its last style reset.
+            change["fill_base"] = len(fills)
+            change["line_base"] = len(lines)
             fills.extend(new_fills)
             lines.extend(new_lines)
             change["new_fills"] = new_fills

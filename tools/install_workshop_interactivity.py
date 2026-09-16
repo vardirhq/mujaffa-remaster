@@ -113,6 +113,33 @@ def spoiler_entities():
         out.append(control(f'workshop-spoiler-{value}',f'Workshop Spoiler {value}',f'spoiler-{value}.png',x,y,SPOILER_W,SPOILER_H))
     return out
 
+# EKSOSANLEGG: one row of three pipes inside sprite 267, which the panel places
+# unscaled, so the offsets add straight through `panel_point`. The row has a
+# fourth slot on the left holding the stock pipe's graphic rather than a button.
+EXHAUST_OPTIONS=[(1,300,259),(2,900,260),(3,2700,261)]
+EXHAUST_ROW=(-12.1,9.35)                    # sprite 267 inside 924
+EXHAUST_BUTTON_X=(-39.9,42.05,120.0)
+EXHAUST_BUTTON_Y=12.5
+EXHAUST_W=60; EXHAUST_H=26
+def exhaust_point(index):
+    return panel_point(EXHAUST_ROW[0]+EXHAUST_BUTTON_X[index],EXHAUST_ROW[1]+EXHAUST_BUTTON_Y)
+def make_exhaust_controls(out):
+    for index,(value,price,_button) in enumerate(EXHAUST_OPTIONS):
+        render(out,f'exhaust-{value}.png',EXHAUST_W,EXHAUST_H,
+               f'<rect x="1" y="1" width="{EXHAUST_W-2}" height="{EXHAUST_H-2}" rx="3" fill="#2ca2c8" stroke="#0b103b" stroke-width="2"/>'
+               f'<path d="M6 9 h34 a4 4 0 0 1 0 5 h-34 z" fill="#0b103b" opacity="0.55"/>'
+               f'<text x="{EXHAUST_W/2}" y="22" text-anchor="middle" font-family="Arial" font-size="9" font-weight="700" fill="#15151b">{price}</text>')
+def make_exhaust_panel(out):
+    render(out,'panel-exhaust.png',500,500,
+           f'<rect x="153" y="351" width="343" height="111" rx="12" fill="#129bc4" stroke="#0b103b" stroke-width="4"/>'
+           f'<text x="176" y="368" font-family="Arial" font-size="14" font-weight="700">EKSOSANLEGG</text>')
+def exhaust_entities():
+    out=[]
+    for index,(value,price,_button) in enumerate(EXHAUST_OPTIONS):
+        x,y=exhaust_point(index)
+        out.append(control(f'workshop-exhaust-{value}',f'Workshop Exhaust {value}',f'exhaust-{value}.png',x,y,EXHAUST_W,EXHAUST_H))
+    return out
+
 def control(eid,name,texture,x,y,w,h,layer=250):
     return {"id":eid,"name":name,"parent":"garage-ui-desktop","transform_3d":transform((stage_x(x),stage_y(y),0),(stage_size(w),stage_size(h),1)),"components":{"sindri.ui.image":{"texture":f"assets/generated/workshop-ui/{texture}","tint":[1,1,1,1],"anchor":"center","layer":layer},"sindri.ui.button":{"label":name}}}
 def image_control(eid,name,texture,x,y,w,h,layer=252):
@@ -123,13 +150,13 @@ def slider(eid,name,texture,x,y,w,h,value,layer=251):
     return entity
 def main():
     ap=argparse.ArgumentParser(); ap.add_argument('--project',type=Path,default=Path('.')); args=ap.parse_args(); p=args.project/'main.scene.json'; scene=json.loads(p.read_text())
-    scene['entities']=[e for e in scene['entities'] if not any(str(e.get('id','')).startswith(s) for s in ('workshop-category-','workshop-panel-','workshop-paint-','workshop-stripe-','workshop-rgb-','workshop-audio-','workshop-spoiler-')) and e.get('id') not in {'workshop-state','workshop-category-controller'}]
+    scene['entities']=[e for e in scene['entities'] if not any(str(e.get('id','')).startswith(s) for s in ('workshop-category-','workshop-panel-','workshop-paint-','workshop-stripe-','workshop-rgb-','workshop-audio-','workshop-spoiler-','workshop-exhaust-')) and e.get('id') not in {'workshop-state','workshop-category-controller'}]
     out=args.project/'assets/generated/workshop-ui'
     for entry in CATEGORIES: make_button(out,entry)
     for entry in CATEGORIES[1:]:
-        if entry['id'] not in ('audio','spoiler'): make_panel(out,entry)
+        if entry['id'] not in ('audio','spoiler','exhaust'): make_panel(out,entry)
         scene['entities'].append(panel_entity(entry))
-    make_audio_panel(out); make_audio_controls(out); make_spoiler_panel(out); make_spoiler_controls(out)
+    make_audio_panel(out); make_audio_controls(out); make_spoiler_panel(out); make_spoiler_controls(out); make_exhaust_panel(out); make_exhaust_controls(out)
     make_paint_controls(out); scene['entities'].extend(button(e,i) for i,e in enumerate(CATEGORIES))
     scene['entities'].extend([
       control('workshop-paint-change','Workshop Paint Change','paint-change.png',205,433,56,38),
@@ -138,12 +165,13 @@ def main():
       slider('workshop-rgb-red','Workshop RGB Red','rgb-red.png',185,407,18,78,32.0),slider('workshop-rgb-green','Workshop RGB Green','rgb-green.png',213,407,18,78,64.0),slider('workshop-rgb-blue','Workshop RGB Blue','rgb-blue.png',241,407,18,78,184.0),
       image_control('workshop-rgb-red-marker','Workshop RGB Red Marker','rgb-red-marker.png',185,436,16,7),image_control('workshop-rgb-green-marker','Workshop RGB Green Marker','rgb-green-marker.png',213,426,16,7),image_control('workshop-rgb-blue-marker','Workshop RGB Blue Marker','rgb-blue-marker.png',241,390,16,7),
       control('workshop-rgb-ok','Workshop RGB OK','rgb-ok.png',459,431,54,38,253)])
-    scene['entities'].extend(audio_entities()); scene['entities'].extend(spoiler_entities())
+    scene['entities'].extend(audio_entities()); scene['entities'].extend(spoiler_entities()); scene['entities'].extend(exhaust_entities())
     scene['entities'] += [
       {"id":"workshop-state","name":"Workshop State","transform_3d":transform((0,0,0),(1,1,1)),"components":{"sindri.script":{"source":"scripts/workshop_state.decay","script":"WorkshopState","properties":{},"enabled":True}}},
       {"id":"workshop-category-controller","name":"Workshop Category Controller","transform_3d":transform((0,0,0),(1,1,1)),"components":{"sindri.script":{"source":"scripts/workshop_category_controller.decay","script":"WorkshopCategoryController","properties":{},"enabled":True}}},
       {"id":"workshop-paint-controller","name":"Workshop Paint Controller","transform_3d":transform((0,0,0),(1,1,1)),"components":{"sindri.script":{"source":"scripts/workshop_paint_controller.decay","script":"WorkshopPaintController","properties":{},"enabled":True}}},
       {"id":"workshop-audio-controller","name":"Workshop Audio Controller","transform_3d":transform((0,0,0),(1,1,1)),"components":{"sindri.script":{"source":"scripts/workshop_audio_controller.decay","script":"WorkshopAudioController","properties":{},"enabled":True}}},
-      {"id":"workshop-spoiler-controller","name":"Workshop Spoiler Controller","transform_3d":transform((0,0,0),(1,1,1)),"components":{"sindri.script":{"source":"scripts/workshop_spoiler_controller.decay","script":"WorkshopSpoilerController","properties":{},"enabled":True}}}]
+      {"id":"workshop-spoiler-controller","name":"Workshop Spoiler Controller","transform_3d":transform((0,0,0),(1,1,1)),"components":{"sindri.script":{"source":"scripts/workshop_spoiler_controller.decay","script":"WorkshopSpoilerController","properties":{},"enabled":True}}},
+      {"id":"workshop-exhaust-controller","name":"Workshop Exhaust Controller","transform_3d":transform((0,0,0),(1,1,1)),"components":{"sindri.script":{"source":"scripts/workshop_exhaust_controller.decay","script":"WorkshopExhaustController","properties":{},"enabled":True}}}]
     p.write_text(json.dumps(scene,indent=2,ensure_ascii=False)+'\n')
 if __name__=='__main__': main()

@@ -68,6 +68,19 @@ def add_car_layers(scene: dict, manifest: dict) -> None:
                 "sindri.sprite": {
                     "texture": f"assets/generated/car-stage/{Path(png).name}",
                     "tint": [1.0, 1.0, 1.0, 1.0],
+                    # Authored at the identity instead of left out. The engine
+                    # defaults the field when a scene omits it, so leaving it
+                    # out draws correctly -- but a Decay write walks the payload
+                    # exactly as authored, and `sprite.color_multiply` on a
+                    # layer without the key fails the script at `start`. That
+                    # takes the whole page down rather than one sprite, and
+                    # neither `decay-lsp --check` nor a successful export sees
+                    # it: the member path is real, only the scene data is
+                    # missing.
+                    "color_transform": {
+                        "multiply": [1.0, 1.0, 1.0, 1.0],
+                        "offset": [0.0, 0.0, 0.0, 0.0],
+                    },
                     "layer": layer,
                 },
                 "sindri.tags": {"tags": ["garage-car-layer", "showroom-registered", *tags]},

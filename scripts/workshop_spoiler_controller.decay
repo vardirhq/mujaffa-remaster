@@ -1,0 +1,102 @@
+// SPOILER: four wings, one at a time, or none.
+//
+// Prices and coolness are recovered from `mujaffa_3juni_2003.swf` and checked
+// against it by `tests/test_spoiler_category.py`.
+//
+// The stereo accumulates -- every speaker you buy adds to `bil_cool` and stays
+// bought. A spoiler replaces: the original subtracts what the fitted wing was
+// worth before adding the new one, so going from the 2200 wing to the 4000 one
+// is worth 0.15, not 0.3. That is why this tracks the fitted wing's worth and
+// sends the difference, while the stereo sends a multiple of a step.
+//
+// The car carries all five layers at once -- "Garage Car spoiler-1" through
+// "-5", where 1 is the bare boot the car starts with -- so fitting a wing is
+// choosing which one is visible rather than swapping any art.
+script WorkshopSpoilerController {
+    var fitted: f32 = 0.0;
+
+    var buy1: Entity = null; var buy2: Entity = null; var buy3: Entity = null; var buy4: Entity = null;
+    var layer0: Entity = null; var layer1: Entity = null; var layer2: Entity = null; var layer3: Entity = null; var layer4: Entity = null;
+
+    var ticket: f32 = 0.0;
+    var pending: f32 = 0.0;
+
+    fn start() {
+        this.buy1 = World.find("Workshop Spoiler 1"); this.buy2 = World.find("Workshop Spoiler 2");
+        this.buy3 = World.find("Workshop Spoiler 3"); this.buy4 = World.find("Workshop Spoiler 4");
+        this.layer0 = World.find("Garage Car spoiler-1"); this.layer1 = World.find("Garage Car spoiler-2");
+        this.layer2 = World.find("Garage Car spoiler-3"); this.layer3 = World.find("Garage Car spoiler-4");
+        this.layer4 = World.find("Garage Car spoiler-5");
+        publish();
+        refresh_car();
+        refresh_visibility();
+    }
+
+    fn publish() { Game.set("workshop.spoiler", this.fitted); }
+
+    fn price(value: f32) -> f32 {
+        if value == 1.0 { return 450.0; }
+        if value == 2.0 { return 1200.0; }
+        if value == 3.0 { return 2200.0; }
+        return 4000.0;
+    }
+
+    // What each wing contributes while it is the one fitted.
+    fn worth(value: f32) -> f32 {
+        if value == 0.0 { return 0.0; }
+        if value == 1.0 { return 0.05; }
+        if value == 2.0 { return 0.1; }
+        if value == 3.0 { return 0.15; }
+        return 0.3;
+    }
+
+    fn ask(value: f32) {
+        if this.fitted == value { return; }
+        if this.pending > 0.0 { return; }
+        this.ticket = this.ticket + 1.0;
+        this.pending = value;
+        Game.set("workshop.buy.price", price(value));
+        // The replacement, not the total: the fitted wing's worth comes off first.
+        Game.set("workshop.buy.cred", worth(value) - worth(this.fitted));
+        Game.set("workshop.buy.ticket", this.ticket);
+    }
+
+    fn settle() {
+        if this.pending <= 0.0 { return; }
+        if Game.get("workshop.buy.settled", 0.0) != this.ticket { return; }
+        if Game.get("workshop.buy.granted", 0.0) > 0.0 {
+            this.fitted = this.pending;
+            publish();
+            refresh_car();
+        }
+        this.pending = 0.0;
+        refresh_visibility();
+    }
+
+    fn refresh_car() {
+        World.set_active(this.layer0, this.fitted == 0.0);
+        World.set_active(this.layer1, this.fitted == 1.0);
+        World.set_active(this.layer2, this.fitted == 2.0);
+        World.set_active(this.layer3, this.fitted == 3.0);
+        World.set_active(this.layer4, this.fitted == 4.0);
+    }
+
+    // SPOILER is category 2. The wing already fitted is not for sale.
+    fn refresh_visibility() {
+        let showing = Game.get("workshop.category", 0.0) == 2.0;
+        World.set_active(this.buy1, showing && this.fitted != 1.0);
+        World.set_active(this.buy2, showing && this.fitted != 2.0);
+        World.set_active(this.buy3, showing && this.fitted != 3.0);
+        World.set_active(this.buy4, showing && this.fitted != 4.0);
+    }
+
+    fn update(dt: f32) {
+        settle();
+        refresh_visibility();
+        if Game.get("workshop.category", 0.0) != 2.0 { return; }
+        if Ui.is_pressed(this.buy1) { ask(1.0); }
+        if Ui.is_pressed(this.buy2) { ask(2.0); }
+        if Ui.is_pressed(this.buy3) { ask(3.0); }
+        if Ui.is_pressed(this.buy4) { ask(4.0); }
+    }
+}

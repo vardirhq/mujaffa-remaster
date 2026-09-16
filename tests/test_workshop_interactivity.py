@@ -40,3 +40,20 @@ def test_stripes_remain_on_normal_lakkering_panel():
     c=Path('scripts/workshop_paint_controller.decay').read_text(); assert 'World.set_active(this.stripe_none, !value)' in c; assert 'Garage Car farvestribe-hvid' in c; assert 'Garage Car farvestribe-pink' in c
 def test_rgb_controls_are_scoped_to_lakkering():
     r=Path('scripts/workshop_category_controller.decay').read_text(); assert 'Workshop RGB Mixer' in r; assert 'World.set_active(this.mixer,false)' in r or 'World.set_active(this.mixer, false)' in r; assert 'World.set_active(this.rgb_red_marker,false)' in r
+def test_car_layers_author_the_colour_transform_the_scripts_write():
+    # A Decay write walks the sprite payload exactly as authored. The engine
+    # defaults `color_transform` when a scene omits it, so a layer without the
+    # key still draws -- but `sprite.color_multiply` on one fails the script at
+    # `start`, which takes the whole page down rather than one sprite. Neither
+    # `decay-lsp --check` nor a successful export catches it: the member path
+    # is real, only the scene data is missing.
+    installer=Path('tools/install_garage_scene.py').read_text()
+    assert '"color_transform"' in installer
+    assert '"multiply": [1.0, 1.0, 1.0, 1.0]' in installer
+    assert '"offset": [0.0, 0.0, 0.0, 0.0]' in installer
+    # Every script that paints through the transform does it on a car layer,
+    # which is what makes the installer the only place the key has to exist.
+    for script in sorted(Path('scripts').glob('*.decay')):
+        source=script.read_text()
+        if 'color_multiply' in source or 'color_offset' in source:
+            assert 'Garage Car ' in source, script.name

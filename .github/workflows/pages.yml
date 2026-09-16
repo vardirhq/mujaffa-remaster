@@ -13,7 +13,18 @@ permissions:
   id-token: write
 
 concurrency:
-  group: mujaffa-pages
+  # A PR build never deploys -- every Pages step below is gated on
+  # `github.event_name != 'pull_request'` -- so it has no reason to share a
+  # queue with the runs that do. It used to: one group held every run, and
+  # GitHub keeps only one *pending* run per group, so a PR build entering the
+  # queue evicted the `main` deploy waiting in it. `cancel-in-progress: false`
+  # does not help, because it protects a run that has already started rather
+  # than one still waiting. A merge to `main` could go green and never publish,
+  # which is how #36 landed without reaching the site.
+  #
+  # Deploying runs stay in one group, serialised, which is what Pages wants.
+  # Each PR now queues against itself instead.
+  group: mujaffa-pages-${{ github.event_name == 'pull_request' && github.head_ref || 'deploy' }}
   cancel-in-progress: false
 
 jobs:

@@ -14,18 +14,10 @@ CONTROLLER = (ROOT / "scripts/title.decay").read_text(encoding="utf-8")
 BY_NAME = {entity["name"]: entity for entity in SCENE["entities"]}
 
 
-def test_title_and_gameplay_scenes_are_both_registered():
-    """Keep both scenes exportable while direct garage boot is under diagnosis."""
+def test_title_is_the_project_entry_scene():
     manifest = (ROOT / "sindri.toml").read_text(encoding="utf-8")
-    title_entry = (
-        'main_scene = "title.scene.json"' in manifest
-        and 'scenes = ["main.scene.json"]' in manifest
-    )
-    garage_entry = (
-        'main_scene = "main.scene.json"' in manifest
-        and 'scenes = ["title.scene.json"]' in manifest
-    )
-    assert title_entry or garage_entry
+    assert 'main_scene = "title.scene.json"' in manifest
+    assert 'scenes = ["main.scene.json"]' in manifest
 
 
 def test_title_scene_owns_navigation_into_gameplay():

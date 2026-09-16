@@ -7,7 +7,7 @@ class TitleReferenceTests(unittest.TestCase):
  @classmethod
  def setUpClass(cls):cls.result=extract(ROOT/"mujaffa_3juni_2003.swf")
  def test_original_opening_landmarks_are_recovered_in_order(self):
-  r=self.result;self.assertEqual(r["schema_version"],10);self.assertEqual(r["stage"],[500.,500.]);self.assertEqual(r["frame_rate"],12.);labels=r["opening_labels"];self.assertEqual([e["label"] for e in labels],["start","velkommen","speakDone","gotoInstruktioner","gotoGame","initGame"]);self.assertEqual([e["frame"] for e in labels],sorted(e["frame"] for e in labels))
+  r=self.result;self.assertEqual(r["schema_version"],11);self.assertEqual(r["stage"],[500.,500.]);self.assertEqual(r["frame_rate"],12.);labels=r["opening_labels"];self.assertEqual([e["label"] for e in labels],["start","velkommen","speakDone","gotoInstruktioner","gotoGame","initGame"]);self.assertEqual([e["frame"] for e in labels],sorted(e["frame"] for e in labels))
  def test_named_character_evidence_is_well_formed(self):
   for e in self.result["named_characters"]:self.assertIsInstance(e["character_id"],int);self.assertTrue(e["name"]);self.assertTrue(set(e["sources"]).issubset({"SymbolClass","ExportAssets"}))
  def test_title_display_primitives_exist_in_original(self):
@@ -29,4 +29,7 @@ class TitleReferenceTests(unittest.TestCase):
   for e in bounded:
    b=e["bounds"];self.assertLessEqual(b["x_min"],b["x_max"]);self.assertLessEqual(b["y_min"],b["y_max"])
   static=[e for e in defs if e["kind"]=="text"];self.assertTrue(static);self.assertTrue(all("matrix" in e for e in static))
+ def test_shape_definitions_expose_original_vector_records(self):
+  shapes=[e for e in self.result["character_definitions"].values() if e["kind"]=="shape"];self.assertTrue(shapes);self.assertTrue(all("shape" in e for e in shapes));self.assertTrue(any(e["shape"]["records"] for e in shapes));self.assertTrue(any(any(r["type"] in {"line","curve"} for r in e["shape"]["records"]) for e in shapes))
+  for e in shapes:self.assertEqual(set(e["shape"]),{"fills","lines","records"})
 if __name__=="__main__":unittest.main()

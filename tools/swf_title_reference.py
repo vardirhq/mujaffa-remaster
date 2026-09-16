@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Extract the original Mujaffa opening/title timeline landmarks from the SWF.
+"""Extract original Mujaffa opening/title timeline landmarks from the SWF.
 
 This intentionally owns only title/navigation evidence. Workshop economy recovery
 lives elsewhere so both reverse-engineering tracks can evolve independently.
@@ -8,7 +8,6 @@ from __future__ import annotations
 
 import argparse
 import json
-import struct
 from pathlib import Path
 
 from swf_inventory import iter_tags, parse_header
@@ -23,20 +22,17 @@ OPENING_LABELS = {
 }
 
 
-def _cstring(payload: bytes, offset: int = 0) -> str:
-    end = payload.find(b"\0", offset)
-    if end < 0:
-        end = len(payload)
-    return payload[offset:end].decode("latin-1")
+def _cstring(payload: bytes) -> str:
+    return payload.split(b"\0", 1)[0].decode("utf-8", errors="replace")
 
 
 def extract(path: Path) -> dict[str, object]:
     raw = path.read_bytes()
-    header = parse_header(raw)
+    data, header = parse_header(raw)
     frame = 0
     labels: list[dict[str, object]] = []
 
-    for tag in iter_tags(raw, header.tags_offset):
+    for tag in iter_tags(data, header.tags_offset):
         if tag.code == 1:  # ShowFrame
             frame += 1
             continue
@@ -55,7 +51,7 @@ def extract(path: Path) -> dict[str, object]:
         "schema_version": 1,
         "source": path.name,
         "stage": [header.width, header.height],
-        "frame_rate": header.frame_rate,
+        "frame_rate": header.fps,
         "opening_labels": labels,
         "notes": [
             "Frame numbers are recovered from the main SWF timeline.",

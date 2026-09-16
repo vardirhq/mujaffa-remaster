@@ -27,12 +27,13 @@ The browser/page shell around the 500 × 500 movie is not part of the title artw
 - the six known opening timeline labels and their frames
 - exported/named character IDs where the SWF exposes names
 - title-relevant SWF primitive counts
-- main-timeline PlaceObject/PlaceObject2 and removal events through the opening flow
-- character IDs, depth, move semantics, placement matrices, instance names, ratios, clip depth and ColorTransformWithAlpha state where present
+- main-timeline placement/removal events through the opening flow
+- character IDs, depth, move semantics, placement matrices, instance names, ratios, clip depth and color transforms
 - resolved display-list snapshots at every opening navigation label
 - a character-definition index classifying placed objects as shape, text, edit text, button or sprite
+- `DefineSprite` frame counts and nested placement/removal/label timelines
 
-The next extraction boundary is recursive `DefineSprite` display lists, followed by direct shape/text/button definition decoding. That is the point where we can generate original-derived title artwork instead of merely knowing where opaque character IDs sit.
+The next extraction boundary is **shape, text and button definition contents**, followed by recursive transform composition from the nested sprite timelines. Once those are decoded, the extractor can emit renderable original-derived title primitives rather than opaque character IDs.
 
 Do not manually transcribe coordinates from the screenshot when the SWF can supply them. The screenshot is for visual acceptance and identifying the intended title state; the SWF remains the authoritative geometry/timeline source.
 

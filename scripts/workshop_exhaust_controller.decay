@@ -1,0 +1,102 @@
+// EKSOSANLEGG: three pipes, and the original's arithmetic kept as it is.
+//
+// Prices and coolness are recovered from `mujaffa_3juni_2003.swf` and checked
+// against it by `tests/test_exhaust_category.py`.
+//
+// This is the third way the original moves `bil_cool`, and the odd one. Paint
+// and spoilers replace: they take the fitted part's worth off before adding the
+// new one. The stereo accumulates, but each set is bought once. The exhaust
+// accumulates too -- +0.1, +0.2, +0.3 flat -- and never touches the
+// `udstodning_cool` its own initialiser defines, so the pipes do not clear each
+// other. Fitting all three in turn is worth 0.6, not the 0.3 the last pipe is
+// worth on its own.
+//
+// That is preserved rather than corrected: the parity spec's rule is to ship
+// what the game did, and these are the recovered numbers applied the recovered
+// way.
+//
+// It is not the money printer it looks like. The original swaps a plain graphic
+// (character 140) into the slot of the pipe already fitted, so it will not sell
+// you what you are wearing. `refresh_visibility` is that rule, which caps the
+// gain at 0.6 for the 3900 all three cost.
+script WorkshopExhaustController {
+    var fitted: f32 = 0.0;
+
+    var buy1: Entity = null; var buy2: Entity = null; var buy3: Entity = null;
+    var layer0: Entity = null; var layer1: Entity = null; var layer2: Entity = null; var layer3: Entity = null;
+
+    var ticket: f32 = 0.0;
+    var pending: f32 = 0.0;
+
+    fn start() {
+        this.buy1 = World.find("Workshop Exhaust 1"); this.buy2 = World.find("Workshop Exhaust 2");
+        this.buy3 = World.find("Workshop Exhaust 3");
+        this.layer0 = World.find("Garage Car udstodning-1"); this.layer1 = World.find("Garage Car udstodning-2");
+        this.layer2 = World.find("Garage Car udstodning-3"); this.layer3 = World.find("Garage Car udstodning-4");
+        publish();
+        refresh_car();
+        refresh_visibility();
+    }
+
+    fn publish() { Game.set("workshop.exhaust", this.fitted); }
+
+    fn price(value: f32) -> f32 {
+        if value == 1.0 { return 300.0; }
+        if value == 2.0 { return 900.0; }
+        return 2700.0;
+    }
+
+    // What the original adds, whatever is already fitted. No subtraction: that
+    // is the quirk, not an oversight here.
+    fn gain(value: f32) -> f32 {
+        if value == 1.0 { return 0.1; }
+        if value == 2.0 { return 0.2; }
+        return 0.3;
+    }
+
+    fn ask(value: f32) {
+        if this.fitted == value { return; }
+        if this.pending > 0.0 { return; }
+        this.ticket = this.ticket + 1.0;
+        this.pending = value;
+        Game.set("workshop.buy.price", price(value));
+        Game.set("workshop.buy.cred", gain(value));
+        Game.set("workshop.buy.ticket", this.ticket);
+    }
+
+    fn settle() {
+        if this.pending <= 0.0 { return; }
+        if Game.get("workshop.buy.settled", 0.0) != this.ticket { return; }
+        if Game.get("workshop.buy.granted", 0.0) > 0.0 {
+            this.fitted = this.pending;
+            publish();
+            refresh_car();
+        }
+        this.pending = 0.0;
+        refresh_visibility();
+    }
+
+    fn refresh_car() {
+        World.set_active(this.layer0, this.fitted == 0.0);
+        World.set_active(this.layer1, this.fitted == 1.0);
+        World.set_active(this.layer2, this.fitted == 2.0);
+        World.set_active(this.layer3, this.fitted == 3.0);
+    }
+
+    // EKSOSANLEGG is category 3. The fitted pipe is not for sale.
+    fn refresh_visibility() {
+        let showing = Game.get("workshop.category", 0.0) == 3.0;
+        World.set_active(this.buy1, showing && this.fitted != 1.0);
+        World.set_active(this.buy2, showing && this.fitted != 2.0);
+        World.set_active(this.buy3, showing && this.fitted != 3.0);
+    }
+
+    fn update(dt: f32) {
+        settle();
+        refresh_visibility();
+        if Game.get("workshop.category", 0.0) != 3.0 { return; }
+        if Ui.is_pressed(this.buy1) { ask(1.0); }
+        if Ui.is_pressed(this.buy2) { ask(2.0); }
+        if Ui.is_pressed(this.buy3) { ask(3.0); }
+    }
+}

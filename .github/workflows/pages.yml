@@ -67,7 +67,7 @@ jobs:
         run: |
           python tools/workshop_catalog.py
           python tools/workshop_free_mode_check.py
-          pytest -q tests/test_workshop_catalog.py tests/test_workshop_state_contract.py tests/test_workshop_controller.py tests/test_workshop_interactivity.py tests/test_original_workshop_data.py tests/test_workshop_economy_matches_swf.py tests/test_audio_category.py tests/test_title_scene.py
+          pytest -q tests/test_workshop_catalog.py tests/test_workshop_state_contract.py tests/test_workshop_controller.py tests/test_workshop_interactivity.py tests/test_original_workshop_data.py tests/test_workshop_economy_matches_swf.py tests/test_audio_category.py tests/test_spoiler_category.py tests/test_exhaust_category.py tests/test_panel_layout.py tests/test_title_scene.py
       - name: Compose the original classic title screens
         working-directory: mujaffa
         env:

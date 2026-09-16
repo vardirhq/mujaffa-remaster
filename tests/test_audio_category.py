@@ -16,10 +16,6 @@ import pytest
 ROOT = Path(__file__).parents[1]
 sys.path.insert(0, str(ROOT / "tools"))
 
-from swf_layout import placements  # noqa: E402
-
-sys.path.insert(0, str(ROOT))
-from tools.install_workshop_interactivity import AUDIO_SLOT_X, audio_row_y  # noqa: E402
 from swf_workshop_economy import purchases  # noqa: E402
 
 SWF = ROOT / "mujaffa_3juni_2003.swf"
@@ -27,10 +23,8 @@ CONTROLLER = ROOT / "scripts" / "workshop_audio_controller.decay"
 INSTALLER = ROOT / "tools" / "install_workshop_interactivity.py"
 DATA = ROOT / "reference" / "original-workshop-data.json"
 
-# The speaker sprites, in the order the panel lists them, and the sprite the
-# workshop draws them in.
-SPEAKER_SPRITES = [236, 243, 247, 257]
-WORKSHOP_PANEL = 924
+# Where the panel puts these is `test_panel_layout.py`; this file is about what
+# they cost.
 
 
 @pytest.fixture(scope="module")
@@ -103,52 +97,6 @@ def test_installer_labels_buttons_with_the_original_prices(audio):
     listed = {int(price) for price in re.findall(r"\((?:\d),(\d+)\)", source)}
     expected = {option["price"] for group in audio["option_groups"] for option in group["options"]}
     assert expected <= listed, f"installer is missing prices {sorted(expected - listed)}"
-
-
-def test_panel_spacing_matches_the_original(audio):
-    """The one geometry claim: the row spacing, taken from the workshop's panel.
-
-    The speaker rows are placed twice. Sprite 258 spaces them at a tidy 25px;
-    sprite 924 spaces them 26.35/26.4/26.4. 924 is the workshop's -- it is placed
-    at the stage's lower panel, where this category is drawn, and 258 sits
-    mid-stage. Taking the tidy one would be inventing a neater game than the
-    original, so this pins the uneven one.
-
-    Both are differences within a single parent, so the parent's placement and
-    scale cancel. The panel's own position on the stage is the remaster's and is
-    not claimed here.
-    """
-    if not SWF.is_file():
-        pytest.skip("original SWF is not present in this checkout")
-    from swf_inventory import iter_tags, parse_header
-
-    data, header = parse_header(SWF.read_bytes())
-    found = placements(iter_tags(data, header.tags_offset))
-
-    rows = [p for p in found if p.character in SPEAKER_SPRITES and p.parent == WORKSHOP_PANEL]
-    assert len(rows) == len(SPEAKER_SPRITES), "every speaker row is placed inside the workshop panel"
-    ys = sorted(p.y for p in rows)
-    original = [round(later - earlier, 3) for earlier, later in zip(ys, ys[1:])]
-
-    installed = [audio_row_y(index) for index in range(len(SPEAKER_SPRITES))]
-    ours = [round(later - earlier, 3) for earlier, later in zip(installed, installed[1:])]
-    assert ours == original, f"installed rows are spaced {ours}, the original {original}"
-    assert original != [25.0, 25.0, 25.0], "the workshop panel is the uneven one, not sprite 258"
-
-    # A row sprite holds labels and artwork as well, so only the characters that
-    # actually charge money count as buttons.
-    charging = {purchase.character for purchase in purchases(SWF.read_bytes())}
-    buttons = [p for p in found if p.parent in SPEAKER_SPRITES and p.character in charging and p.x is not None]
-    columns = sorted({round(p.x, 3) for p in buttons})
-    assert columns == list(AUDIO_SLOT_X), f"installer slots {list(AUDIO_SLOT_X)}, original {columns}"
-
-    # The woofer is the row that proves the slots are indexed by level: it is the
-    # only one that buys in the leftmost slot, because it is the only one that
-    # starts at nothing.
-    woofer = {round(p.x, 3) for p in buttons if p.parent == 257}
-    others = {round(p.x, 3) for p in buttons if p.parent != 257}
-    assert woofer == set(AUDIO_SLOT_X), "the woofer charges in all three slots"
-    assert min(others) > min(woofer), "only the woofer uses the leftmost slot"
 
 
 def test_a_refused_sale_does_not_fit_the_speakers():

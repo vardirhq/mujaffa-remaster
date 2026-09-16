@@ -6,6 +6,7 @@ from pathlib import Path
 from swf_inventory import BitReader,SwfError,iter_tags,parse_header
 from swf_shape_reference import decode_shape_records
 from swf_text_reference import decode_text_records
+from swf_font_reference import decode_define_font,decode_define_font2
 OPENING_LABELS={"start","velkommen","speakDone","gotoInstruktioner","gotoGame","initGame"}
 def _cstring(p):return p.split(b"\0",1)[0].decode("utf-8",errors="replace")
 def _u16(p,o=0):return struct.unpack_from("<H",p,o)[0]
@@ -62,7 +63,7 @@ def _sprite_timeline(payload):
   elif t.code==43:events.append({"frame":frame,"tag":"FrameLabel","label":_cstring(t.payload)})
  return events
 def _definitions(data,off):
- kinds={2:"shape",22:"shape",32:"shape",83:"shape",7:"button",34:"button",11:"text",33:"text",37:"edit_text",39:"sprite"};versions={2:1,22:2,32:3,83:4};out={}
+ kinds={2:"shape",22:"shape",32:"shape",83:"shape",7:"button",34:"button",10:"font",48:"font",75:"font",11:"text",33:"text",37:"edit_text",39:"sprite"};versions={2:1,22:2,32:3,83:4};out={}
  for t in iter_tags(data,off):
   if t.code not in kinds or len(t.payload)<2:continue
   cid=_u16(t.payload);entry={"kind":kinds[t.code],"tag_code":t.code}
@@ -71,6 +72,8 @@ def _definitions(data,off):
    if t.code==83:
     entry["edge_bounds"],o=_rect(t.payload,o);flags=t.payload[o];o+=1;entry["shape_flags"]={"uses_fill_winding":bool(flags&4),"uses_non_scaling_strokes":bool(flags&2),"uses_scaling_strokes":bool(flags&1)}
    entry["shape"]=decode_shape_records(t.payload,o,versions[t.code])
+  elif t.code==10:entry["font"]=decode_define_font(t.payload)
+  elif t.code in {48,75}:entry["font"]=decode_define_font2(t.payload,t.code)
   elif t.code in {11,33}:
    entry["bounds"],o=_rect(t.payload,2);entry["matrix"],o=_matrix(t.payload,o);entry["text"]=decode_text_records(t.payload,o,1 if t.code==11 else 2)
   elif t.code==37:entry["bounds"],_=_rect(t.payload,2)
@@ -78,7 +81,7 @@ def _definitions(data,off):
   out[cid]=entry
  return out
 def _counts(data,off):
- r={2:"DefineShape",22:"DefineShape2",32:"DefineShape3",83:"DefineShape4",7:"DefineButton",34:"DefineButton2",11:"DefineText",33:"DefineText2",37:"DefineEditText",39:"DefineSprite",4:"PlaceObject",26:"PlaceObject2",70:"PlaceObject3",5:"RemoveObject",28:"RemoveObject2"};c={v:0 for v in r.values()}
+ r={2:"DefineShape",22:"DefineShape2",32:"DefineShape3",83:"DefineShape4",7:"DefineButton",34:"DefineButton2",10:"DefineFont",48:"DefineFont2",75:"DefineFont3",11:"DefineText",33:"DefineText2",37:"DefineEditText",39:"DefineSprite",4:"PlaceObject",26:"PlaceObject2",70:"PlaceObject3",5:"RemoveObject",28:"RemoveObject2"};c={v:0 for v in r.values()}
  for t in iter_tags(data,off):
   if t.code in r:c[r[t.code]]+=1
  return {k:v for k,v in c.items() if v}
@@ -99,7 +102,7 @@ def _state(trace,frame,defs):
   tag=str(e["tag"])
   if tag.startswith("PlaceObject"):
    d=int(e["depth"]);prior=s.get(d,{}) if e.get("move") else {};item={**prior,**{k:v for k,v in e.items() if k not in {"frame","tag","move"}}};cid=item.get("character_id")
-   if cid in defs:item["definition"]={k:v for k,v in defs[cid].items() if k not in {"timeline","shape","text"}}
+   if cid in defs:item["definition"]={k:v for k,v in defs[cid].items() if k not in {"timeline","shape","text","font"}}
    s[d]=item
   elif tag.startswith("RemoveObject"):s.pop(int(e["depth"]),None)
  return [s[d] for d in sorted(s)]
@@ -113,7 +116,7 @@ def extract(path):
  missing=sorted(OPENING_LABELS-{e["label"] for e in labels})
  if missing:raise ValueError(f"opening labels missing from SWF: {', '.join(missing)}")
  labels.sort(key=lambda e:int(e["frame"]));trace=_trace(data,h.tags_offset,max(int(e["frame"]) for e in labels));defs=_definitions(data,h.tags_offset);snaps=[{"frame":int(e["frame"]),"label":e["label"],"display_list":_state(trace,int(e["frame"]),defs)} for e in labels]
- return {"schema_version":12,"source":path.name,"stage":[h.width,h.height],"frame_rate":h.fps,"opening_labels":labels,"named_characters":_named(data,h.tags_offset),"character_definitions":{str(k):v for k,v in sorted(defs.items())},"title_relevant_tag_counts":_counts(data,h.tags_offset),"opening_display_trace":trace,"opening_display_snapshots":snaps,"notes":["Shape definitions expose original fill styles, line styles, style changes, straight edges and quadratic curves.","DefineText/DefineText2 definitions expose original font references, colours, offsets, heights, glyph indices and advances.","Font glyph outlines and button records remain to be decoded before classic title rendering.","This file deliberately contains no workshop economy data."]}
+ return {"schema_version":13,"source":path.name,"stage":[h.width,h.height],"frame_rate":h.fps,"opening_labels":labels,"named_characters":_named(data,h.tags_offset),"character_definitions":{str(k):v for k,v in sorted(defs.items())},"title_relevant_tag_counts":_counts(data,h.tags_offset),"opening_display_trace":trace,"opening_display_snapshots":snaps,"notes":["Shape definitions expose original vector records.","Static text exposes original font references, colours, offsets, heights, glyph indices and advances.","DefineFont/DefineFont2/DefineFont3 definitions expose original glyph outlines and available character codes.","Button records remain to be decoded before classic title rendering.","This file deliberately contains no workshop economy data."]}
 def main():
  p=argparse.ArgumentParser();p.add_argument("swf",type=Path);p.add_argument("--out",type=Path);a=p.parse_args();s=json.dumps(extract(a.swf),indent=2,ensure_ascii=False)+"\n"
  if a.out:a.out.parent.mkdir(parents=True,exist_ok=True);a.out.write_text(s,encoding="utf-8")

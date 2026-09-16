@@ -219,12 +219,22 @@ script Garage {
         one_of_5(this.stripe1, this.stripe2, this.stripe3, this.stripe4, this.stripe5, this.stripe_index);
         one_of_5(this.windscreen1, this.windscreen2, this.windscreen3, this.windscreen4, this.windscreen5, this.windscreen_index);
 
+        // The body is a flat RGB(49,49,49) mask, so a tint alone caps these at
+        // a fifth of the colour asked for. The colour transform carries them
+        // instead — a zero multiply drops the mask's grey and the offset
+        // supplies the colour — while `tint` keeps the same value for
+        // `garage_polish` to mirror onto the spoilers, which are real artwork
+        // and still want the multiply.
         let paint = this.paint;
         paint.sprite.tint.r = 0.15; paint.sprite.tint.g = 0.25; paint.sprite.tint.b = 0.72;
         if this.paint_index == 1.0 { paint.sprite.tint.r = 0.76; paint.sprite.tint.g = 0.12; paint.sprite.tint.b = 0.10; }
         else if this.paint_index == 2.0 { paint.sprite.tint.r = 0.10; paint.sprite.tint.g = 0.62; paint.sprite.tint.b = 0.28; }
         else if this.paint_index == 3.0 { paint.sprite.tint.r = 0.92; paint.sprite.tint.g = 0.72; paint.sprite.tint.b = 0.14; }
         else if this.paint_index == 4.0 { paint.sprite.tint.r = 0.12; paint.sprite.tint.g = 0.12; paint.sprite.tint.b = 0.14; }
+        paint.sprite.color_multiply.r = 0.0; paint.sprite.color_multiply.g = 0.0; paint.sprite.color_multiply.b = 0.0;
+        paint.sprite.color_offset.r = paint.sprite.tint.r;
+        paint.sprite.color_offset.g = paint.sprite.tint.g;
+        paint.sprite.color_offset.b = paint.sprite.tint.b;
     }
 
     fn update(dt: f32) {

@@ -48,9 +48,29 @@ script WorkshopPaintController {
 
     fn sync_sliders() { Ui.set_slider_value(this.red_track, this.red); Ui.set_slider_value(this.green_track, this.green); Ui.set_slider_value(this.blue_track, this.blue); }
     fn publish_rgb() { Game.set("workshop.paint.red", this.red); Game.set("workshop.paint.green", this.green); Game.set("workshop.paint.blue", this.blue); }
+    // `paint-tintable` is a flat silhouette mask, a uniform RGB(49,49,49), so a
+    // tint could never reach the colour the sliders ask for: multiplying only
+    // scales what the art already has, and 49/255 caps every paint job at 19%
+    // brightness. Pure red came out RGB(49,6,6), which is why every paint job
+    // looked nearly black.
+    //
+    // The colour transform replaces the sample instead of scaling it: a zero
+    // multiply discards the mask's grey and the offset supplies the colour
+    // whole, so the slider value lands exactly. The alpha channels stay at the
+    // identity — multiply 1, offset 0 — because the mask's alpha is the car's
+    // silhouette, and an offset there would fill its transparent corners with
+    // a rectangle.
+    //
+    // `tint` still carries the chosen colour even though the body no longer
+    // reads it: `garage_polish` mirrors this sprite's tint onto the paintable
+    // spoilers, whose art is blue over black rather than a flat mask, and an
+    // offset there would swallow the black detailing. The spoilers keep the
+    // multiply they have always had.
     fn refresh_paint() {
         let body = this.paint;
         body.sprite.tint.r = this.red / 255.0; body.sprite.tint.g = this.green / 255.0; body.sprite.tint.b = this.blue / 255.0;
+        body.sprite.color_multiply.r = 0.0; body.sprite.color_multiply.g = 0.0; body.sprite.color_multiply.b = 0.0;
+        body.sprite.color_offset.r = this.red / 255.0; body.sprite.color_offset.g = this.green / 255.0; body.sprite.color_offset.b = this.blue / 255.0;
         publish_rgb();
     }
     fn read_sliders() {

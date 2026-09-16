@@ -14,6 +14,14 @@ The classic presentation is a parity target for `mujaffa_3juni_2003.swf`:
 
 The SWF reference map already confirms `start`, `velkommen`, `speakDone`, `gotoInstruktioner`, `gotoGame`, and `initGame` as the opening navigation labels. Those labels are the source of truth for the classic state machine.
 
+### Visual acceptance reference
+
+The classic reconstruction is judged against a captured 500 × 500 original-player frame, not against a modernized interpretation. The opening composition contains the original `Mujaffa Spillet` wordmark and version label at upper left, the Falafel storefront at upper right, the blue BMW across the lower middle, Mujaffa in the left foreground, the woman on the right pavement, and the cyan navigation strip along the bottom. `START SPILLET` and `INSTRUKSJONER` belong inside that strip.
+
+Do not substitute generic UI controls, a flat placeholder background, approximate typography, or newly drawn character/car silhouettes and call that classic parity. If an original visual cannot yet be recovered faithfully, keep that part of the reconstruction explicitly incomplete instead of inventing it.
+
+The browser/page shell around the 500 × 500 movie is not part of the title artwork. Mobile emulator controls, fullscreen/language controls, and the surrounding webpage are reference-player chrome only.
+
 ## Remastered presentation
 
 The remastered title will **not** inherit the 500 × 500 constraint. It will be a responsive full-viewport presentation that can recompose for portrait phones, tablets, desktop, and ultrawide displays. It may replace artwork, typography, animation, and layout while keeping the same semantic navigation actions.

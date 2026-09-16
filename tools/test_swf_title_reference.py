@@ -14,7 +14,7 @@ class TitleReferenceTests(unittest.TestCase):
     def test_original_opening_landmarks_are_recovered_in_order(self):
         result = extract(ROOT / "mujaffa_3juni_2003.swf")
 
-        self.assertEqual(result["schema_version"], 2)
+        self.assertEqual(result["schema_version"], 3)
         self.assertEqual(result["stage"], [500.0, 500.0])
         self.assertEqual(result["frame_rate"], 12.0)
 
@@ -44,6 +44,16 @@ class TitleReferenceTests(unittest.TestCase):
             self.assertTrue(entry["name"])
             self.assertTrue(entry["sources"])
             self.assertTrue(set(entry["sources"]).issubset({"SymbolClass", "ExportAssets"}))
+
+    def test_title_display_primitives_exist_in_original(self):
+        result = extract(ROOT / "mujaffa_3juni_2003.swf")
+        counts = result["title_relevant_tag_counts"]
+        self.assertTrue(any(name.startswith("DefineShape") for name in counts))
+        self.assertTrue(any(name.startswith("PlaceObject") for name in counts))
+        self.assertTrue(any(name.startswith("DefineButton") for name in counts))
+        self.assertTrue(
+            any(name in counts for name in ("DefineText", "DefineText2", "DefineEditText"))
+        )
 
 
 if __name__ == "__main__":

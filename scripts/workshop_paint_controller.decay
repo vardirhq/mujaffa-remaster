@@ -1,5 +1,5 @@
 // LAKKERING mirrors the original two-step flow: the normal panel contains
-// `skift`; pressing it opens an RGB mixer and OK commits the preview.
+// `skift`; pressing it opens the native RGB sliders and OK commits the preview.
 script WorkshopPaintController {
     var red: f32 = 32.0; var green: f32 = 64.0; var blue: f32 = 184.0;
     var saved_red: f32 = 32.0; var saved_green: f32 = 64.0; var saved_blue: f32 = 184.0;
@@ -21,7 +21,7 @@ script WorkshopPaintController {
         this.paint = World.find("Garage Car paint-tintable");
         this.stripe0 = World.find("Garage Car farvestribe-empty"); this.stripe1 = World.find("Garage Car farvestribe-hvid");
         this.stripe2 = World.find("Garage Car farvestribe-grøn"); this.stripe3 = World.find("Garage Car farvestribe-sort"); this.stripe4 = World.find("Garage Car farvestribe-pink");
-        layout_controls(); publish_rgb(); refresh_paint(); refresh_stripe(); set_mixer(false);
+        layout_controls(); sync_sliders(); publish_rgb(); refresh_paint(); refresh_stripe(); set_mixer(false);
     }
 
     fn place(entity: Entity, x: f32, y: f32, w: f32, h: f32, unit: f32) {
@@ -32,8 +32,6 @@ script WorkshopPaintController {
     }
 
     fn layout_controls() {
-        // Match the same fixed 500x500 ScreenUi mapping as the category rail.
-        // These are stage pixels, not viewport pixels.
         let unit = 0.004 * min(Viewport.aspect, 1.0);
         place(this.change_paint, 205.0, 433.0, 56.0, 38.0, unit);
         place(this.stripe_none, 359.0, 400.0, 34.0, 26.0, unit);
@@ -41,7 +39,6 @@ script WorkshopPaintController {
         place(this.stripe_green, 359.0, 430.0, 34.0, 26.0, unit);
         place(this.stripe_black, 397.0, 430.0, 34.0, 26.0, unit);
         place(this.stripe_pink, 435.0, 430.0, 34.0, 26.0, unit);
-        // Original tint screen occupies exactly the workshop's lower panel.
         place(this.mixer, 324.5, 406.5, 343.0, 111.0, unit);
         place(this.red_track, 185.0, 407.0, 18.0, 78.0, unit);
         place(this.green_track, 213.0, 407.0, 18.0, 78.0, unit);
@@ -49,6 +46,11 @@ script WorkshopPaintController {
         place(this.ok, 459.0, 431.0, 54.0, 38.0, unit);
     }
 
+    fn sync_sliders() {
+        Ui.set_slider_value(this.red_track, this.red);
+        Ui.set_slider_value(this.green_track, this.green);
+        Ui.set_slider_value(this.blue_track, this.blue);
+    }
     fn publish_rgb() {
         Game.set("workshop.paint.red", this.red); Game.set("workshop.paint.green", this.green); Game.set("workshop.paint.blue", this.blue);
     }
@@ -56,6 +58,12 @@ script WorkshopPaintController {
         let body = this.paint;
         body.sprite.tint.r = this.red / 255.0; body.sprite.tint.g = this.green / 255.0; body.sprite.tint.b = this.blue / 255.0;
         publish_rgb();
+    }
+    fn read_sliders() {
+        let next_red = Ui.slider_value(this.red_track); let next_green = Ui.slider_value(this.green_track); let next_blue = Ui.slider_value(this.blue_track);
+        if next_red != this.red || next_green != this.green || next_blue != this.blue {
+            this.red = next_red; this.green = next_green; this.blue = next_blue; refresh_paint();
+        }
     }
     fn set_mixer(value: bool) {
         this.mixing = value;
@@ -65,9 +73,6 @@ script WorkshopPaintController {
         World.set_active(this.stripe_none, !value); World.set_active(this.stripe_white, !value); World.set_active(this.stripe_green, !value);
         World.set_active(this.stripe_black, !value); World.set_active(this.stripe_pink, !value);
     }
-    fn cycle_red() { this.red = this.red + 17.0; if this.red > 255.0 { this.red = 0.0; } refresh_paint(); }
-    fn cycle_green() { this.green = this.green + 17.0; if this.green > 255.0 { this.green = 0.0; } refresh_paint(); }
-    fn cycle_blue() { this.blue = this.blue + 17.0; if this.blue > 255.0 { this.blue = 0.0; } refresh_paint(); }
     fn set_stripe(index: f32) { this.stripe_index = index; Game.set("workshop.stripe", index); refresh_stripe(); }
     fn refresh_stripe() {
         World.set_active(this.stripe0, this.stripe_index == 0.0); World.set_active(this.stripe1, this.stripe_index == 1.0);
@@ -75,9 +80,9 @@ script WorkshopPaintController {
     }
     fn update(dt: f32) {
         layout_controls();
-        if Ui.is_pressed(this.change_paint) { this.saved_red=this.red; this.saved_green=this.green; this.saved_blue=this.blue; set_mixer(true); }
+        if Ui.is_pressed(this.change_paint) { this.saved_red=this.red; this.saved_green=this.green; this.saved_blue=this.blue; sync_sliders(); set_mixer(true); }
         if this.mixing {
-            if Ui.is_pressed(this.red_track) { cycle_red(); } if Ui.is_pressed(this.green_track) { cycle_green(); } if Ui.is_pressed(this.blue_track) { cycle_blue(); }
+            read_sliders();
             if Ui.is_pressed(this.ok) { set_mixer(false); }
         } else {
             if Ui.is_pressed(this.stripe_none) { set_stripe(0.0); } if Ui.is_pressed(this.stripe_white) { set_stripe(1.0); }

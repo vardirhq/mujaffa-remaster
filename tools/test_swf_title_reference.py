@@ -7,7 +7,7 @@ class TitleReferenceTests(unittest.TestCase):
  @classmethod
  def setUpClass(cls):cls.result=extract(ROOT/"mujaffa_3juni_2003.swf")
  def test_original_opening_landmarks_are_recovered_in_order(self):
-  r=self.result;self.assertEqual(r["schema_version"],13);self.assertEqual(r["stage"],[500.,500.]);self.assertEqual(r["frame_rate"],12.);labels=r["opening_labels"];self.assertEqual([e["label"] for e in labels],["start","velkommen","speakDone","gotoInstruktioner","gotoGame","initGame"]);self.assertEqual([e["frame"] for e in labels],sorted(e["frame"] for e in labels))
+  r=self.result;self.assertEqual(r["schema_version"],14);self.assertEqual(r["stage"],[500.,500.]);self.assertEqual(r["frame_rate"],12.);labels=r["opening_labels"];self.assertEqual([e["label"] for e in labels],["start","velkommen","speakDone","gotoInstruktioner","gotoGame","initGame"]);self.assertEqual([e["frame"] for e in labels],sorted(e["frame"] for e in labels))
  def test_named_character_evidence_is_well_formed(self):
   for e in self.result["named_characters"]:self.assertIsInstance(e["character_id"],int);self.assertTrue(e["name"]);self.assertTrue(set(e["sources"]).issubset({"SymbolClass","ExportAssets"}))
  def test_title_display_primitives_exist_in_original(self):
@@ -40,4 +40,6 @@ class TitleReferenceTests(unittest.TestCase):
     for g in r["glyphs"]:self.assertIsInstance(g["index"],int);self.assertIsInstance(g["advance"],float)
  def test_font_definitions_expose_original_glyph_outlines(self):
   fonts=[e for e in self.result["character_definitions"].values() if e["kind"]=="font"];self.assertTrue(fonts);self.assertTrue(all("font" in e for e in fonts));self.assertTrue(any(e["font"]["glyphs"] for e in fonts));self.assertTrue(any(g["shape_records"] for e in fonts for g in e["font"]["glyphs"]));self.assertTrue(any(any(r["type"] in {"line","curve"} for r in g["shape_records"]) for e in fonts for g in e["font"]["glyphs"]));self.assertTrue(any("character" in g for e in fonts for g in e["font"]["glyphs"]))
+ def test_button_definitions_expose_original_visual_states(self):
+  buttons=[e for e in self.result["character_definitions"].values() if e["kind"]=="button"];self.assertTrue(buttons);self.assertTrue(all("button" in e for e in buttons));self.assertTrue(any(e["button"]["records"] for e in buttons));self.assertTrue(any(any(r["states"].values()) for e in buttons for r in e["button"]["records"]));self.assertTrue(all("matrix" in r and "character_id" in r and "depth" in r for e in buttons for r in e["button"]["records"]))
 if __name__=="__main__":unittest.main()

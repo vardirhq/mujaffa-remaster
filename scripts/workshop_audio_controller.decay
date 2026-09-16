@@ -1,0 +1,126 @@
+// BILSTEREO: four speaker sets, each bought a level at a time.
+//
+// Every price and every coolness figure here is recovered from
+// `mujaffa_3juni_2003.swf` and checked against it by
+// `tests/test_audio_category.py`. Nothing in this file is a guess.
+//
+// The original charges a flat price per target level and moves `bil_cool` by a
+// fixed amount per level jumped, so front speakers bought straight from 1 to 3
+// cost 4000 and add 0.2 -- the same as buying 1->2 and 2->3 separately. That is
+// why a delta is `step * (target - current)` rather than a table: the SWF's
+// three buttons for the top level differ only in how far they move you.
+script WorkshopAudioController {
+    var front: f32 = 1.0;
+    var side: f32 = 1.0;
+    var rear: f32 = 1.0;
+    var woofer: f32 = 0.0;
+
+    var front2: Entity = null; var front3: Entity = null;
+    var side2: Entity = null; var side3: Entity = null;
+    var rear2: Entity = null; var rear3: Entity = null;
+    var woofer1: Entity = null; var woofer2: Entity = null; var woofer3: Entity = null;
+
+    // One purchase in flight. The till settles on the frame after the ask, so
+    // the upgrade is held here until it is paid for -- a refused sale must not
+    // move the speakers.
+    var ticket: f32 = 0.0;
+    var pending_group: f32 = 0.0;
+    var pending_level: f32 = 0.0;
+
+    fn start() {
+        this.front2 = World.find("Workshop Audio Front 2"); this.front3 = World.find("Workshop Audio Front 3");
+        this.side2 = World.find("Workshop Audio Side 2"); this.side3 = World.find("Workshop Audio Side 3");
+        this.rear2 = World.find("Workshop Audio Rear 2"); this.rear3 = World.find("Workshop Audio Rear 3");
+        this.woofer1 = World.find("Workshop Audio Woofer 1"); this.woofer2 = World.find("Workshop Audio Woofer 2"); this.woofer3 = World.find("Workshop Audio Woofer 3");
+        publish();
+        refresh_visibility();
+    }
+
+    fn publish() {
+        Game.set("workshop.audio.front", this.front);
+        Game.set("workshop.audio.side", this.side);
+        Game.set("workshop.audio.rear", this.rear);
+        Game.set("workshop.audio.woofer", this.woofer);
+    }
+
+    // The per-level coolness each set is worth, from the SWF.
+    fn step(group: f32) -> f32 {
+        if group == 0.0 { return 0.1; }
+        if group == 1.0 { return 0.05; }
+        if group == 2.0 { return 0.1; }
+        return 0.15;
+    }
+
+    fn price(group: f32, level: f32) -> f32 {
+        if group == 0.0 { if level == 2.0 { return 2000.0; } return 4000.0; }
+        if group == 1.0 { if level == 2.0 { return 1000.0; } return 2000.0; }
+        if group == 2.0 { if level == 2.0 { return 2000.0; } return 4000.0; }
+        if level == 1.0 { return 3000.0; }
+        if level == 2.0 { return 6000.0; }
+        return 9000.0;
+    }
+
+    fn level_of(group: f32) -> f32 {
+        if group == 0.0 { return this.front; }
+        if group == 1.0 { return this.side; }
+        if group == 2.0 { return this.rear; }
+        return this.woofer;
+    }
+
+    fn ask(group: f32, level: f32) {
+        // Already at or above this level, or still waiting on the till.
+        if level_of(group) >= level { return; }
+        if this.pending_level > 0.0 { return; }
+        this.ticket = this.ticket + 1.0;
+        this.pending_group = group;
+        this.pending_level = level;
+        Game.set("workshop.buy.price", price(group, level));
+        Game.set("workshop.buy.cred", step(group) * (level - level_of(group)));
+        Game.set("workshop.buy.ticket", this.ticket);
+    }
+
+    fn apply(group: f32, level: f32) {
+        if group == 0.0 { this.front = level; }
+        else if group == 1.0 { this.side = level; }
+        else if group == 2.0 { this.rear = level; }
+        else { this.woofer = level; }
+        publish();
+    }
+
+    fn settle() {
+        if this.pending_level <= 0.0 { return; }
+        if Game.get("workshop.buy.settled", 0.0) != this.ticket { return; }
+        if Game.get("workshop.buy.granted", 0.0) > 0.0 { apply(this.pending_group, this.pending_level); }
+        this.pending_level = 0.0;
+        refresh_visibility();
+    }
+
+    // BILSTEREO is category 1. The controls belong to it, so they follow it.
+    fn refresh_visibility() {
+        let showing = Game.get("workshop.category", 0.0) == 1.0;
+        World.set_active(this.front2, showing && this.front < 2.0);
+        World.set_active(this.front3, showing && this.front < 3.0);
+        World.set_active(this.side2, showing && this.side < 2.0);
+        World.set_active(this.side3, showing && this.side < 3.0);
+        World.set_active(this.rear2, showing && this.rear < 2.0);
+        World.set_active(this.rear3, showing && this.rear < 3.0);
+        World.set_active(this.woofer1, showing && this.woofer < 1.0);
+        World.set_active(this.woofer2, showing && this.woofer < 2.0);
+        World.set_active(this.woofer3, showing && this.woofer < 3.0);
+    }
+
+    fn update(dt: f32) {
+        settle();
+        refresh_visibility();
+        if Game.get("workshop.category", 0.0) != 1.0 { return; }
+        if Ui.is_pressed(this.front2) { ask(0.0, 2.0); }
+        if Ui.is_pressed(this.front3) { ask(0.0, 3.0); }
+        if Ui.is_pressed(this.side2) { ask(1.0, 2.0); }
+        if Ui.is_pressed(this.side3) { ask(1.0, 3.0); }
+        if Ui.is_pressed(this.rear2) { ask(2.0, 2.0); }
+        if Ui.is_pressed(this.rear3) { ask(2.0, 3.0); }
+        if Ui.is_pressed(this.woofer1) { ask(3.0, 1.0); }
+        if Ui.is_pressed(this.woofer2) { ask(3.0, 2.0); }
+        if Ui.is_pressed(this.woofer3) { ask(3.0, 3.0); }
+    }
+}

@@ -68,6 +68,23 @@ def add_car_layers(scene: dict, manifest: dict) -> None:
                 "sindri.sprite": {
                     "texture": f"assets/generated/car-stage/{Path(png).name}",
                     "tint": [1.0, 1.0, 1.0, 1.0],
+                    # The paint layer is authored with the identity colour
+                    # transform it never uses at rest. A Decay write follows the
+                    # stored payload and will not invent a missing field, so a
+                    # sprite that leaves this unsaid cannot be recoloured at
+                    # runtime -- `sprite.color_multiply.r's sindri.sprite has
+                    # nothing at color_transform.multiply.0`. Only this layer is
+                    # painted; the rest stay as they were.
+                    **(
+                        {
+                            "color_transform": {
+                                "multiply": [1.0, 1.0, 1.0, 1.0],
+                                "offset": [0.0, 0.0, 0.0, 0.0],
+                            }
+                        }
+                        if label == "paint-tintable"
+                        else {}
+                    ),
                     "layer": layer,
                 },
                 "sindri.tags": {"tags": ["garage-car-layer", "showroom-registered", *tags]},

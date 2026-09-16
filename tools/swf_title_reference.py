@@ -32,13 +32,7 @@ def _u16(payload: bytes, offset: int = 0) -> int:
 
 
 def _named_characters(data: bytes, tags_offset: int) -> list[dict[str, object]]:
-    """Recover SWF SymbolClass/ExportAssets names without interpreting artwork.
-
-    These names give the title reconstruction stable evidence for which library
-    symbols are available before we start decoding their vector/display-list
-    contents. Both tags use a u16 count followed by (character id, cstring)
-    pairs; SymbolClass is tag 76 and ExportAssets is tag 56.
-    """
+    """Recover SWF SymbolClass/ExportAssets names without interpreting artwork."""
     found: dict[tuple[int, str], set[str]] = {}
     for tag in iter_tags(data, tags_offset):
         if tag.code not in {56, 76} or len(tag.payload) < 2:
@@ -64,6 +58,33 @@ def _named_characters(data: bytes, tags_offset: int) -> list[dict[str, object]]:
     ]
 
 
+def _tag_counts(data: bytes, tags_offset: int) -> dict[str, int]:
+    """Record title-relevant definition/display tag counts as extraction guardrails."""
+    relevant = {
+        2: "DefineShape",
+        22: "DefineShape2",
+        32: "DefineShape3",
+        83: "DefineShape4",
+        7: "DefineButton",
+        34: "DefineButton2",
+        11: "DefineText",
+        33: "DefineText2",
+        37: "DefineEditText",
+        39: "DefineSprite",
+        4: "PlaceObject",
+        26: "PlaceObject2",
+        70: "PlaceObject3",
+        5: "RemoveObject",
+        28: "RemoveObject2",
+    }
+    counts = {name: 0 for name in relevant.values()}
+    for tag in iter_tags(data, tags_offset):
+        name = relevant.get(tag.code)
+        if name is not None:
+            counts[name] += 1
+    return {name: count for name, count in counts.items() if count}
+
+
 def extract(path: Path) -> dict[str, object]:
     raw = path.read_bytes()
     data, header = parse_header(raw)
@@ -86,15 +107,17 @@ def extract(path: Path) -> dict[str, object]:
 
     labels.sort(key=lambda entry: int(entry["frame"]))
     return {
-        "schema_version": 2,
+        "schema_version": 3,
         "source": path.name,
         "stage": [header.width, header.height],
         "frame_rate": header.fps,
         "opening_labels": labels,
         "named_characters": _named_characters(data, header.tags_offset),
+        "title_relevant_tag_counts": _tag_counts(data, header.tags_offset),
         "notes": [
             "Frame numbers are recovered from the main SWF timeline.",
             "Named characters come from SymbolClass and ExportAssets tags and are evidence, not inferred title membership.",
+            "Tag counts are extraction guardrails, not evidence that every definition belongs to the opening title.",
             "This file deliberately contains no workshop economy data.",
         ],
     }

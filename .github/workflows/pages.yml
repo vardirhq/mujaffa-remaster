@@ -67,7 +67,7 @@ jobs:
         run: |
           python tools/workshop_catalog.py
           python tools/workshop_free_mode_check.py
-          pytest -q tests/test_workshop_catalog.py tests/test_workshop_state_contract.py tests/test_workshop_controller.py tests/test_workshop_interactivity.py
+          pytest -q tests/test_workshop_catalog.py tests/test_workshop_state_contract.py tests/test_workshop_controller.py tests/test_workshop_interactivity.py tests/test_original_workshop_data.py tests/test_workshop_economy_matches_swf.py
       - name: Generate layered Mujaffa car and showroom art
         run: python mujaffa/tools/prepare_runtime_art.py --project mujaffa --scale 4 --install-scene
       - name: Install composable car layer entities

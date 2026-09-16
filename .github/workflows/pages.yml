@@ -53,6 +53,10 @@ jobs:
           targets: wasm32-unknown-unknown
       - name: Install Linux and browser dependencies
         run: |
+          # None of these packages come from Microsoft's third-party apt feed.
+          # The hosted Ubuntu image occasionally exposes that feed while it is
+          # returning 403, which makes an otherwise unrelated apt update fail.
+          sudo find /etc/apt/sources.list.d -maxdepth 1 -type f -iname '*microsoft*' -delete
           sudo apt-get update
           sudo apt-get install -y libasound2-dev libvulkan1 mesa-vulkan-drivers
           python -m pip install --disable-pip-version-check cairosvg pytest

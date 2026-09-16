@@ -1,39 +1,45 @@
-import sys
-import unittest
+import sys,unittest
 from pathlib import Path
-
-TOOLS = Path(__file__).resolve().parent
-ROOT = TOOLS.parent
-if str(TOOLS) not in sys.path:
-    sys.path.insert(0, str(TOOLS))
-
+TOOLS=Path(__file__).resolve().parent;ROOT=TOOLS.parent
+if str(TOOLS) not in sys.path:sys.path.insert(0,str(TOOLS))
 from swf_title_reference import extract
-
-
 class TitleReferenceTests(unittest.TestCase):
-    def test_original_opening_landmarks_are_recovered_in_order(self):
-        result = extract(ROOT / "mujaffa_3juni_2003.swf")
-
-        self.assertEqual(result["stage"], [500.0, 500.0])
-        self.assertEqual(result["frame_rate"], 12.0)
-
-        labels = result["opening_labels"]
-        self.assertEqual(
-            [entry["label"] for entry in labels],
-            [
-                "start",
-                "velkommen",
-                "speakDone",
-                "gotoInstruktioner",
-                "gotoGame",
-                "initGame",
-            ],
-        )
-        self.assertEqual(
-            [entry["frame"] for entry in labels],
-            sorted(entry["frame"] for entry in labels),
-        )
-
-
-if __name__ == "__main__":
-    unittest.main()
+ @classmethod
+ def setUpClass(cls):cls.result=extract(ROOT/"mujaffa_3juni_2003.swf")
+ def test_original_opening_landmarks_are_recovered_in_order(self):
+  r=self.result;self.assertEqual(r["schema_version"],14);self.assertEqual(r["stage"],[500.,500.]);self.assertEqual(r["frame_rate"],12.);labels=r["opening_labels"];self.assertEqual([e["label"] for e in labels],["start","velkommen","speakDone","gotoInstruktioner","gotoGame","initGame"]);self.assertEqual([e["frame"] for e in labels],sorted(e["frame"] for e in labels))
+ def test_named_character_evidence_is_well_formed(self):
+  for e in self.result["named_characters"]:self.assertIsInstance(e["character_id"],int);self.assertTrue(e["name"]);self.assertTrue(set(e["sources"]).issubset({"SymbolClass","ExportAssets"}))
+ def test_title_display_primitives_exist_in_original(self):
+  c=self.result["title_relevant_tag_counts"];self.assertTrue(any(n.startswith("DefineShape") for n in c));self.assertTrue(any(n.startswith("PlaceObject") for n in c));self.assertTrue(any(n.startswith("DefineButton") for n in c));self.assertTrue(any(n in c for n in ("DefineText","DefineText2","DefineEditText")));self.assertTrue(any(n.startswith("DefineFont") for n in c))
+ def test_opening_placements_have_decoded_depth_and_transform(self):
+  p=[e for e in self.result["opening_display_trace"] if e["tag"].startswith("PlaceObject")];self.assertTrue(p);self.assertTrue(all(isinstance(e["depth"],int) for e in p));self.assertTrue(any("matrix" in e for e in p))
+ def test_opening_labels_have_resolved_display_snapshots(self):
+  s=self.result["opening_display_snapshots"];self.assertEqual([x["label"] for x in s],[e["label"] for e in self.result["opening_labels"]])
+  for x in s:
+   d=[e["depth"] for e in x["display_list"]];self.assertEqual(d,sorted(d));self.assertEqual(len(d),len(set(d)));self.assertTrue(all("character_id" in e and "definition" in e for e in x["display_list"]))
+ def test_color_transforms_are_structured_when_present(self):
+  for x in [e["color_transform"] for e in self.result["opening_display_trace"] if "color_transform" in e]:self.assertEqual(set(x),{"multiply","add"});self.assertEqual(set(x["multiply"]),set("rgba"));self.assertEqual(set(x["add"]),set("rgba"))
+ def test_character_definition_index_covers_display_kinds(self):
+  defs=self.result["character_definitions"];self.assertTrue(defs);placed={str(e["character_id"]) for s in self.result["opening_display_snapshots"] for e in s["display_list"]};self.assertTrue(placed.issubset(defs.keys()))
+ def test_sprite_definitions_include_nested_timeline_evidence(self):
+  sprites=[e for e in self.result["character_definitions"].values() if e["kind"]=="sprite"];self.assertTrue(sprites);self.assertTrue(all(e["frame_count"]>=1 for e in sprites));self.assertTrue(any(e["timeline"] for e in sprites));self.assertTrue(any(any(x["tag"].startswith("PlaceObject") for x in e["timeline"]) for e in sprites))
+ def test_direct_title_definitions_expose_original_geometry(self):
+  defs=self.result["character_definitions"].values();bounded=[e for e in defs if e["kind"] in {"shape","text","edit_text"}];self.assertTrue(bounded);self.assertTrue(all("bounds" in e for e in bounded))
+  for e in bounded:
+   b=e["bounds"];self.assertLessEqual(b["x_min"],b["x_max"]);self.assertLessEqual(b["y_min"],b["y_max"])
+  static=[e for e in defs if e["kind"]=="text"];self.assertTrue(static);self.assertTrue(all("matrix" in e for e in static))
+ def test_shape_definitions_expose_original_vector_records(self):
+  shapes=[e for e in self.result["character_definitions"].values() if e["kind"]=="shape"];self.assertTrue(shapes);self.assertTrue(all("shape" in e for e in shapes));self.assertTrue(any(e["shape"]["records"] for e in shapes));self.assertTrue(any(any(r["type"] in {"line","curve"} for r in e["shape"]["records"]) for e in shapes))
+  for e in shapes:self.assertEqual(set(e["shape"]),{"fills","lines","records"})
+ def test_text_definitions_expose_original_glyph_records(self):
+  texts=[e for e in self.result["character_definitions"].values() if e["kind"]=="text"];self.assertTrue(texts);self.assertTrue(all("text" in e for e in texts));self.assertTrue(any(e["text"]["records"] for e in texts));self.assertTrue(any(r["glyphs"] for e in texts for r in e["text"]["records"]));self.assertTrue(any("font_id" in r for e in texts for r in e["text"]["records"]));self.assertTrue(any("color" in r for e in texts for r in e["text"]["records"]))
+  for e in texts:
+   self.assertEqual(set(e["text"]),{"glyph_bits","advance_bits","records"})
+   for r in e["text"]["records"]:
+    for g in r["glyphs"]:self.assertIsInstance(g["index"],int);self.assertIsInstance(g["advance"],float)
+ def test_font_definitions_expose_original_glyph_outlines(self):
+  fonts=[e for e in self.result["character_definitions"].values() if e["kind"]=="font"];self.assertTrue(fonts);self.assertTrue(all("font" in e for e in fonts));self.assertTrue(any(e["font"]["glyphs"] for e in fonts));self.assertTrue(any(g["shape_records"] for e in fonts for g in e["font"]["glyphs"]));self.assertTrue(any(any(r["type"] in {"line","curve"} for r in g["shape_records"]) for e in fonts for g in e["font"]["glyphs"]));self.assertTrue(any("character" in g for e in fonts for g in e["font"]["glyphs"]))
+ def test_button_definitions_expose_original_visual_states(self):
+  buttons=[e for e in self.result["character_definitions"].values() if e["kind"]=="button"];self.assertTrue(buttons);self.assertTrue(all("button" in e for e in buttons));self.assertTrue(any(e["button"]["records"] for e in buttons));self.assertTrue(any(any(r["states"].values()) for e in buttons for r in e["button"]["records"]));self.assertTrue(all("matrix" in r and "character_id" in r and "depth" in r for e in buttons for r in e["button"]["records"]))
+if __name__=="__main__":unittest.main()

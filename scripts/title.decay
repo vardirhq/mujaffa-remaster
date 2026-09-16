@@ -1,0 +1,17 @@
+// Navigation boundary for the classic title scene.
+//
+// Presentation will be replaced with SWF-recovered artwork as title evidence is
+// extracted. Scene ownership and the transition into gameplay are stable now.
+script Title {
+    var start_button: Entity = null;
+
+    fn start() {
+        this.start_button = World.find("Title Start");
+    }
+
+    fn update(dt: f32) {
+        if Ui.is_pressed(this.start_button) {
+            Scene.go("main.scene.json");
+        }
+    }
+}

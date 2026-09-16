@@ -1,0 +1,97 @@
+{
+  "format_version": 9,
+  "metadata": {
+    "name": "Mujaffa Classic Title"
+  },
+  "entities": [
+    {
+      "id": "title-camera",
+      "name": "Title Camera",
+      "transform_3d": {
+        "position": [0.0, 0.0, 5.0],
+        "rotation": [0.0, 0.0, 0.0, 1.0],
+        "scale": [1.0, 1.0, 1.0]
+      },
+      "components": {
+        "sindri.camera": {
+          "far": 100.0,
+          "near": 0.1,
+          "projection": "orthographic",
+          "vertical_size": 10.0,
+          "fit": "shorter"
+        }
+      }
+    },
+    {
+      "id": "title-placeholder-backdrop",
+      "name": "Title Placeholder Backdrop",
+      "transform_3d": {
+        "position": [0.0, 0.0, -5.0],
+        "rotation": [0.0, 0.0, 0.0, 1.0],
+        "scale": [10.0, 10.0, 1.0]
+      },
+      "components": {
+        "sindri.shape": {
+          "kind": "rect",
+          "count": 4.0,
+          "fill": [0.02, 0.08, 0.12, 1.0],
+          "stroke": [0.0, 0.0, 0.0, 0.0],
+          "stroke_width": 0.0,
+          "corner_radius": 0.0,
+          "dashes": 0.0,
+          "dash_duty": 0.5,
+          "sweep_start": 0.0,
+          "sweep_turns": 1.0,
+          "blend": "over",
+          "layer": -10
+        }
+      }
+    },
+    {
+      "id": "title-start",
+      "name": "Title Start",
+      "transform_3d": {
+        "position": [0.0, -0.45, 0.0],
+        "rotation": [0.0, 0.0, 0.0, 1.0],
+        "scale": [0.42, 0.16, 1.0]
+      },
+      "components": {
+        "sindri.ui.button": {
+          "label": "Start"
+        },
+        "sindri.ui.shape": {
+          "kind": "rect",
+          "count": 4.0,
+          "fill": [0.12, 0.62, 0.78, 1.0],
+          "stroke": [0.03, 0.12, 0.2, 1.0],
+          "stroke_width": 0.012,
+          "corner_radius": 0.03,
+          "dashes": 0.0,
+          "dash_duty": 0.5,
+          "sweep_start": 0.0,
+          "sweep_turns": 1.0,
+          "blend": "over",
+          "anchor": "center",
+          "layer": 20
+        }
+      }
+    },
+    {
+      "id": "title-controller",
+      "name": "Title Controller",
+      "transform_3d": {
+        "position": [0.0, 0.0, 0.0],
+        "rotation": [0.0, 0.0, 0.0, 1.0],
+        "scale": [1.0, 1.0, 1.0]
+      },
+      "components": {
+        "sindri.script": {
+          "source": "scripts/title.decay",
+          "script": "Title",
+          "properties": {},
+          "enabled": true
+        }
+      }
+    }
+  ]
+}

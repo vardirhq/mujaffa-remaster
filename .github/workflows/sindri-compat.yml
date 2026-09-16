@@ -162,6 +162,18 @@ jobs:
           test "$(find mujaffa/assets/generated/car -name '*.png' | wc -l)" -ge 50
           grep -q 'assets/generated/car/' mujaffa/main.scene.json
           grep -q '"parent": "parity-car"' mujaffa/main.scene.json
+      - name: Generate runtime title from preserved SWF
+        shell: bash
+        run: |
+          python mujaffa/tools/swf_art_extract.py mujaffa/mujaffa_3juni_2003.swf mujaffa/reference-art --scale 4 --max-size 2048
+          PYTHONPATH=mujaffa/tools python mujaffa/tools/swf_title_extract.py mujaffa/mujaffa_3juni_2003.swf mujaffa/reference-art mujaffa/assets/generated/title --scale 2
+          python mujaffa/tools/install_title_scene.py --project mujaffa
+      - name: Verify generated runtime title
+        shell: bash
+        run: |
+          test -f mujaffa/assets/generated/title/png/instructions-1-backdrop.png
+          test -f mujaffa/assets/generated/title/png/title-backdrop.png
+          grep -q 'assets/generated/title/' mujaffa/title.scene.json
       - name: Cache Sindri build artifacts
         uses: Swatinem/rust-cache@v2
         with:
@@ -173,7 +185,7 @@ jobs:
       - name: Export project from outside the Sindri repository
         working-directory: sindri2
         run: cargo run --package sindri-export --bin sindri-export -- ../mujaffa "$RUNNER_TEMP/mujaffa-export" --base /mujaffa-remaster/ --build-id "$GITHUB_SHA"
-      - name: Verify export contains Decay game state and car textures
+      - name: Verify export contains Decay game state and generated textures
         shell: bash
         run: |
           if ! find "$RUNNER_TEMP/mujaffa-export/assets" -type f -path '*/scripts/game_state.decay' -print -quit | grep -q .; then
@@ -182,6 +194,10 @@ jobs:
           fi
           if ! find "$RUNNER_TEMP/mujaffa-export/assets" -type f -path '*/assets/generated/car/*.png' -print -quit | grep -q .; then
             echo 'Export is missing generated car textures.' >&2
+            exit 1
+          fi
+          if ! find "$RUNNER_TEMP/mujaffa-export/assets" -type f -path '*/assets/generated/title/*.png' -print -quit | grep -q .; then
+            echo 'Export is missing generated title textures.' >&2
             exit 1
           fi
       - name: Verify export did not copy private SWF reference

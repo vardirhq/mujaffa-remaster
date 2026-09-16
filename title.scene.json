@@ -8,9 +8,22 @@
       "id": "title-camera",
       "name": "Title Camera",
       "transform_3d": {
-        "position": [0.0, 0.0, 5.0],
-        "rotation": [0.0, 0.0, 0.0, 1.0],
-        "scale": [1.0, 1.0, 1.0]
+        "position": [
+          0.0,
+          0.0,
+          5.0
+        ],
+        "rotation": [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ]
       },
       "components": {
         "sindri.camera": {
@@ -23,66 +36,1644 @@
       }
     },
     {
-      "id": "title-placeholder-backdrop",
-      "name": "Title Placeholder Backdrop",
+      "id": "title-screen-title",
+      "name": "Title Backdrop",
       "transform_3d": {
-        "position": [0.0, 0.0, -5.0],
-        "rotation": [0.0, 0.0, 0.0, 1.0],
-        "scale": [10.0, 10.0, 1.0]
+        "position": [
+          0.0,
+          0.0,
+          -4.0
+        ],
+        "rotation": [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ],
+        "scale": [
+          10.0,
+          10.0,
+          1.0
+        ]
       },
       "components": {
-        "sindri.shape": {
-          "kind": "rect",
-          "count": 4.0,
-          "fill": [0.02, 0.08, 0.12, 1.0],
-          "stroke": [0.0, 0.0, 0.0, 0.0],
-          "stroke_width": 0.0,
-          "corner_radius": 0.0,
-          "dashes": 0.0,
-          "dash_duty": 0.5,
-          "sweep_start": 0.0,
-          "sweep_turns": 1.0,
-          "blend": "over",
+        "sindri.sprite": {
+          "texture": "assets/generated/title/png/title-backdrop.png",
+          "tint": [
+            1.0,
+            1.0,
+            1.0,
+            1.0
+          ],
           "layer": -10
+        },
+        "sindri.tags": {
+          "tags": [
+            "classic-title",
+            "fixed-500-stage"
+          ]
         }
       }
     },
     {
-      "id": "title-start",
-      "name": "Title Start",
+      "id": "title-screen-instructions-1",
+      "name": "Instructions Page 1",
       "transform_3d": {
-        "position": [0.0, -0.45, 0.0],
-        "rotation": [0.0, 0.0, 0.0, 1.0],
-        "scale": [0.42, 0.16, 1.0]
+        "position": [
+          0.0,
+          0.0,
+          -4.0
+        ],
+        "rotation": [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ],
+        "scale": [
+          10.0,
+          10.0,
+          1.0
+        ]
       },
       "components": {
-        "sindri.ui.button": {
-          "label": "Start"
+        "sindri.sprite": {
+          "texture": "assets/generated/title/png/instructions-1-backdrop.png",
+          "tint": [
+            1.0,
+            1.0,
+            1.0,
+            1.0
+          ],
+          "layer": -9
         },
-        "sindri.ui.shape": {
-          "kind": "rect",
-          "count": 4.0,
-          "fill": [0.12, 0.62, 0.78, 1.0],
-          "stroke": [0.03, 0.12, 0.2, 1.0],
-          "stroke_width": 0.012,
-          "corner_radius": 0.03,
-          "dashes": 0.0,
-          "dash_duty": 0.5,
-          "sweep_start": 0.0,
-          "sweep_turns": 1.0,
-          "blend": "over",
-          "anchor": "center",
-          "layer": 20
+        "sindri.tags": {
+          "tags": [
+            "classic-title",
+            "fixed-500-stage"
+          ]
+        }
+      },
+      "disabled": true
+    },
+    {
+      "id": "title-screen-instructions-2",
+      "name": "Instructions Page 2",
+      "transform_3d": {
+        "position": [
+          0.0,
+          0.0,
+          -4.0
+        ],
+        "rotation": [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ],
+        "scale": [
+          10.0,
+          10.0,
+          1.0
+        ]
+      },
+      "components": {
+        "sindri.sprite": {
+          "texture": "assets/generated/title/png/instructions-2-backdrop.png",
+          "tint": [
+            1.0,
+            1.0,
+            1.0,
+            1.0
+          ],
+          "layer": -9
+        },
+        "sindri.tags": {
+          "tags": [
+            "classic-title",
+            "fixed-500-stage"
+          ]
+        }
+      },
+      "disabled": true
+    },
+    {
+      "id": "title-screen-instructions-3",
+      "name": "Instructions Page 3",
+      "transform_3d": {
+        "position": [
+          0.0,
+          0.0,
+          -4.0
+        ],
+        "rotation": [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ],
+        "scale": [
+          10.0,
+          10.0,
+          1.0
+        ]
+      },
+      "components": {
+        "sindri.sprite": {
+          "texture": "assets/generated/title/png/instructions-3-backdrop.png",
+          "tint": [
+            1.0,
+            1.0,
+            1.0,
+            1.0
+          ],
+          "layer": -9
+        },
+        "sindri.tags": {
+          "tags": [
+            "classic-title",
+            "fixed-500-stage"
+          ]
+        }
+      },
+      "disabled": true
+    },
+    {
+      "id": "title-screen-instructions-4",
+      "name": "Instructions Page 4",
+      "transform_3d": {
+        "position": [
+          0.0,
+          0.0,
+          -4.0
+        ],
+        "rotation": [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ],
+        "scale": [
+          10.0,
+          10.0,
+          1.0
+        ]
+      },
+      "components": {
+        "sindri.sprite": {
+          "texture": "assets/generated/title/png/instructions-4-backdrop.png",
+          "tint": [
+            1.0,
+            1.0,
+            1.0,
+            1.0
+          ],
+          "layer": -9
+        },
+        "sindri.tags": {
+          "tags": [
+            "classic-title",
+            "fixed-500-stage"
+          ]
+        }
+      },
+      "disabled": true
+    },
+    {
+      "id": "title-screen-instructions-5",
+      "name": "Instructions Page 5",
+      "transform_3d": {
+        "position": [
+          0.0,
+          0.0,
+          -4.0
+        ],
+        "rotation": [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ],
+        "scale": [
+          10.0,
+          10.0,
+          1.0
+        ]
+      },
+      "components": {
+        "sindri.sprite": {
+          "texture": "assets/generated/title/png/instructions-5-backdrop.png",
+          "tint": [
+            1.0,
+            1.0,
+            1.0,
+            1.0
+          ],
+          "layer": -9
+        },
+        "sindri.tags": {
+          "tags": [
+            "classic-title",
+            "fixed-500-stage"
+          ]
+        }
+      },
+      "disabled": true
+    },
+    {
+      "id": "title-animation-opening-1",
+      "name": "Title Mujaffa Arm",
+      "transform_3d": {
+        "position": [
+          -1.057,
+          -1.957,
+          -4.0
+        ],
+        "rotation": [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ],
+        "scale": [
+          1.336,
+          2.03,
+          1.0
+        ]
+      },
+      "components": {
+        "sindri.sprite": {
+          "texture": "assets/generated/title/png/title-opening-1.png#cell-000",
+          "tint": [
+            1.0,
+            1.0,
+            1.0,
+            1.0
+          ],
+          "layer": 10
+        },
+        "sindri.animation.sprite": {
+          "clips": {
+            "play": {
+              "frames": [
+                "cell-000",
+                "cell-000",
+                "cell-000",
+                "cell-000",
+                "cell-000",
+                "cell-000",
+                "cell-000",
+                "cell-000",
+                "cell-000",
+                "cell-000",
+                "cell-000",
+                "cell-000",
+                "cell-001",
+                "cell-001",
+                "cell-002",
+                "cell-002",
+                "cell-002",
+                "cell-002",
+                "cell-003",
+                "cell-003",
+                "cell-003",
+                "cell-003",
+                "cell-004",
+                "cell-004",
+                "cell-004",
+                "cell-004",
+                "cell-004",
+                "cell-004",
+                "cell-004",
+                "cell-004",
+                "cell-004",
+                "cell-004",
+                "cell-004",
+                "cell-004",
+                "cell-004",
+                "cell-004",
+                "cell-004",
+                "cell-004",
+                "cell-004",
+                "cell-004",
+                "cell-004",
+                "cell-005",
+                "cell-005",
+                "cell-005",
+                "cell-005",
+                "cell-005",
+                "cell-005",
+                "cell-005",
+                "cell-005",
+                "cell-005",
+                "cell-005",
+                "cell-005",
+                "cell-005",
+                "cell-005",
+                "cell-005",
+                "cell-005",
+                "cell-005",
+                "cell-005",
+                "cell-005",
+                "cell-005",
+                "cell-005",
+                "cell-003",
+                "cell-003",
+                "cell-003",
+                "cell-003",
+                "cell-003",
+                "cell-004",
+                "cell-004",
+                "cell-004",
+                "cell-004",
+                "cell-004",
+                "cell-004",
+                "cell-004",
+                "cell-004",
+                "cell-006",
+                "cell-006",
+                "cell-006",
+                "cell-006",
+                "cell-006",
+                "cell-007",
+                "cell-007",
+                "cell-007",
+                "cell-007",
+                "cell-007",
+                "cell-007",
+                "cell-007",
+                "cell-007",
+                "cell-008",
+                "cell-008",
+                "cell-008",
+                "cell-008",
+                "cell-008",
+                "cell-008",
+                "cell-008",
+                "cell-008",
+                "cell-006",
+                "cell-006",
+                "cell-006",
+                "cell-006",
+                "cell-006",
+                "cell-006",
+                "cell-006",
+                "cell-006",
+                "cell-006",
+                "cell-006",
+                "cell-006",
+                "cell-006",
+                "cell-009",
+                "cell-009",
+                "cell-010",
+                "cell-010",
+                "cell-006",
+                "cell-006",
+                "cell-006",
+                "cell-006",
+                "cell-006",
+                "cell-009",
+                "cell-009",
+                "cell-009",
+                "cell-009",
+                "cell-010",
+                "cell-010",
+                "cell-010",
+                "cell-010",
+                "cell-009",
+                "cell-010",
+                "cell-010",
+                "cell-010",
+                "cell-010",
+                "cell-006",
+                "cell-006",
+                "cell-006",
+                "cell-006",
+                "cell-006",
+                "cell-006",
+                "cell-007",
+                "cell-007",
+                "cell-007",
+                "cell-007",
+                "cell-007",
+                "cell-011",
+                "cell-011",
+                "cell-011",
+                "cell-012",
+                "cell-012",
+                "cell-012",
+                "cell-012",
+                "cell-007",
+                "cell-007",
+                "cell-007",
+                "cell-007",
+                "cell-007",
+                "cell-007",
+                "cell-007",
+                "cell-007",
+                "cell-006",
+                "cell-007",
+                "cell-007",
+                "cell-007",
+                "cell-007",
+                "cell-007",
+                "cell-007",
+                "cell-007",
+                "cell-007",
+                "cell-011",
+                "cell-011",
+                "cell-011",
+                "cell-011",
+                "cell-012",
+                "cell-012",
+                "cell-012",
+                "cell-012",
+                "cell-012",
+                "cell-012",
+                "cell-013",
+                "cell-013",
+                "cell-013",
+                "cell-013",
+                "cell-013"
+              ],
+              "seconds_per_frame": 0.083333,
+              "looping": false
+            }
+          },
+          "playing": "play",
+          "speed": 1.0
+        },
+        "sindri.tags": {
+          "tags": [
+            "classic-title",
+            "fixed-500-stage",
+            "title-animation"
+          ]
         }
       }
+    },
+    {
+      "id": "title-animation-opening-2",
+      "name": "Title Mujaffa Mouth",
+      "transform_3d": {
+        "position": [
+          -2.5715,
+          -0.325,
+          -4.0
+        ],
+        "rotation": [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ],
+        "scale": [
+          0.857,
+          0.468,
+          1.0
+        ]
+      },
+      "components": {
+        "sindri.sprite": {
+          "texture": "assets/generated/title/png/title-opening-2.png#cell-000",
+          "tint": [
+            1.0,
+            1.0,
+            1.0,
+            1.0
+          ],
+          "layer": 10
+        },
+        "sindri.animation.sprite": {
+          "clips": {
+            "play": {
+              "frames": [
+                "cell-000",
+                "cell-000",
+                "cell-000",
+                "cell-000",
+                "cell-000",
+                "cell-000",
+                "cell-000",
+                "cell-000",
+                "cell-000",
+                "cell-000",
+                "cell-000",
+                "cell-000",
+                "cell-001",
+                "cell-002",
+                "cell-003",
+                "cell-003",
+                "cell-000",
+                "cell-002",
+                "cell-002",
+                "cell-004",
+                "cell-004",
+                "cell-005",
+                "cell-003",
+                "cell-005",
+                "cell-005",
+                "cell-006",
+                "cell-007",
+                "cell-008",
+                "cell-007",
+                "cell-007",
+                "cell-009",
+                "cell-010",
+                "cell-011",
+                "cell-011",
+                "cell-011",
+                "cell-010",
+                "cell-010",
+                "cell-010",
+                "cell-012",
+                "cell-012",
+                "cell-013",
+                "cell-013",
+                "cell-014",
+                "cell-015",
+                "cell-015",
+                "cell-016",
+                "cell-016",
+                "cell-016",
+                "cell-016",
+                "cell-017",
+                "cell-017",
+                "cell-018",
+                "cell-019",
+                "cell-019",
+                "cell-020",
+                "cell-021",
+                "cell-022",
+                "cell-022",
+                "cell-023",
+                "cell-023",
+                "cell-023",
+                "cell-024",
+                "cell-024",
+                "cell-025",
+                "cell-025",
+                "cell-020",
+                "cell-006",
+                "cell-006",
+                "cell-019",
+                "cell-019",
+                "cell-026",
+                "cell-026",
+                "cell-027",
+                "cell-027",
+                "cell-020",
+                "cell-028",
+                "cell-028",
+                "cell-029",
+                "cell-029",
+                "cell-005",
+                "cell-005",
+                "cell-019",
+                "cell-030",
+                "cell-030",
+                "cell-031",
+                "cell-031",
+                "cell-031",
+                "cell-031",
+                "cell-031",
+                "cell-032",
+                "cell-032",
+                "cell-024",
+                "cell-024",
+                "cell-033",
+                "cell-033",
+                "cell-034",
+                "cell-034",
+                "cell-028",
+                "cell-033",
+                "cell-033",
+                "cell-027",
+                "cell-027",
+                "cell-035",
+                "cell-036",
+                "cell-036",
+                "cell-037",
+                "cell-036",
+                "cell-037",
+                "cell-037",
+                "cell-037",
+                "cell-037",
+                "cell-037",
+                "cell-025",
+                "cell-038",
+                "cell-038",
+                "cell-039",
+                "cell-028",
+                "cell-028",
+                "cell-028",
+                "cell-028",
+                "cell-033",
+                "cell-033",
+                "cell-027",
+                "cell-027",
+                "cell-035",
+                "cell-036",
+                "cell-036",
+                "cell-027",
+                "cell-027",
+                "cell-027",
+                "cell-027",
+                "cell-027",
+                "cell-033",
+                "cell-033",
+                "cell-033",
+                "cell-033",
+                "cell-028",
+                "cell-027",
+                "cell-027",
+                "cell-035",
+                "cell-027",
+                "cell-027",
+                "cell-036",
+                "cell-037",
+                "cell-037",
+                "cell-025",
+                "cell-025",
+                "cell-038",
+                "cell-039",
+                "cell-040",
+                "cell-040",
+                "cell-040",
+                "cell-040",
+                "cell-040",
+                "cell-040",
+                "cell-033",
+                "cell-033",
+                "cell-033",
+                "cell-028",
+                "cell-027",
+                "cell-027",
+                "cell-035",
+                "cell-027",
+                "cell-027",
+                "cell-036",
+                "cell-037",
+                "cell-037",
+                "cell-025",
+                "cell-025",
+                "cell-025",
+                "cell-025",
+                "cell-038",
+                "cell-038",
+                "cell-039",
+                "cell-040",
+                "cell-037",
+                "cell-037",
+                "cell-037",
+                "cell-037"
+              ],
+              "seconds_per_frame": 0.083333,
+              "looping": false
+            }
+          },
+          "playing": "play",
+          "speed": 1.0
+        },
+        "sindri.tags": {
+          "tags": [
+            "classic-title",
+            "fixed-500-stage",
+            "title-animation"
+          ]
+        }
+      }
+    },
+    {
+      "id": "title-animation-prompt",
+      "name": "Title Prompt",
+      "transform_3d": {
+        "position": [
+          -2.588,
+          -4.5315,
+          -4.0
+        ],
+        "rotation": [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ],
+        "scale": [
+          3.962,
+          0.315,
+          1.0
+        ]
+      },
+      "components": {
+        "sindri.sprite": {
+          "texture": "assets/generated/title/png/title-prompt.png#cell-000",
+          "tint": [
+            1.0,
+            1.0,
+            1.0,
+            1.0
+          ],
+          "layer": 10
+        },
+        "sindri.animation.sprite": {
+          "clips": {
+            "play": {
+              "frames": [
+                "cell-000",
+                "cell-001",
+                "cell-002",
+                "cell-003",
+                "cell-004",
+                "cell-005",
+                "cell-006",
+                "cell-007",
+                "cell-008",
+                "cell-009",
+                "cell-010",
+                "cell-011",
+                "cell-012",
+                "cell-013",
+                "cell-014",
+                "cell-015",
+                "cell-016",
+                "cell-017",
+                "cell-018",
+                "cell-019",
+                "cell-020"
+              ],
+              "seconds_per_frame": 0.083333,
+              "looping": true
+            }
+          },
+          "playing": "play",
+          "speed": 1.0
+        },
+        "sindri.tags": {
+          "tags": [
+            "classic-title",
+            "fixed-500-stage",
+            "title-animation"
+          ]
+        }
+      }
+    },
+    {
+      "id": "title-control-title-start-game-up",
+      "name": "Title Start Up",
+      "transform_3d": {
+        "position": [
+          -0.161,
+          -4.2965,
+          -4.0
+        ],
+        "rotation": [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ],
+        "scale": [
+          4.47,
+          0.987,
+          1.0
+        ]
+      },
+      "components": {
+        "sindri.sprite": {
+          "texture": "assets/generated/title/png/title-start-game-up.png",
+          "tint": [
+            1.0,
+            1.0,
+            1.0,
+            1.0
+          ],
+          "layer": 60
+        },
+        "sindri.tags": {
+          "tags": [
+            "classic-title",
+            "fixed-500-stage"
+          ]
+        }
+      }
+    },
+    {
+      "id": "title-control-title-start-game-over",
+      "name": "Title Start Over",
+      "transform_3d": {
+        "position": [
+          -0.161,
+          -4.2965,
+          -4.0
+        ],
+        "rotation": [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ],
+        "scale": [
+          4.47,
+          0.987,
+          1.0
+        ]
+      },
+      "components": {
+        "sindri.sprite": {
+          "texture": "assets/generated/title/png/title-start-game-over.png",
+          "tint": [
+            1.0,
+            1.0,
+            1.0,
+            1.0
+          ],
+          "layer": 62
+        },
+        "sindri.tags": {
+          "tags": [
+            "classic-title",
+            "fixed-500-stage"
+          ]
+        }
+      },
+      "disabled": true
+    },
+    {
+      "id": "title-control-title-start-game-down",
+      "name": "Title Start Down",
+      "transform_3d": {
+        "position": [
+          -0.161,
+          -4.2965,
+          -4.0
+        ],
+        "rotation": [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ],
+        "scale": [
+          4.47,
+          0.987,
+          1.0
+        ]
+      },
+      "components": {
+        "sindri.sprite": {
+          "texture": "assets/generated/title/png/title-start-game-down.png",
+          "tint": [
+            1.0,
+            1.0,
+            1.0,
+            1.0
+          ],
+          "layer": 64
+        },
+        "sindri.tags": {
+          "tags": [
+            "classic-title",
+            "fixed-500-stage"
+          ]
+        }
+      },
+      "disabled": true
+    },
+    {
+      "id": "title-control-title-start-game",
+      "name": "Title Start",
+      "transform_3d": {
+        "position": [
+          0.1468,
+          -0.91,
+          0.0
+        ],
+        "rotation": [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ],
+        "scale": [
+          0.528,
+          0.088,
+          1.0
+        ]
+      },
+      "components": {
+        "sindri.ui.shape": {
+          "kind": "rect",
+          "fill": [
+            0.0,
+            0.0,
+            0.0,
+            0.001
+          ],
+          "anchor": "center",
+          "layer": 200
+        },
+        "sindri.ui.button": {
+          "label": "Title Start"
+        },
+        "sindri.tags": {
+          "tags": [
+            "classic-title",
+            "title-control"
+          ]
+        }
+      }
+    },
+    {
+      "id": "title-control-title-instructions-up",
+      "name": "Title Instructions Up",
+      "transform_3d": {
+        "position": [
+          2.8275,
+          -4.2905,
+          -4.0
+        ],
+        "rotation": [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ],
+        "scale": [
+          4.167,
+          0.999,
+          1.0
+        ]
+      },
+      "components": {
+        "sindri.sprite": {
+          "texture": "assets/generated/title/png/title-instructions-up.png",
+          "tint": [
+            1.0,
+            1.0,
+            1.0,
+            1.0
+          ],
+          "layer": 60
+        },
+        "sindri.tags": {
+          "tags": [
+            "classic-title",
+            "fixed-500-stage"
+          ]
+        }
+      }
+    },
+    {
+      "id": "title-control-title-instructions-over",
+      "name": "Title Instructions Over",
+      "transform_3d": {
+        "position": [
+          2.8275,
+          -4.2905,
+          -4.0
+        ],
+        "rotation": [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ],
+        "scale": [
+          4.167,
+          0.999,
+          1.0
+        ]
+      },
+      "components": {
+        "sindri.sprite": {
+          "texture": "assets/generated/title/png/title-instructions-over.png",
+          "tint": [
+            1.0,
+            1.0,
+            1.0,
+            1.0
+          ],
+          "layer": 62
+        },
+        "sindri.tags": {
+          "tags": [
+            "classic-title",
+            "fixed-500-stage"
+          ]
+        }
+      },
+      "disabled": true
+    },
+    {
+      "id": "title-control-title-instructions-down",
+      "name": "Title Instructions Down",
+      "transform_3d": {
+        "position": [
+          2.8275,
+          -4.2905,
+          -4.0
+        ],
+        "rotation": [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ],
+        "scale": [
+          4.167,
+          0.999,
+          1.0
+        ]
+      },
+      "components": {
+        "sindri.sprite": {
+          "texture": "assets/generated/title/png/title-instructions-down.png",
+          "tint": [
+            1.0,
+            1.0,
+            1.0,
+            1.0
+          ],
+          "layer": 64
+        },
+        "sindri.tags": {
+          "tags": [
+            "classic-title",
+            "fixed-500-stage"
+          ]
+        }
+      },
+      "disabled": true
+    },
+    {
+      "id": "title-control-title-instructions",
+      "name": "Title Instructions",
+      "transform_3d": {
+        "position": [
+          0.7009,
+          -0.91,
+          0.0
+        ],
+        "rotation": [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ],
+        "scale": [
+          0.5486,
+          0.088,
+          1.0
+        ]
+      },
+      "components": {
+        "sindri.ui.shape": {
+          "kind": "rect",
+          "fill": [
+            0.0,
+            0.0,
+            0.0,
+            0.001
+          ],
+          "anchor": "center",
+          "layer": 200
+        },
+        "sindri.ui.button": {
+          "label": "Title Instructions"
+        },
+        "sindri.tags": {
+          "tags": [
+            "classic-title",
+            "title-control"
+          ]
+        }
+      }
+    },
+    {
+      "id": "title-control-instructions-next-page-up",
+      "name": "Instructions Next Up",
+      "transform_3d": {
+        "position": [
+          3.7315,
+          -4.6455,
+          -4.0
+        ],
+        "rotation": [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ],
+        "scale": [
+          2.265,
+          0.485,
+          1.0
+        ]
+      },
+      "components": {
+        "sindri.sprite": {
+          "texture": "assets/generated/title/png/instructions-next-page-up.png",
+          "tint": [
+            1.0,
+            1.0,
+            1.0,
+            1.0
+          ],
+          "layer": 60
+        },
+        "sindri.tags": {
+          "tags": [
+            "classic-title",
+            "fixed-500-stage"
+          ]
+        }
+      },
+      "disabled": true
+    },
+    {
+      "id": "title-control-instructions-next-page-over",
+      "name": "Instructions Next Over",
+      "transform_3d": {
+        "position": [
+          3.7315,
+          -4.6455,
+          -4.0
+        ],
+        "rotation": [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ],
+        "scale": [
+          2.265,
+          0.485,
+          1.0
+        ]
+      },
+      "components": {
+        "sindri.sprite": {
+          "texture": "assets/generated/title/png/instructions-next-page-over.png",
+          "tint": [
+            1.0,
+            1.0,
+            1.0,
+            1.0
+          ],
+          "layer": 62
+        },
+        "sindri.tags": {
+          "tags": [
+            "classic-title",
+            "fixed-500-stage"
+          ]
+        }
+      },
+      "disabled": true
+    },
+    {
+      "id": "title-control-instructions-next-page-down",
+      "name": "Instructions Next Down",
+      "transform_3d": {
+        "position": [
+          3.7315,
+          -4.6455,
+          -4.0
+        ],
+        "rotation": [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ],
+        "scale": [
+          2.265,
+          0.485,
+          1.0
+        ]
+      },
+      "components": {
+        "sindri.sprite": {
+          "texture": "assets/generated/title/png/instructions-next-page-down.png",
+          "tint": [
+            1.0,
+            1.0,
+            1.0,
+            1.0
+          ],
+          "layer": 64
+        },
+        "sindri.tags": {
+          "tags": [
+            "classic-title",
+            "fixed-500-stage"
+          ]
+        }
+      },
+      "disabled": true
+    },
+    {
+      "id": "title-control-instructions-next-page",
+      "name": "Instructions Next",
+      "transform_3d": {
+        "position": [
+          0.7468,
+          -0.9296,
+          0.0
+        ],
+        "rotation": [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ],
+        "scale": [
+          0.444,
+          0.088,
+          1.0
+        ]
+      },
+      "components": {
+        "sindri.ui.shape": {
+          "kind": "rect",
+          "fill": [
+            0.0,
+            0.0,
+            0.0,
+            0.001
+          ],
+          "anchor": "center",
+          "layer": 200
+        },
+        "sindri.ui.button": {
+          "label": "Instructions Next"
+        },
+        "sindri.tags": {
+          "tags": [
+            "classic-title",
+            "title-control"
+          ]
+        }
+      },
+      "disabled": true
+    },
+    {
+      "id": "title-control-instructions-previous-page-up",
+      "name": "Instructions Previous Up",
+      "transform_3d": {
+        "position": [
+          1.267,
+          -4.6455,
+          -4.0
+        ],
+        "rotation": [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ],
+        "scale": [
+          2.436,
+          0.485,
+          1.0
+        ]
+      },
+      "components": {
+        "sindri.sprite": {
+          "texture": "assets/generated/title/png/instructions-previous-page-up.png",
+          "tint": [
+            1.0,
+            1.0,
+            1.0,
+            1.0
+          ],
+          "layer": 60
+        },
+        "sindri.tags": {
+          "tags": [
+            "classic-title",
+            "fixed-500-stage"
+          ]
+        }
+      },
+      "disabled": true
+    },
+    {
+      "id": "title-control-instructions-previous-page-over",
+      "name": "Instructions Previous Over",
+      "transform_3d": {
+        "position": [
+          1.267,
+          -4.6455,
+          -4.0
+        ],
+        "rotation": [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ],
+        "scale": [
+          2.436,
+          0.485,
+          1.0
+        ]
+      },
+      "components": {
+        "sindri.sprite": {
+          "texture": "assets/generated/title/png/instructions-previous-page-over.png",
+          "tint": [
+            1.0,
+            1.0,
+            1.0,
+            1.0
+          ],
+          "layer": 62
+        },
+        "sindri.tags": {
+          "tags": [
+            "classic-title",
+            "fixed-500-stage"
+          ]
+        }
+      },
+      "disabled": true
+    },
+    {
+      "id": "title-control-instructions-previous-page-down",
+      "name": "Instructions Previous Down",
+      "transform_3d": {
+        "position": [
+          1.267,
+          -4.6455,
+          -4.0
+        ],
+        "rotation": [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ],
+        "scale": [
+          2.436,
+          0.485,
+          1.0
+        ]
+      },
+      "components": {
+        "sindri.sprite": {
+          "texture": "assets/generated/title/png/instructions-previous-page-down.png",
+          "tint": [
+            1.0,
+            1.0,
+            1.0,
+            1.0
+          ],
+          "layer": 64
+        },
+        "sindri.tags": {
+          "tags": [
+            "classic-title",
+            "fixed-500-stage"
+          ]
+        }
+      },
+      "disabled": true
+    },
+    {
+      "id": "title-control-instructions-previous-page",
+      "name": "Instructions Previous",
+      "transform_3d": {
+        "position": [
+          0.2539,
+          -0.9296,
+          0.0
+        ],
+        "rotation": [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ],
+        "scale": [
+          0.4782,
+          0.088,
+          1.0
+        ]
+      },
+      "components": {
+        "sindri.ui.shape": {
+          "kind": "rect",
+          "fill": [
+            0.0,
+            0.0,
+            0.0,
+            0.001
+          ],
+          "anchor": "center",
+          "layer": 200
+        },
+        "sindri.ui.button": {
+          "label": "Instructions Previous"
+        },
+        "sindri.tags": {
+          "tags": [
+            "classic-title",
+            "title-control"
+          ]
+        }
+      },
+      "disabled": true
+    },
+    {
+      "id": "title-control-instructions-start-game-up",
+      "name": "Instructions Start Up",
+      "transform_3d": {
+        "position": [
+          3.703,
+          -4.6455,
+          -4.0
+        ],
+        "rotation": [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ],
+        "scale": [
+          2.492,
+          0.485,
+          1.0
+        ]
+      },
+      "components": {
+        "sindri.sprite": {
+          "texture": "assets/generated/title/png/instructions-start-game-up.png",
+          "tint": [
+            1.0,
+            1.0,
+            1.0,
+            1.0
+          ],
+          "layer": 60
+        },
+        "sindri.tags": {
+          "tags": [
+            "classic-title",
+            "fixed-500-stage"
+          ]
+        }
+      },
+      "disabled": true
+    },
+    {
+      "id": "title-control-instructions-start-game-over",
+      "name": "Instructions Start Over",
+      "transform_3d": {
+        "position": [
+          3.703,
+          -4.6455,
+          -4.0
+        ],
+        "rotation": [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ],
+        "scale": [
+          2.492,
+          0.485,
+          1.0
+        ]
+      },
+      "components": {
+        "sindri.sprite": {
+          "texture": "assets/generated/title/png/instructions-start-game-over.png",
+          "tint": [
+            1.0,
+            1.0,
+            1.0,
+            1.0
+          ],
+          "layer": 62
+        },
+        "sindri.tags": {
+          "tags": [
+            "classic-title",
+            "fixed-500-stage"
+          ]
+        }
+      },
+      "disabled": true
+    },
+    {
+      "id": "title-control-instructions-start-game-down",
+      "name": "Instructions Start Down",
+      "transform_3d": {
+        "position": [
+          3.703,
+          -4.6455,
+          -4.0
+        ],
+        "rotation": [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ],
+        "scale": [
+          2.492,
+          0.485,
+          1.0
+        ]
+      },
+      "components": {
+        "sindri.sprite": {
+          "texture": "assets/generated/title/png/instructions-start-game-down.png",
+          "tint": [
+            1.0,
+            1.0,
+            1.0,
+            1.0
+          ],
+          "layer": 64
+        },
+        "sindri.tags": {
+          "tags": [
+            "classic-title",
+            "fixed-500-stage"
+          ]
+        }
+      },
+      "disabled": true
+    },
+    {
+      "id": "title-control-instructions-start-game",
+      "name": "Instructions Start",
+      "transform_3d": {
+        "position": [
+          0.7411,
+          -0.9296,
+          0.0
+        ],
+        "rotation": [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ],
+        "scale": [
+          0.4894,
+          0.088,
+          1.0
+        ]
+      },
+      "components": {
+        "sindri.ui.shape": {
+          "kind": "rect",
+          "fill": [
+            0.0,
+            0.0,
+            0.0,
+            0.001
+          ],
+          "anchor": "center",
+          "layer": 200
+        },
+        "sindri.ui.button": {
+          "label": "Instructions Start"
+        },
+        "sindri.tags": {
+          "tags": [
+            "classic-title",
+            "title-control"
+          ]
+        }
+      },
+      "disabled": true
     },
     {
       "id": "title-controller",
       "name": "Title Controller",
       "transform_3d": {
-        "position": [0.0, 0.0, 0.0],
-        "rotation": [0.0, 0.0, 0.0, 1.0],
-        "scale": [1.0, 1.0, 1.0]
+        "position": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "rotation": [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ]
       },
       "components": {
         "sindri.script": {

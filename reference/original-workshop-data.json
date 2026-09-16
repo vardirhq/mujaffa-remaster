@@ -1,0 +1,263 @@
+{
+  "schema_version": 1,
+  "source": {
+    "file": "mujaffa_3juni_2003.swf",
+    "game_version": "1.6",
+    "method": "JPEXS ActionScript 1/2 decompilation",
+    "notes": [
+      "Values below are recovered from the original SWF rather than inferred from the remaster.",
+      "price_check is strict_gt because the original buttons test penge > price-1.",
+      "cool effects preserve the original ActionScript semantics, including inconsistent or apparently unused *_cool variables."
+    ]
+  },
+  "initial_state": {
+    "money": 5000,
+    "bil_cool": 1.0,
+    "paint_rgb": [0, 52, 156],
+    "paint_hex": "00349C",
+    "paint_cool": 0.0,
+    "stripe": "empty",
+    "stripe_cool": 0.0,
+    "sunroof": 0,
+    "sunroof_cool": 0.0,
+    "camera": 0,
+    "camera_cool": 0.0,
+    "horn": "standard",
+    "horn_cool_variable_in_initializer": "horn_cool_",
+    "horn_cool": 0.0,
+    "exhaust": 0,
+    "exhaust_cool": 0.0,
+    "spoiler": 0,
+    "spoiler_cool": 0.0,
+    "rims": "standard",
+    "rims_cool": 0.0,
+    "tyres": 0,
+    "tyres_cool": 0.0,
+    "windows": "standard",
+    "windows_cool": 0.0,
+    "interior": "polyester",
+    "interior_cool": 0.0,
+    "windshield_trinket": "empty",
+    "windshield_trinket_cool": 0.0,
+    "speaker_front": 1,
+    "speaker_side": 1,
+    "speaker_rear": 1,
+    "speaker_woofer": 0
+  },
+  "categories": [
+    {
+      "id": "paint",
+      "label": "LAKKERING",
+      "order": 1,
+      "state": "farve / ScrollBarValueR,G,B",
+      "options": [
+        {
+          "id": "custom_rgb",
+          "price": 500,
+          "price_check": "money > 499",
+          "cool_effect": {"mode": "replace_contribution", "variable": "farve_cool", "target": 0.15, "delta_expression": "0.15 - farve_cool"},
+          "source_button": 395,
+          "notes": "The RGB value itself is selected separately; this button applies the paint purchase."
+        }
+      ]
+    },
+    {
+      "id": "audio",
+      "label": "BILSTEREO",
+      "order": 2,
+      "state": ["speaker_front", "speaker_side", "speaker_rear", "speaker_woofer"],
+      "option_groups": [
+        {
+          "id": "front",
+          "default": 1,
+          "options": [
+            {"value": 2, "price": 2000, "cool_delta": 0.1, "source_button": 230, "visual": "drop1"},
+            {"value": 3, "price": 4000, "cool_total_from_default": 0.2, "transitions": [{"cool_delta": 0.2, "source_button": 231}, {"cool_delta": 0.1, "source_button": 235}], "visual": "drop2"}
+          ]
+        },
+        {
+          "id": "side",
+          "default": 1,
+          "options": [
+            {"value": 2, "price": 1000, "cool_delta": 0.05, "source_button": 237, "visual": "drop1"},
+            {"value": 3, "price": 2000, "cool_total_from_default": 0.1, "transitions": [{"cool_delta": 0.1, "source_button": 238}, {"cool_delta": 0.05, "source_button": 242}], "visual": "drop2"}
+          ]
+        },
+        {
+          "id": "rear",
+          "default": 1,
+          "options": [
+            {"value": 2, "price": 2000, "cool_delta": 0.1, "source_button": 244, "visual": "drop1"},
+            {"value": 3, "price": 4000, "cool_total_from_default": 0.2, "transitions": [{"cool_delta": 0.2, "source_button": 245}, {"cool_delta": 0.1, "source_button": 246}], "visual": "drop2"}
+          ]
+        },
+        {
+          "id": "woofer",
+          "default": 0,
+          "options": [
+            {"value": 1, "price": 3000, "cool_delta": 0.15, "source_button": 248, "visual": "drop1"},
+            {"value": 2, "price": 6000, "cool_total_from_default": 0.3, "transitions": [{"cool_delta": 0.3, "source_button": 249}, {"cool_delta": 0.15, "source_button": 254}], "visual": "drop2"},
+            {"value": 3, "price": 9000, "cool_total_from_default": 0.45, "transitions": [{"cool_delta": 0.45, "source_button": 250}, {"cool_delta": 0.3, "source_button": 255}, {"cool_delta": 0.15, "source_button": 256}], "visual": "drop3"}
+          ]
+        }
+      ]
+    },
+    {
+      "id": "spoiler",
+      "label": "SPOILER",
+      "order": 3,
+      "state": "spoiler",
+      "default": 0,
+      "options": [
+        {"value": 1, "price": 450, "cool_effect": {"mode": "replace_contribution", "variable": "spoiler_cool", "target": 0.05, "delta_expression": "0.05"}, "source_button": 391, "frame": 2},
+        {"value": 2, "price": 1200, "cool_effect": {"mode": "replace_contribution", "variable": "spoiler_cool", "target": 0.1, "delta_expression": "0.1 - spoiler_cool"}, "source_button": 390, "frame": 3},
+        {"value": 3, "price": 2200, "cool_effect": {"mode": "replace_contribution", "variable": "spoiler_cool", "target": 0.15, "delta_expression": "0.15 - spoiler_cool"}, "source_button": 385, "frame": 4},
+        {"value": 4, "price": 4000, "cool_effect": {"mode": "replace_contribution", "variable": "spoiler_cool", "target": 0.3, "delta_expression": "0.3 - spoiler_cool"}, "source_button": 384, "frame": 5}
+      ]
+    },
+    {
+      "id": "exhaust",
+      "label": "EKSOSANLEGG",
+      "order": 4,
+      "state": "udstodning",
+      "default": 0,
+      "options": [
+        {"value": 1, "price": 300, "cool_effect": {"mode": "add", "delta": 0.1}, "source_button": 259, "frame": 2},
+        {"value": 2, "price": 900, "cool_effect": {"mode": "add", "delta": 0.2}, "source_button": 260, "frame": 3},
+        {"value": 3, "price": 2700, "cool_effect": {"mode": "add", "delta": 0.3}, "source_button": 261, "frame": 4}
+      ],
+      "notes": "The initializer defines udstodning_cool, but these purchase handlers do not update it; the additive behavior is preserved verbatim."
+    },
+    {
+      "id": "rims",
+      "label": "FELGER",
+      "order": 5,
+      "state": "hjulkapsel",
+      "default": "standard",
+      "options": [
+        {"value": "racer", "price": 500, "cool_effect": {"mode": "replace_contribution", "variable": "hjulkapsel_cool", "target": 0.05, "delta_expression": "0.05"}, "source_button": 194, "frame": 2},
+        {"value": "krom", "price": 800, "cool_effect": {"mode": "replace_contribution", "variable": "hjulkapsel_cool", "target": 0.1, "delta_expression": "0.1 - hjulkapsel_cool"}, "source_button": 193, "frame": 3},
+        {"value": "guld", "price": 5000, "cool_effect": {"mode": "replace_contribution", "variable": "hjulkapsel_cool", "target": 0.2, "delta_expression": "0.2 - hjulkapsel_cool"}, "source_button": 192, "frame": 4}
+      ]
+    },
+    {
+      "id": "tyres",
+      "label": "DEKK",
+      "order": 6,
+      "state": "daek",
+      "default": 0,
+      "options": [
+        {"value": 1, "price": 2000, "cool_effect": {"mode": "replace_contribution", "variable": "daek_cool", "target": 0.1, "delta_expression": "0.1 - daek_cool"}, "source_button": 145, "frame": 2},
+        {"value": 2, "price": 4000, "cool_effect": {"mode": "replace_contribution", "variable": "daek_cool", "target": 0.15, "delta_expression": "0.15 - daek_cool"}, "source_button": 144, "frame": 3},
+        {"value": 3, "price": 8000, "cool_effect": {"mode": "replace_contribution", "variable": "daek_cool", "target": 0.3, "delta_expression": "0.3 - daek_cool"}, "source_button": 143, "frame": 4}
+      ]
+    },
+    {
+      "id": "windows",
+      "label": "RUTER",
+      "order": 7,
+      "state": "vinduer",
+      "default": "standard",
+      "options": [
+        {"value": "gradient", "price": 700, "cool_effect": {"mode": "replace_contribution", "variable": "vinduer_cool", "target": 0.05, "delta_expression": "0.05 - vinduer_cool"}, "source_button": 270, "frame": 2},
+        {"value": "tonede", "price": 900, "cool_effect": {"mode": "replace_contribution", "variable": "vinduer_cool", "target": 0.1, "delta_expression": "0.1 - vinduer_cool"}, "source_button": 269, "frame": 3},
+        {"value": "spejlrefleks", "price": 1300, "cool_effect": {"mode": "replace_contribution", "variable": "vinduer_cool", "target": 0.2, "delta_expression": "0.2 - vinduer_cool"}, "source_button": 268, "frame": 4}
+      ]
+    },
+    {
+      "id": "sunroof",
+      "label": "SOLTAK",
+      "order": 8,
+      "state": "soltag",
+      "default": 0,
+      "options": [
+        {"value": 1, "price": 1500, "cool_effect": {"mode": "add", "delta": 0.2}, "source_button": 897, "frame": 2}
+      ],
+      "notes": "soltag_cool is initialized but the purchase handler does not update it."
+    },
+    {
+      "id": "plate",
+      "label": "NUMMERSKILT",
+      "order": 9,
+      "state": "nummerplade",
+      "default": "random Norwegian-style plate generated at game initialization",
+      "options": [
+        {
+          "id": "custom_plate",
+          "price": 3000,
+          "price_source_button": 209,
+          "confirm_source_button": 214,
+          "cool_effect": {"mode": "replace_contribution", "variable": "nummerplade_cool", "target": 0.3, "delta_expression": "0.3 - nummerplade_cool"},
+          "special_case": {"input": "moused", "money_delta_on_confirm": 20000},
+          "notes": "The 3000 charge happens when entering the plate-edit state; confirmation applies the cool contribution. The hidden 'moused' value refunds/adds 20000 exactly as authored."
+        }
+      ]
+    },
+    {
+      "id": "interior",
+      "label": "SETETREKK",
+      "order": 10,
+      "state": "indtraek",
+      "default": "polyester",
+      "options": [
+        {"value": "plys", "price": 500, "cool_effect": {"mode": "replace_contribution", "variable": "indtraek_cool", "target": 0.05, "delta_expression": "0.05"}, "source_button": 202, "frame": 2, "visual_label": "tiger"},
+        {"value": "læder", "price": 1500, "cool_effect": {"mode": "replace_contribution", "variable": "indtraek_cool", "target": 0.1, "delta_expression": "0.1 - indtraek_cool"}, "source_button": 201, "frame": 3},
+        {"value": "skind", "price": 4000, "cool_effect": {"mode": "replace_contribution", "variable": "indtraek_cool", "target": 0.2, "delta_expression": "0.2 - indtraek_cool"}, "source_button": 200, "frame": 4}
+      ]
+    },
+    {
+      "id": "trinket",
+      "label": "BILNIPS",
+      "order": 11,
+      "option_groups": [
+        {
+          "id": "windshield",
+          "state": "forrude",
+          "default": "empty",
+          "options": [
+            {"value": "hjerte", "price": 25, "cool_effect": {"mode": "replace_contribution", "variable": "forrude_cool", "target": 0.02, "delta_expression": "0.02 - forrude_cool"}, "source_button": 183, "frame": 2},
+            {"value": "wunderbaum", "price": 50, "cool_effect": {"mode": "replace_contribution", "variable": "forrude_cool", "target": 0.05, "delta_expression": "0.05 - forrude_cool"}, "source_button": 182, "frame": 3},
+            {"value": "nosser", "price": 70, "cool_effect": {"mode": "replace_contribution", "variable": "forrude_cool", "target": 0.07, "delta_expression": "0.07 - forrude_cool"}, "source_button": 181, "frame": 4},
+            {"value": "koran", "price": 125, "cool_effect": {"mode": "replace_contribution", "variable": "forrude_cool", "target": 0.1, "delta_expression": "0.1 - forrude_cool"}, "source_button": 180, "frame": 5}
+          ]
+        },
+        {
+          "id": "stripes",
+          "state": "farvestribe",
+          "default": "empty",
+          "options": [
+            {"value": "grøn", "price": 250, "cool_effect": {"mode": "replace_contribution", "variable": "farvestribe_cool", "target": 0.1, "delta_expression": "0.1 - farvestribe_cool"}, "source_button": 172, "frame": 2},
+            {"value": "hvid", "price": 250, "cool_effect": {"mode": "replace_contribution", "variable": "farvestribe_cool", "target": 0.1, "delta_expression": "0.1 - farvestribe_cool"}, "source_button": 168, "frame": 3},
+            {"value": "sort", "price": 250, "cool_effect": {"mode": "replace_contribution", "variable": "farvestribe_cool", "target": 0.1, "delta_expression": "0.1 - farvestribe_cool"}, "source_button": 164, "frame": 4},
+            {"value": "pink", "price": 250, "cool_effect": {"mode": "replace_contribution", "variable": "farvestribe_cool", "target": 0.1, "delta_expression": "0.1 - farvestribe_cool"}, "source_button": 160, "frame": 5},
+            {"value": "empty", "price": 250, "cool_effect": {"mode": "set_contribution", "variable": "farvestribe_cool", "target": 0.0, "delta_expression": "-0.1"}, "source_button": 177, "frame": 1}
+          ]
+        }
+      ]
+    },
+    {
+      "id": "horn",
+      "label": "BÅT-HORN",
+      "order": 12,
+      "state": "horn",
+      "default": "standard",
+      "options": [
+        {"value": "kompressor", "price": 900, "cool_effect": {"mode": "add_then_set_contribution", "delta": 0.1, "variable": "horn_cool", "target": 0.1}, "source_button": 902, "frame": 2},
+        {"value": "multitone", "price": 1700, "cool_effect": {"mode": "replace_contribution", "variable": "horn_cool", "target": 0.3, "delta_expression": "0.3 - horn_cool"}, "source_button": 903, "frame": 3},
+        {"value": "multitone", "price": 1700, "cool_effect": {"mode": "upgrade_transition", "delta": 0.2, "variable": "horn_cool", "target": 0.3}, "source_button": 913, "frame": 3}
+      ],
+      "notes": "The initializer uses horn_cool_ (trailing underscore) while purchase handlers use horn_cool. This original inconsistency is intentionally recorded."
+    },
+    {
+      "id": "camera",
+      "label": "BMW CAM",
+      "order": 13,
+      "state": "cam",
+      "default": 0,
+      "options": [
+        {"value": 1, "price": 6000, "cool_effect": {"mode": "add", "delta": 0.7}, "source_button": 915, "frame": 2}
+      ],
+      "notes": "cam_cool is initialized but the purchase handler does not update it."
+    }
+  ]
+}

@@ -9,6 +9,7 @@ These recompose each constant the installer uses by walking the same chain the
 player's screen does, so a figure that is right in the wrong units fails here.
 """
 
+import re
 import sys
 from pathlib import Path
 
@@ -95,6 +96,61 @@ def test_exhaust_buttons_sit_where_the_original_puts_them(found):
         ours = exhaust_point(index)
         assert ours[0] == pytest.approx(x, abs=0.05), f"pipe {index + 1} x"
         assert ours[1] == pytest.approx(y, abs=0.05), f"pipe {index + 1} y"
+
+
+# Every controller that owns panel controls, and where its numbers come from.
+PLACED_BY_CONTROLLER = {
+    "workshop_paint_controller": None,          # its own coordinates, older than this
+    "workshop_audio_controller": "audio",
+    "workshop_spoiler_controller": "spoiler",
+    "workshop_exhaust_controller": "exhaust",
+}
+
+
+def test_every_panel_controller_places_against_the_viewport():
+    """The bug this guards: buttons authored once and never laid out again.
+
+    The stage is square and a phone's viewport is not, so a control that trusts
+    where the installer left it drifts off the stage entirely. It looks correct
+    in CI, whose smoke canvas is 960x540 and therefore wider than tall, and
+    wrong on the device -- so the check has to be on the source, not a render.
+    """
+    for name in PLACED_BY_CONTROLLER:
+        source = (ROOT / "scripts" / f"{name}.decay").read_text(encoding="utf-8")
+        assert "Viewport.aspect" in source, f"{name} never consults the viewport"
+        assert "0.004 * min(Viewport.aspect, 1.0)" in source, f"{name} uses a different unit"
+        assert "fn place(" in source, f"{name} has no placement helper"
+        assert source.count("layout_controls()") >= 2, f"{name} must lay out on start and on update"
+
+
+def test_controller_coordinates_match_the_installer():
+    """Two copies of the same numbers -- the Decay script and the installer --
+    so they are pinned to each other as well as to the SWF."""
+    expected = {
+        "spoiler": [(spoiler_point(index), (62.0, 26.0)) for index in range(4)],
+        "exhaust": [(exhaust_point(index), (60.0, 26.0)) for index in range(3)],
+    }
+    for name, category in PLACED_BY_CONTROLLER.items():
+        if category not in expected:
+            continue
+        source = (ROOT / "scripts" / f"{name}.decay").read_text(encoding="utf-8")
+        placed = re.findall(r"place\(this\.buy\d, ([\d.]+), ([\d.]+), ([\d.]+), ([\d.]+), unit\);", source)
+        assert len(placed) == len(expected[category]), f"{name} places {len(placed)} controls"
+        for (x, y, w, h), ((ex, ey), (ew, eh)) in zip(placed, expected[category]):
+            assert float(x) == pytest.approx(ex, abs=0.01), f"{category} x"
+            assert float(y) == pytest.approx(ey, abs=0.01), f"{category} y"
+            assert (float(w), float(h)) == (ew, eh), f"{category} size"
+
+
+def test_audio_controller_coordinates_match_the_installer():
+    source = (ROOT / "scripts" / "workshop_audio_controller.decay").read_text(encoding="utf-8")
+
+    def numbers(name):
+        head = source.index(f"fn {name}(")
+        return [float(value) for value in re.findall(r"return ([\d.]+);", source[head:source.index("\n    }", head)])]
+
+    assert numbers("slot_x") == pytest.approx([audio_slot_x(slot) for slot in range(3)], abs=0.01)
+    assert numbers("row_y") == pytest.approx([audio_row_y(row) for row in range(4)], abs=0.01)
 
 
 def test_everything_lands_inside_the_panel():

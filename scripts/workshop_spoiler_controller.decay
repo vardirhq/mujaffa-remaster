@@ -28,8 +28,30 @@ script WorkshopSpoilerController {
         this.layer2 = World.find("Garage Car spoiler-3"); this.layer3 = World.find("Garage Car spoiler-4");
         this.layer4 = World.find("Garage Car spoiler-5");
         publish();
+        layout_controls();
         refresh_car();
         refresh_visibility();
+    }
+
+
+    // The stage is square and the viewport usually is not, so a control has to
+    // be placed against the viewport every frame rather than trusting where the
+    // installer left it. Without this the buttons keep their authored offsets
+    // and scatter outside the stage on a portrait screen -- which is what
+    // happened on a phone, while CI's 960x540 canvas never showed it.
+    fn place(entity: Entity, x: f32, y: f32, w: f32, h: f32, unit: f32) {
+        entity.transform.position.x = (x - 250.0) * unit;
+        entity.transform.position.y = (250.0 - y) * unit;
+        entity.transform.scale.x = w * unit;
+        entity.transform.scale.y = h * unit;
+    }
+
+    fn layout_controls() {
+        let unit = 0.004 * min(Viewport.aspect, 1.0);
+        place(this.buy1, 210.93, 417.46, 62.0, 26.0, unit);
+        place(this.buy2, 287.49, 417.46, 62.0, 26.0, unit);
+        place(this.buy3, 364.89, 417.46, 62.0, 26.0, unit);
+        place(this.buy4, 441.45, 417.46, 62.0, 26.0, unit);
     }
 
     fn publish() { Game.set("workshop.spoiler", this.fitted); }
@@ -91,6 +113,7 @@ script WorkshopSpoilerController {
     }
 
     fn update(dt: f32) {
+        layout_controls();
         settle();
         refresh_visibility();
         if Game.get("workshop.category", 0.0) != 2.0 { return; }

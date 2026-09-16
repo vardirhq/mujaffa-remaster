@@ -33,7 +33,48 @@ script WorkshopAudioController {
         this.rear2 = World.find("Workshop Audio Rear 2"); this.rear3 = World.find("Workshop Audio Rear 3");
         this.woofer1 = World.find("Workshop Audio Woofer 1"); this.woofer2 = World.find("Workshop Audio Woofer 2"); this.woofer3 = World.find("Workshop Audio Woofer 3");
         publish();
+        layout_controls();
         refresh_visibility();
+    }
+
+
+    // The stage is square and the viewport usually is not, so a control has to
+    // be placed against the viewport every frame rather than trusting where the
+    // installer left it. Without this the buttons keep their authored offsets
+    // and scatter outside the stage on a portrait screen -- which is what
+    // happened on a phone, while CI's 960x540 canvas never showed it.
+    fn place(entity: Entity, x: f32, y: f32, w: f32, h: f32, unit: f32) {
+        entity.transform.position.x = (x - 250.0) * unit;
+        entity.transform.position.y = (250.0 - y) * unit;
+        entity.transform.scale.x = w * unit;
+        entity.transform.scale.y = h * unit;
+    }
+
+    // Slot x and row y, in the original's stage pixels. `test_panel_layout.py`
+    // holds these against the SWF and against the installer.
+    fn slot_x(slot: f32) -> f32 {
+        if slot == 0.0 { return 298.06; }
+        if slot == 1.0 { return 346.61; }
+        return 394.17;
+    }
+
+    fn row_y(row: f32) -> f32 {
+        if row == 0.0 { return 366.96; }
+        if row == 1.0 { return 391.69; }
+        if row == 2.0 { return 416.48; }
+        return 441.26;
+    }
+
+    fn place_level(entity: Entity, row: f32, level: f32, unit: f32) {
+        place(entity, slot_x(level - 1.0), row_y(row), 44.0, 20.0, unit);
+    }
+
+    fn layout_controls() {
+        let unit = 0.004 * min(Viewport.aspect, 1.0);
+        place_level(this.front2, 0.0, 2.0, unit); place_level(this.front3, 0.0, 3.0, unit);
+        place_level(this.side2, 1.0, 2.0, unit); place_level(this.side3, 1.0, 3.0, unit);
+        place_level(this.rear2, 2.0, 2.0, unit); place_level(this.rear3, 2.0, 3.0, unit);
+        place_level(this.woofer1, 3.0, 1.0, unit); place_level(this.woofer2, 3.0, 2.0, unit); place_level(this.woofer3, 3.0, 3.0, unit);
     }
 
     fn publish() {
@@ -110,6 +151,7 @@ script WorkshopAudioController {
     }
 
     fn update(dt: f32) {
+        layout_controls();
         settle();
         refresh_visibility();
         if Game.get("workshop.category", 0.0) != 1.0 { return; }

@@ -17,7 +17,7 @@ class TitleReferenceTests(unittest.TestCase):
 
     def test_original_opening_landmarks_are_recovered_in_order(self):
         result = self.result
-        self.assertEqual(result["schema_version"], 5)
+        self.assertEqual(result["schema_version"], 6)
         self.assertEqual(result["stage"], [500.0, 500.0])
         self.assertEqual(result["frame_rate"], 12.0)
         labels = result["opening_labels"]
@@ -51,6 +51,16 @@ class TitleReferenceTests(unittest.TestCase):
         placements = [entry for entry in self.result["opening_display_trace"] if entry["tag"].startswith("PlaceObject")]
         self.assertTrue(any("character_id" in entry for entry in placements))
         self.assertTrue(all(entry["character_id"] > 0 for entry in placements if "character_id" in entry))
+
+    def test_opening_labels_have_resolved_display_snapshots(self):
+        snapshots = self.result["opening_display_snapshots"]
+        self.assertEqual([snapshot["label"] for snapshot in snapshots], [entry["label"] for entry in self.result["opening_labels"]])
+        for snapshot in snapshots:
+            display_list = snapshot["display_list"]
+            depths = [entry["depth"] for entry in display_list]
+            self.assertEqual(depths, sorted(depths))
+            self.assertEqual(len(depths), len(set(depths)))
+            self.assertTrue(all("character_id" in entry for entry in display_list))
 
 
 if __name__ == "__main__":

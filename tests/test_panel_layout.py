@@ -22,7 +22,7 @@ from swf_inventory import iter_tags, parse_header  # noqa: E402
 from swf_layout import placements, resolve, spacing  # noqa: E402
 from tools.install_workshop_interactivity import (  # noqa: E402
     AUDIO_ROW_Y, PANEL_SCALE, PANEL_X, PANEL_Y, SPOILER_BUTTON_X,
-    audio_row_y, audio_slot_x, spoiler_point,
+    audio_row_y, audio_slot_x, exhaust_point, spoiler_point,
 )
 
 SWF = ROOT / "mujaffa_3juni_2003.swf"
@@ -30,6 +30,8 @@ WORKSHOP_PANEL = 924
 SPEAKER_ROWS = [236, 243, 247, 257]
 SPOILER_ROW = 393
 SPOILER_BUTTONS = [391, 390, 385, 384]      # cheapest first, left to right
+EXHAUST_ROW = 267
+EXHAUST_BUTTONS = [259, 260, 261]
 
 
 @pytest.fixture(scope="module")
@@ -84,10 +86,22 @@ def test_spoiler_row_is_ordered_cheapest_first(found):
     assert len(set(SPOILER_BUTTON_X)) == 4
 
 
+def test_exhaust_buttons_sit_where_the_original_puts_them(found):
+    """The row is unscaled, unlike the speaker rows, so its offsets add straight."""
+    for index, character in enumerate(EXHAUST_BUTTONS):
+        x, y, _scale = resolve(
+            found, [(None, WORKSHOP_PANEL), (WORKSHOP_PANEL, EXHAUST_ROW), (EXHAUST_ROW, character)]
+        )
+        ours = exhaust_point(index)
+        assert ours[0] == pytest.approx(x, abs=0.05), f"pipe {index + 1} x"
+        assert ours[1] == pytest.approx(y, abs=0.05), f"pipe {index + 1} y"
+
+
 def test_everything_lands_inside_the_panel():
     """The remaster's panel is 153..496 by 351..462; the original's rows fit it."""
     points = [(audio_slot_x(slot), audio_row_y(row)) for slot in range(3) for row in range(4)]
     points += [spoiler_point(index) for index in range(4)]
+    points += [exhaust_point(index) for index in range(3)]
     for x, y in points:
         assert 153 <= x <= 496, f"x {x} escapes the panel"
         assert 351 <= y <= 462, f"y {y} escapes the panel"

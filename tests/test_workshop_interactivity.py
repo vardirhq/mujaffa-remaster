@@ -24,7 +24,19 @@ def test_paint_rgb_tracks_are_native_vertical_sliders():
     assert 'Ui.slider_value(this.red_track)' in controller and 'Ui.slider_value(this.green_track)' in controller and 'Ui.slider_value(this.blue_track)' in controller
     assert 'Ui.set_slider_value(this.red_track, this.red)' in controller
     assert 'cycle_red' not in controller and 'cycle_green' not in controller and 'cycle_blue' not in controller
+def test_rgb_sliders_have_live_position_markers():
+    installer=Path('tools/install_workshop_interactivity.py').read_text(); controller=Path('scripts/workshop_paint_controller.decay').read_text()
+    for channel in ('red','green','blue'):
+        assert f'rgb-{channel}-marker.png' in installer
+        assert f'this.{channel}_marker' in controller
+    assert '446.0 - (value / 255.0) * 78.0' in controller
+    assert 'World.set_active(this.red_marker, value)' in controller
+def test_runtime_paint_texture_is_neutralized_before_tint():
+    prep=Path('tools/prepare_runtime_art.py').read_text()
+    assert 'neutralize_paint_texture' in prep
+    assert 'ImageOps.grayscale' in prep
+    assert 'manifest["outputs"]["paint:tintable"]' in prep
 def test_stripes_remain_on_normal_lakkering_panel():
     c=Path('scripts/workshop_paint_controller.decay').read_text(); assert 'World.set_active(this.stripe_none, !value)' in c; assert 'Garage Car farvestribe-hvid' in c; assert 'Garage Car farvestribe-pink' in c
 def test_rgb_controls_are_scoped_to_lakkering():
-    r=Path('scripts/workshop_category_controller.decay').read_text(); assert 'Workshop RGB Mixer' in r; assert 'World.set_active(this.mixer,false)' in r or 'World.set_active(this.mixer, false)' in r
+    r=Path('scripts/workshop_category_controller.decay').read_text(); assert 'Workshop RGB Mixer' in r; assert 'World.set_active(this.mixer,false)' in r or 'World.set_active(this.mixer, false)' in r; assert 'World.set_active(this.rgb_red_marker,false)' in r

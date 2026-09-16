@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import struct
 from pathlib import Path
 
 from swf_inventory import iter_tags, parse_header
@@ -24,6 +25,43 @@ OPENING_LABELS = {
 
 def _cstring(payload: bytes) -> str:
     return payload.split(b"\0", 1)[0].decode("utf-8", errors="replace")
+
+
+def _u16(payload: bytes, offset: int = 0) -> int:
+    return struct.unpack_from("<H", payload, offset)[0]
+
+
+def _named_characters(data: bytes, tags_offset: int) -> list[dict[str, object]]:
+    """Recover SWF SymbolClass/ExportAssets names without interpreting artwork.
+
+    These names give the title reconstruction stable evidence for which library
+    symbols are available before we start decoding their vector/display-list
+    contents. Both tags use a u16 count followed by (character id, cstring)
+    pairs; SymbolClass is tag 76 and ExportAssets is tag 56.
+    """
+    found: dict[tuple[int, str], set[str]] = {}
+    for tag in iter_tags(data, tags_offset):
+        if tag.code not in {56, 76} or len(tag.payload) < 2:
+            continue
+        count = _u16(tag.payload)
+        offset = 2
+        for _ in range(count):
+            if offset + 2 > len(tag.payload):
+                break
+            character_id = _u16(tag.payload, offset)
+            offset += 2
+            end = tag.payload.find(b"\0", offset)
+            if end < 0:
+                break
+            name = tag.payload[offset:end].decode("utf-8", errors="replace")
+            offset = end + 1
+            found.setdefault((character_id, name), set()).add(
+                "SymbolClass" if tag.code == 76 else "ExportAssets"
+            )
+    return [
+        {"character_id": character_id, "name": name, "sources": sorted(sources)}
+        for (character_id, name), sources in sorted(found.items())
+    ]
 
 
 def extract(path: Path) -> dict[str, object]:
@@ -48,13 +86,15 @@ def extract(path: Path) -> dict[str, object]:
 
     labels.sort(key=lambda entry: int(entry["frame"]))
     return {
-        "schema_version": 1,
+        "schema_version": 2,
         "source": path.name,
         "stage": [header.width, header.height],
         "frame_rate": header.fps,
         "opening_labels": labels,
+        "named_characters": _named_characters(data, header.tags_offset),
         "notes": [
             "Frame numbers are recovered from the main SWF timeline.",
+            "Named characters come from SymbolClass and ExportAssets tags and are evidence, not inferred title membership.",
             "This file deliberately contains no workshop economy data.",
         ],
     }

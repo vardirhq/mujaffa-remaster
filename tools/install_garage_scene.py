@@ -68,15 +68,24 @@ def add_car_layers(scene: dict, manifest: dict) -> None:
                 "sindri.sprite": {
                     "texture": f"assets/generated/car-stage/{Path(png).name}",
                     "tint": [1.0, 1.0, 1.0, 1.0],
-                    # Authored at the identity instead of left out. The engine
-                    # defaults the field when a scene omits it, so leaving it
-                    # out draws correctly -- but a Decay write walks the payload
-                    # exactly as authored, and `sprite.color_multiply` on a
-                    # layer without the key fails the script at `start`. That
-                    # takes the whole page down rather than one sprite, and
-                    # neither `decay-lsp --check` nor a successful export sees
-                    # it: the member path is real, only the scene data is
-                    # missing.
+                    # Authored at the identity on every layer, not just the
+                    # painted one. A Decay write walks the payload exactly as
+                    # authored: the engine defaults this field when a scene
+                    # omits it, so a layer without the key still draws, but
+                    # `sprite.color_multiply` on one fails the script at
+                    # `start` -- `sprite.color_multiply.r's sindri.sprite has
+                    # nothing at color_transform.multiply.0` -- and one failed
+                    # `start` takes the whole page down rather than one sprite.
+                    # Neither `decay-lsp --check` nor a successful export sees
+                    # it, because the member path is real and only the scene
+                    # data is missing; the browser smoke test is the first
+                    # thing that performs the write.
+                    #
+                    # Keyed on nothing, because a key spelled `paint-tintable`
+                    # only holds until a script recolours something else, and
+                    # the next category to try it would fail the same way.
+                    # Identity is what a missing key already meant, so this
+                    # changes no pixel on any layer.
                     "color_transform": {
                         "multiply": [1.0, 1.0, 1.0, 1.0],
                         "offset": [0.0, 0.0, 0.0, 0.0],

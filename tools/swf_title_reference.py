@@ -5,6 +5,7 @@ import argparse,json,struct
 from pathlib import Path
 from swf_inventory import BitReader,SwfError,iter_tags,parse_header
 from swf_shape_reference import decode_shape_records
+from swf_text_reference import decode_text_records
 OPENING_LABELS={"start","velkommen","speakDone","gotoInstruktioner","gotoGame","initGame"}
 def _cstring(p):return p.split(b"\0",1)[0].decode("utf-8",errors="replace")
 def _u16(p,o=0):return struct.unpack_from("<H",p,o)[0]
@@ -70,7 +71,8 @@ def _definitions(data,off):
    if t.code==83:
     entry["edge_bounds"],o=_rect(t.payload,o);flags=t.payload[o];o+=1;entry["shape_flags"]={"uses_fill_winding":bool(flags&4),"uses_non_scaling_strokes":bool(flags&2),"uses_scaling_strokes":bool(flags&1)}
    entry["shape"]=decode_shape_records(t.payload,o,versions[t.code])
-  elif t.code in {11,33}:entry["bounds"],o=_rect(t.payload,2);entry["matrix"],_=_matrix(t.payload,o)
+  elif t.code in {11,33}:
+   entry["bounds"],o=_rect(t.payload,2);entry["matrix"],o=_matrix(t.payload,o);entry["text"]=decode_text_records(t.payload,o,1 if t.code==11 else 2)
   elif t.code==37:entry["bounds"],_=_rect(t.payload,2)
   elif t.code==39 and len(t.payload)>=4:entry["frame_count"]=_u16(t.payload,2);entry["timeline"]=_sprite_timeline(t.payload[4:])
   out[cid]=entry
@@ -97,7 +99,7 @@ def _state(trace,frame,defs):
   tag=str(e["tag"])
   if tag.startswith("PlaceObject"):
    d=int(e["depth"]);prior=s.get(d,{}) if e.get("move") else {};item={**prior,**{k:v for k,v in e.items() if k not in {"frame","tag","move"}}};cid=item.get("character_id")
-   if cid in defs:item["definition"]={k:v for k,v in defs[cid].items() if k not in {"timeline","shape"}}
+   if cid in defs:item["definition"]={k:v for k,v in defs[cid].items() if k not in {"timeline","shape","text"}}
    s[d]=item
   elif tag.startswith("RemoveObject"):s.pop(int(e["depth"]),None)
  return [s[d] for d in sorted(s)]
@@ -111,7 +113,7 @@ def extract(path):
  missing=sorted(OPENING_LABELS-{e["label"] for e in labels})
  if missing:raise ValueError(f"opening labels missing from SWF: {', '.join(missing)}")
  labels.sort(key=lambda e:int(e["frame"]));trace=_trace(data,h.tags_offset,max(int(e["frame"]) for e in labels));defs=_definitions(data,h.tags_offset);snaps=[{"frame":int(e["frame"]),"label":e["label"],"display_list":_state(trace,int(e["frame"]),defs)} for e in labels]
- return {"schema_version":11,"source":path.name,"stage":[h.width,h.height],"frame_rate":h.fps,"opening_labels":labels,"named_characters":_named(data,h.tags_offset),"character_definitions":{str(k):v for k,v in sorted(defs.items())},"title_relevant_tag_counts":_counts(data,h.tags_offset),"opening_display_trace":trace,"opening_display_snapshots":snaps,"notes":["Shape definitions now expose original fill styles, line styles, style changes, straight edges and quadratic curves.","Text glyph records and button records remain to be decoded before classic title rendering.","This file deliberately contains no workshop economy data."]}
+ return {"schema_version":12,"source":path.name,"stage":[h.width,h.height],"frame_rate":h.fps,"opening_labels":labels,"named_characters":_named(data,h.tags_offset),"character_definitions":{str(k):v for k,v in sorted(defs.items())},"title_relevant_tag_counts":_counts(data,h.tags_offset),"opening_display_trace":trace,"opening_display_snapshots":snaps,"notes":["Shape definitions expose original fill styles, line styles, style changes, straight edges and quadratic curves.","DefineText/DefineText2 definitions expose original font references, colours, offsets, heights, glyph indices and advances.","Font glyph outlines and button records remain to be decoded before classic title rendering.","This file deliberately contains no workshop economy data."]}
 def main():
  p=argparse.ArgumentParser();p.add_argument("swf",type=Path);p.add_argument("--out",type=Path);a=p.parse_args();s=json.dumps(extract(a.swf),indent=2,ensure_ascii=False)+"\n"
  if a.out:a.out.parent.mkdir(parents=True,exist_ok=True);a.out.write_text(s,encoding="utf-8")

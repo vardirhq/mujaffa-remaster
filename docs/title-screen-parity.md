@@ -12,15 +12,29 @@ The classic presentation is a parity target for `mujaffa_3juni_2003.swf`:
 - original `start` → `velkommen` → `speakDone` / navigation flow preserved until the exact button/action mapping has been recovered
 - no responsive rearrangement inside the classic presentation
 
-The SWF reference map already confirms `start`, `velkommen`, `speakDone`, `gotoInstruktioner`, `gotoGame`, and `initGame` as the opening navigation labels. Those labels are the source of truth for the classic state machine.
-
 ### Visual acceptance reference
 
-The classic reconstruction is judged against a captured 500 × 500 original-player frame, not against a modernized interpretation. The opening composition contains the original `Mujaffa Spillet` wordmark and version label at upper left, the Falafel storefront at upper right, the blue BMW across the lower middle, Mujaffa in the left foreground, the woman on the right pavement, and the cyan navigation strip along the bottom. `START SPILLET` and `INSTRUKSJONER` belong inside that strip.
+The classic reconstruction is judged against the supplied captured 500 × 500 original-player frame, not against a modernized interpretation. The opening composition contains the original `Mujaffa Spillet` wordmark and version label at upper left, the Falafel storefront at upper right, the blue BMW across the lower middle, Mujaffa in the left foreground, the woman on the right pavement, and the cyan navigation strip along the bottom. `START SPILLET` and `INSTRUKSJONER` belong inside that strip.
 
-Do not substitute generic UI controls, a flat placeholder background, approximate typography, or newly drawn character/car silhouettes and call that classic parity. If an original visual cannot yet be recovered faithfully, keep that part of the reconstruction explicitly incomplete instead of inventing it.
+Do not substitute generic UI controls, a flat placeholder background, approximate typography, or newly drawn character/car silhouettes and call that classic parity. If an original visual cannot yet be recovered faithfully, keep that part explicitly incomplete instead of inventing it.
 
 The browser/page shell around the 500 × 500 movie is not part of the title artwork. Mobile emulator controls, fullscreen/language controls, and the surrounding webpage are reference-player chrome only.
+
+## Evidence pipeline
+
+`tools/swf_title_reference.py` is the title-specific source-of-truth extractor. It now recovers:
+
+- the six known opening timeline labels and their frames
+- exported/named character IDs where the SWF exposes names
+- title-relevant SWF primitive counts
+- main-timeline PlaceObject/PlaceObject2 and removal events through the opening flow
+- character IDs, depth, move semantics, placement matrices, instance names, ratios, clip depth and ColorTransformWithAlpha state where present
+- resolved display-list snapshots at every opening navigation label
+- a character-definition index classifying placed objects as shape, text, edit text, button or sprite
+
+The next extraction boundary is recursive `DefineSprite` display lists, followed by direct shape/text/button definition decoding. That is the point where we can generate original-derived title artwork instead of merely knowing where opaque character IDs sit.
+
+Do not manually transcribe coordinates from the screenshot when the SWF can supply them. The screenshot is for visual acceptance and identifying the intended title state; the SWF remains the authoritative geometry/timeline source.
 
 ## Remastered presentation
 
@@ -37,7 +51,8 @@ The title work must not read or rewrite `reference/original-workshop-data.json`.
 ## Parity workflow
 
 1. Recover the opening timeline labels, frame ranges, placed characters, text, buttons, and action targets from the SWF.
-2. Store recovered title facts in a title-specific reference file/tool output.
-3. Reconstruct the classic 500 × 500 presentation from those facts.
-4. Add browser captures/tests against the classic presentation.
-5. Only after classic parity is stable, build the responsive remastered presentation against the same semantic navigation contract.
+2. Store recovered title facts in title-specific extractor output.
+3. Recursively decode placed sprites and their vector/text/button definitions.
+4. Reconstruct the classic 500 × 500 presentation from those facts.
+5. Add browser captures/tests against the classic presentation.
+6. Only after classic parity is stable, build the responsive remastered presentation against the same semantic navigation contract.

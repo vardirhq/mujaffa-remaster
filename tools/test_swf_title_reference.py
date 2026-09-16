@@ -7,7 +7,7 @@ class TitleReferenceTests(unittest.TestCase):
  @classmethod
  def setUpClass(cls):cls.result=extract(ROOT/"mujaffa_3juni_2003.swf")
  def test_original_opening_landmarks_are_recovered_in_order(self):
-  r=self.result;self.assertEqual(r["schema_version"],9);self.assertEqual(r["stage"],[500.,500.]);self.assertEqual(r["frame_rate"],12.);labels=r["opening_labels"];self.assertEqual([e["label"] for e in labels],["start","velkommen","speakDone","gotoInstruktioner","gotoGame","initGame"]);self.assertEqual([e["frame"] for e in labels],sorted(e["frame"] for e in labels))
+  r=self.result;self.assertEqual(r["schema_version"],10);self.assertEqual(r["stage"],[500.,500.]);self.assertEqual(r["frame_rate"],12.);labels=r["opening_labels"];self.assertEqual([e["label"] for e in labels],["start","velkommen","speakDone","gotoInstruktioner","gotoGame","initGame"]);self.assertEqual([e["frame"] for e in labels],sorted(e["frame"] for e in labels))
  def test_named_character_evidence_is_well_formed(self):
   for e in self.result["named_characters"]:self.assertIsInstance(e["character_id"],int);self.assertTrue(e["name"]);self.assertTrue(set(e["sources"]).issubset({"SymbolClass","ExportAssets"}))
  def test_title_display_primitives_exist_in_original(self):
@@ -24,4 +24,9 @@ class TitleReferenceTests(unittest.TestCase):
   defs=self.result["character_definitions"];self.assertTrue(defs);placed={str(e["character_id"]) for s in self.result["opening_display_snapshots"] for e in s["display_list"]};self.assertTrue(placed.issubset(defs.keys()))
  def test_sprite_definitions_include_nested_timeline_evidence(self):
   sprites=[e for e in self.result["character_definitions"].values() if e["kind"]=="sprite"];self.assertTrue(sprites);self.assertTrue(all(e["frame_count"]>=1 for e in sprites));self.assertTrue(any(e["timeline"] for e in sprites));self.assertTrue(any(any(x["tag"].startswith("PlaceObject") for x in e["timeline"]) for e in sprites))
+ def test_direct_title_definitions_expose_original_geometry(self):
+  defs=self.result["character_definitions"].values();bounded=[e for e in defs if e["kind"] in {"shape","text","edit_text"}];self.assertTrue(bounded);self.assertTrue(all("bounds" in e for e in bounded))
+  for e in bounded:
+   b=e["bounds"];self.assertLessEqual(b["x_min"],b["x_max"]);self.assertLessEqual(b["y_min"],b["y_max"])
+  static=[e for e in defs if e["kind"]=="text"];self.assertTrue(static);self.assertTrue(all("matrix" in e for e in static))
 if __name__=="__main__":unittest.main()

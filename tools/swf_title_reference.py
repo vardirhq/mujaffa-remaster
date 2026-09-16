@@ -18,6 +18,9 @@ def _cxform(p,o):
  if hm:m=[b.read_signed(n) for _ in range(4)]
  if ha:a=[b.read_signed(n) for _ in range(4)]
  return {"multiply":dict(zip("rgba",[v/256. for v in m])),"add":dict(zip("rgba",a))},b.byte_offset
+def _rect(p,o=0):
+ b=BitReader(p,o);n=b.read_unsigned(5);v=[b.read_signed(n) for _ in range(4)]
+ return {"x_min":v[0]/20.,"x_max":v[1]/20.,"y_min":v[2]/20.,"y_max":v[3]/20.},b.byte_offset
 def _place(code,p):
  if code==4:
   if len(p)<4:raise SwfError("truncated PlaceObject")
@@ -47,26 +50,26 @@ def _named(data,off):
    if end<0:break
    name=t.payload[o:end].decode("utf-8",errors="replace");o=end+1;found.setdefault((cid,name),set()).add("SymbolClass" if t.code==76 else "ExportAssets")
  return [{"character_id":cid,"name":name,"sources":sorted(src)} for (cid,name),src in sorted(found.items())]
+def _sprite_timeline(payload):
+ frame=1;events=[]
+ for t in iter_tags(payload,0):
+  if t.code==1:frame+=1;continue
+  if t.code in {4,26}:e={"frame":frame,"tag":"PlaceObject" if t.code==4 else "PlaceObject2"};e.update(_place(t.code,t.payload));events.append(e)
+  elif t.code==5 and len(t.payload)>=4:cid,d=struct.unpack_from("<HH",t.payload);events.append({"frame":frame,"tag":"RemoveObject","character_id":cid,"depth":d})
+  elif t.code==28 and len(t.payload)>=2:events.append({"frame":frame,"tag":"RemoveObject2","depth":_u16(t.payload)})
+  elif t.code==43:events.append({"frame":frame,"tag":"FrameLabel","label":_cstring(t.payload)})
+ return events
 def _definitions(data,off):
  kinds={2:"shape",22:"shape",32:"shape",83:"shape",7:"button",34:"button",11:"text",33:"text",37:"edit_text",39:"sprite"};out={}
  for t in iter_tags(data,off):
   if t.code not in kinds or len(t.payload)<2:continue
   cid=_u16(t.payload);entry={"kind":kinds[t.code],"tag_code":t.code}
-  if t.code==39 and len(t.payload)>=4:
-   entry["frame_count"]=_u16(t.payload,2);entry["timeline"]=_sprite_timeline(t.payload[4:])
+  if t.code in {2,22,32,83}:entry["bounds"],_=_rect(t.payload,2)
+  elif t.code in {11,33}:entry["bounds"],o=_rect(t.payload,2);entry["matrix"],_=_matrix(t.payload,o)
+  elif t.code==37:entry["bounds"],_=_rect(t.payload,2)
+  elif t.code==39 and len(t.payload)>=4:entry["frame_count"]=_u16(t.payload,2);entry["timeline"]=_sprite_timeline(t.payload[4:])
   out[cid]=entry
  return out
-def _sprite_timeline(payload):
- frame=1;events=[]
- for t in iter_tags(payload,0):
-  if t.code==1:frame+=1;continue
-  if t.code in {4,26}:
-   e={"frame":frame,"tag":"PlaceObject" if t.code==4 else "PlaceObject2"};e.update(_place(t.code,t.payload));events.append(e)
-  elif t.code==5 and len(t.payload)>=4:
-   cid,d=struct.unpack_from("<HH",t.payload);events.append({"frame":frame,"tag":"RemoveObject","character_id":cid,"depth":d})
-  elif t.code==28 and len(t.payload)>=2:events.append({"frame":frame,"tag":"RemoveObject2","depth":_u16(t.payload)})
-  elif t.code==43:events.append({"frame":frame,"tag":"FrameLabel","label":_cstring(t.payload)})
- return events
 def _counts(data,off):
  r={2:"DefineShape",22:"DefineShape2",32:"DefineShape3",83:"DefineShape4",7:"DefineButton",34:"DefineButton2",11:"DefineText",33:"DefineText2",37:"DefineEditText",39:"DefineSprite",4:"PlaceObject",26:"PlaceObject2",70:"PlaceObject3",5:"RemoveObject",28:"RemoveObject2"};c={v:0 for v in r.values()}
  for t in iter_tags(data,off):
@@ -103,7 +106,7 @@ def extract(path):
  missing=sorted(OPENING_LABELS-{e["label"] for e in labels})
  if missing:raise ValueError(f"opening labels missing from SWF: {', '.join(missing)}")
  labels.sort(key=lambda e:int(e["frame"]));trace=_trace(data,h.tags_offset,max(int(e["frame"]) for e in labels));defs=_definitions(data,h.tags_offset);snaps=[{"frame":int(e["frame"]),"label":e["label"],"display_list":_state(trace,int(e["frame"]),defs)} for e in labels]
- return {"schema_version":9,"source":path.name,"stage":[h.width,h.height],"frame_rate":h.fps,"opening_labels":labels,"named_characters":_named(data,h.tags_offset),"character_definitions":{str(k):v for k,v in sorted(defs.items())},"title_relevant_tag_counts":_counts(data,h.tags_offset),"opening_display_trace":trace,"opening_display_snapshots":snaps,"notes":["DefineSprite definitions include recursively decodable placement/removal timeline events.","Nested sprite timelines are source evidence; they are not flattened into stage coordinates yet.","This file deliberately contains no workshop economy data."]}
+ return {"schema_version":10,"source":path.name,"stage":[h.width,h.height],"frame_rate":h.fps,"opening_labels":labels,"named_characters":_named(data,h.tags_offset),"character_definitions":{str(k):v for k,v in sorted(defs.items())},"title_relevant_tag_counts":_counts(data,h.tags_offset),"opening_display_trace":trace,"opening_display_snapshots":snaps,"notes":["Shape/text/edit-text definitions expose original SWF bounds in pixels; static text also exposes its local matrix.","Shape fill/line/edge records and text glyph records are the remaining direct-artwork payloads to decode.","This file deliberately contains no workshop economy data."]}
 def main():
  p=argparse.ArgumentParser();p.add_argument("swf",type=Path);p.add_argument("--out",type=Path);a=p.parse_args();s=json.dumps(extract(a.swf),indent=2,ensure_ascii=False)+"\n"
  if a.out:a.out.parent.mkdir(parents=True,exist_ok=True);a.out.write_text(s,encoding="utf-8")

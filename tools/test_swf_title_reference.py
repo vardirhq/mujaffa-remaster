@@ -1,67 +1,30 @@
 import sys
 import unittest
 from pathlib import Path
-
-TOOLS = Path(__file__).resolve().parent
-ROOT = TOOLS.parent
-if str(TOOLS) not in sys.path:
-    sys.path.insert(0, str(TOOLS))
-
+TOOLS=Path(__file__).resolve().parent;ROOT=TOOLS.parent
+if str(TOOLS) not in sys.path:sys.path.insert(0,str(TOOLS))
 from swf_title_reference import extract
-
-
 class TitleReferenceTests(unittest.TestCase):
-    @classmethod
-    def setUpClass(cls):
-        cls.result = extract(ROOT / "mujaffa_3juni_2003.swf")
-
-    def test_original_opening_landmarks_are_recovered_in_order(self):
-        result = self.result
-        self.assertEqual(result["schema_version"], 6)
-        self.assertEqual(result["stage"], [500.0, 500.0])
-        self.assertEqual(result["frame_rate"], 12.0)
-        labels = result["opening_labels"]
-        self.assertEqual([entry["label"] for entry in labels], ["start", "velkommen", "speakDone", "gotoInstruktioner", "gotoGame", "initGame"])
-        self.assertEqual([entry["frame"] for entry in labels], sorted(entry["frame"] for entry in labels))
-
-    def test_named_character_evidence_is_well_formed(self):
-        for entry in self.result["named_characters"]:
-            self.assertIsInstance(entry["character_id"], int)
-            self.assertTrue(entry["name"])
-            self.assertTrue(set(entry["sources"]).issubset({"SymbolClass", "ExportAssets"}))
-
-    def test_title_display_primitives_exist_in_original(self):
-        counts = self.result["title_relevant_tag_counts"]
-        self.assertTrue(any(name.startswith("DefineShape") for name in counts))
-        self.assertTrue(any(name.startswith("PlaceObject") for name in counts))
-        self.assertTrue(any(name.startswith("DefineButton") for name in counts))
-        self.assertTrue(any(name in counts for name in ("DefineText", "DefineText2", "DefineEditText")))
-
-    def test_opening_placements_have_decoded_depth_and_transform(self):
-        placements = [entry for entry in self.result["opening_display_trace"] if entry["tag"].startswith("PlaceObject")]
-        self.assertTrue(placements)
-        self.assertTrue(all(isinstance(entry["depth"], int) for entry in placements))
-        matrices = [entry["matrix"] for entry in placements if "matrix" in entry]
-        self.assertTrue(matrices)
-        for matrix in matrices:
-            self.assertEqual(set(matrix), {"scale_x", "scale_y", "rotate_skew_0", "rotate_skew_1", "translate_x", "translate_y"})
-            self.assertTrue(all(isinstance(value, float) for value in matrix.values()))
-
-    def test_opening_trace_recovers_character_ids(self):
-        placements = [entry for entry in self.result["opening_display_trace"] if entry["tag"].startswith("PlaceObject")]
-        self.assertTrue(any("character_id" in entry for entry in placements))
-        self.assertTrue(all(entry["character_id"] > 0 for entry in placements if "character_id" in entry))
-
-    def test_opening_labels_have_resolved_display_snapshots(self):
-        snapshots = self.result["opening_display_snapshots"]
-        self.assertEqual([snapshot["label"] for snapshot in snapshots], [entry["label"] for entry in self.result["opening_labels"]])
-        for snapshot in snapshots:
-            display_list = snapshot["display_list"]
-            depths = [entry["depth"] for entry in display_list]
-            self.assertEqual(depths, sorted(depths))
-            self.assertEqual(len(depths), len(set(depths)))
-            self.assertTrue(all("character_id" in entry for entry in display_list))
-
-
-if __name__ == "__main__":
-    unittest.main()
+ @classmethod
+ def setUpClass(cls):cls.result=extract(ROOT/"mujaffa_3juni_2003.swf")
+ def test_original_opening_landmarks_are_recovered_in_order(self):
+  r=self.result;self.assertEqual(r["schema_version"],7);self.assertEqual(r["stage"],[500.,500.]);self.assertEqual(r["frame_rate"],12.)
+  labels=r["opening_labels"];self.assertEqual([e["label"] for e in labels],["start","velkommen","speakDone","gotoInstruktioner","gotoGame","initGame"]);self.assertEqual([e["frame"] for e in labels],sorted(e["frame"] for e in labels))
+ def test_named_character_evidence_is_well_formed(self):
+  for e in self.result["named_characters"]:self.assertIsInstance(e["character_id"],int);self.assertTrue(e["name"]);self.assertTrue(set(e["sources"]).issubset({"SymbolClass","ExportAssets"}))
+ def test_title_display_primitives_exist_in_original(self):
+  c=self.result["title_relevant_tag_counts"];self.assertTrue(any(n.startswith("DefineShape") for n in c));self.assertTrue(any(n.startswith("PlaceObject") for n in c));self.assertTrue(any(n.startswith("DefineButton") for n in c));self.assertTrue(any(n in c for n in ("DefineText","DefineText2","DefineEditText")))
+ def test_opening_placements_have_decoded_depth_and_transform(self):
+  p=[e for e in self.result["opening_display_trace"] if e["tag"].startswith("PlaceObject")];self.assertTrue(p);self.assertTrue(all(isinstance(e["depth"],int) for e in p));m=[e["matrix"] for e in p if "matrix" in e];self.assertTrue(m)
+  for x in m:self.assertEqual(set(x),{"scale_x","scale_y","rotate_skew_0","rotate_skew_1","translate_x","translate_y"});self.assertTrue(all(isinstance(v,float) for v in x.values()))
+ def test_opening_trace_recovers_character_ids(self):
+  p=[e for e in self.result["opening_display_trace"] if e["tag"].startswith("PlaceObject")];self.assertTrue(any("character_id" in e for e in p));self.assertTrue(all(e["character_id"]>0 for e in p if "character_id" in e))
+ def test_opening_labels_have_resolved_display_snapshots(self):
+  s=self.result["opening_display_snapshots"];self.assertEqual([x["label"] for x in s],[e["label"] for e in self.result["opening_labels"]])
+  for x in s:
+   d=[e["depth"] for e in x["display_list"]];self.assertEqual(d,sorted(d));self.assertEqual(len(d),len(set(d)));self.assertTrue(all("character_id" in e for e in x["display_list"]))
+ def test_color_transforms_are_structured_when_present(self):
+  transforms=[e["color_transform"] for e in self.result["opening_display_trace"] if "color_transform" in e]
+  for x in transforms:
+   self.assertEqual(set(x),{"multiply","add"});self.assertEqual(set(x["multiply"]),{"r","g","b","a"});self.assertEqual(set(x["add"]),{"r","g","b","a"});self.assertTrue(all(isinstance(v,float) for v in x["multiply"].values()));self.assertTrue(all(isinstance(v,int) for v in x["add"].values()))
+if __name__=="__main__":unittest.main()

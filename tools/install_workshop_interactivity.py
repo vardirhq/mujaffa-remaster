@@ -33,6 +33,52 @@ def make_paint_controls(out):
     for n in ('red','green','blue'): render(out,f'rgb-{n}.png',18,78,'<rect x="5" y="2" width="8" height="74" rx="3" fill="#dff" stroke="#125"/>')
     for n,c in [('red','#ef3038'),('green','#38cf42'),('blue','#254fe0')]: render(out,f'rgb-{n}-marker.png',16,7,f'<rect x="1" y="1" width="14" height="5" rx="2" fill="{c}" stroke="#10254f" stroke-width="2"/>')
     render(out,'rgb-ok.png',54,38,'<rect x="2" y="2" width="50" height="34" rx="4" fill="#2aa6ca" stroke="#17305f" stroke-width="2"/><text x="27" y="27" text-anchor="middle" font-family="Arial" font-size="22" font-weight="700" fill="#ef3345">OK!</text>')
+# BILSTEREO. The row offsets and the column pitch are read out of the SWF.
+#
+# The four speaker rows are placed twice in the original: once inside sprite 258
+# at a tidy 25px pitch, and once inside sprite 924 at 26.35/26.4/26.4. 924 is the
+# workshop's -- it is placed at the stage's lower panel (337.9, 397.75), where
+# this panel lives, while 258 sits mid-stage. The uneven spacing is what the
+# original actually shows, so it is what gets used; a uniform pitch would be a
+# tidier layout than the game has.
+#
+# Only the spacing is claimed as parity. The anchor is the remaster's own panel
+# centre, because resolving a character's absolute stage position is not solved
+# yet -- a character is placed more than once and parent chains can scale.
+AUDIO_ROWS=[('front','FRONT',[(2,2000),(3,4000)]),('side','SIDE',[(2,1000),(3,2000)]),('rear','REAR',[(2,2000),(3,4000)]),('woofer','WOOFER',[(1,3000),(2,6000),(3,9000)])]
+AUDIO_ROW_OFFSETS=(-32.8,-6.45,19.95,46.35)          # sprite 924, in stage px
+AUDIO_PANEL_CY=406.5                                  # centre of the remaster's panel
+# Three button slots per row, at the original's own offsets. A row with two
+# upgrades leaves the left slot to a non-buying "already fitted" graphic; the
+# woofer, which starts at nothing and has three levels, charges in all three.
+# So a level always sits in slot `level - 1`, and the woofer grows leftwards
+# rather than the others growing right.
+AUDIO_SLOT_X=(-48.5,0.5,48.5)
+AUDIO_ORIGIN_X=396; AUDIO_W=44; AUDIO_H=20
+def audio_row_y(index):
+    middle=sum(AUDIO_ROW_OFFSETS)/len(AUDIO_ROW_OFFSETS)
+    return AUDIO_PANEL_CY+AUDIO_ROW_OFFSETS[index]-middle
+def make_audio_controls(out):
+    for group,label,levels in AUDIO_ROWS:
+        for level,price in levels:
+            render(out,f'audio-{group}-{level}.png',AUDIO_W,AUDIO_H,
+                   f'<rect x="1" y="1" width="{AUDIO_W-2}" height="{AUDIO_H-2}" rx="3" fill="#2ca2c8" stroke="#0b103b" stroke-width="2"/>'
+                   f'<text x="{AUDIO_W/2}" y="14" text-anchor="middle" font-family="Arial" font-size="10" font-weight="700" fill="#15151b">{price}</text>')
+def make_audio_panel(out):
+    rows=''.join(
+        f'<text x="176" y="{audio_row_y(index)-351+4}" font-family="Arial" font-size="12" font-weight="700" fill="#0b103b">{label}</text>'
+        for index,(group,label,levels) in enumerate(AUDIO_ROWS))
+    render(out,'panel-audio.png',500,500,
+           f'<rect x="153" y="351" width="343" height="111" rx="12" fill="#129bc4" stroke="#0b103b" stroke-width="4"/>'
+           f'<text x="176" y="368" font-family="Arial" font-size="14" font-weight="700">BILSTEREO</text><g transform="translate(0 351)">{rows}</g>')
+def audio_entities():
+    out=[]
+    for index,(group,label,levels) in enumerate(AUDIO_ROWS):
+        y=audio_row_y(index)
+        for level,price in levels:
+            out.append(control(f'workshop-audio-{group}-{level}',f'Workshop Audio {label.title()} {level}',
+                               f'audio-{group}-{level}.png',AUDIO_ORIGIN_X+AUDIO_SLOT_X[level-1],y,AUDIO_W,AUDIO_H))
+    return out
 def control(eid,name,texture,x,y,w,h,layer=250):
     return {"id":eid,"name":name,"parent":"garage-ui-desktop","transform_3d":transform((stage_x(x),stage_y(y),0),(stage_size(w),stage_size(h),1)),"components":{"sindri.ui.image":{"texture":f"assets/generated/workshop-ui/{texture}","tint":[1,1,1,1],"anchor":"center","layer":layer},"sindri.ui.button":{"label":name}}}
 def image_control(eid,name,texture,x,y,w,h,layer=252):
@@ -43,10 +89,13 @@ def slider(eid,name,texture,x,y,w,h,value,layer=251):
     return entity
 def main():
     ap=argparse.ArgumentParser(); ap.add_argument('--project',type=Path,default=Path('.')); args=ap.parse_args(); p=args.project/'main.scene.json'; scene=json.loads(p.read_text())
-    scene['entities']=[e for e in scene['entities'] if not any(str(e.get('id','')).startswith(s) for s in ('workshop-category-','workshop-panel-','workshop-paint-','workshop-stripe-','workshop-rgb-')) and e.get('id') not in {'workshop-state','workshop-category-controller'}]
+    scene['entities']=[e for e in scene['entities'] if not any(str(e.get('id','')).startswith(s) for s in ('workshop-category-','workshop-panel-','workshop-paint-','workshop-stripe-','workshop-rgb-','workshop-audio-')) and e.get('id') not in {'workshop-state','workshop-category-controller'}]
     out=args.project/'assets/generated/workshop-ui'
     for entry in CATEGORIES: make_button(out,entry)
-    for entry in CATEGORIES[1:]: make_panel(out,entry); scene['entities'].append(panel_entity(entry))
+    for entry in CATEGORIES[1:]:
+        if entry['id']!='audio': make_panel(out,entry)
+        scene['entities'].append(panel_entity(entry))
+    make_audio_panel(out); make_audio_controls(out)
     make_paint_controls(out); scene['entities'].extend(button(e,i) for i,e in enumerate(CATEGORIES))
     scene['entities'].extend([
       control('workshop-paint-change','Workshop Paint Change','paint-change.png',205,433,56,38),
@@ -55,9 +104,11 @@ def main():
       slider('workshop-rgb-red','Workshop RGB Red','rgb-red.png',185,407,18,78,32.0),slider('workshop-rgb-green','Workshop RGB Green','rgb-green.png',213,407,18,78,64.0),slider('workshop-rgb-blue','Workshop RGB Blue','rgb-blue.png',241,407,18,78,184.0),
       image_control('workshop-rgb-red-marker','Workshop RGB Red Marker','rgb-red-marker.png',185,436,16,7),image_control('workshop-rgb-green-marker','Workshop RGB Green Marker','rgb-green-marker.png',213,426,16,7),image_control('workshop-rgb-blue-marker','Workshop RGB Blue Marker','rgb-blue-marker.png',241,390,16,7),
       control('workshop-rgb-ok','Workshop RGB OK','rgb-ok.png',459,431,54,38,253)])
+    scene['entities'].extend(audio_entities())
     scene['entities'] += [
       {"id":"workshop-state","name":"Workshop State","transform_3d":transform((0,0,0),(1,1,1)),"components":{"sindri.script":{"source":"scripts/workshop_state.decay","script":"WorkshopState","properties":{},"enabled":True}}},
       {"id":"workshop-category-controller","name":"Workshop Category Controller","transform_3d":transform((0,0,0),(1,1,1)),"components":{"sindri.script":{"source":"scripts/workshop_category_controller.decay","script":"WorkshopCategoryController","properties":{},"enabled":True}}},
-      {"id":"workshop-paint-controller","name":"Workshop Paint Controller","transform_3d":transform((0,0,0),(1,1,1)),"components":{"sindri.script":{"source":"scripts/workshop_paint_controller.decay","script":"WorkshopPaintController","properties":{},"enabled":True}}}]
+      {"id":"workshop-paint-controller","name":"Workshop Paint Controller","transform_3d":transform((0,0,0),(1,1,1)),"components":{"sindri.script":{"source":"scripts/workshop_paint_controller.decay","script":"WorkshopPaintController","properties":{},"enabled":True}}},
+      {"id":"workshop-audio-controller","name":"Workshop Audio Controller","transform_3d":transform((0,0,0),(1,1,1)),"components":{"sindri.script":{"source":"scripts/workshop_audio_controller.decay","script":"WorkshopAudioController","properties":{},"enabled":True}}}]
     p.write_text(json.dumps(scene,indent=2,ensure_ascii=False)+'\n')
 if __name__=='__main__': main()

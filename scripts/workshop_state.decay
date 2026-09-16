@@ -1,6 +1,13 @@
 // Canonical workshop state for the Mujaffa BMW.
 // Prices and cred are deliberately kept separate from the temporary free-play
 // switch. Free testing must never destroy the recovered economy data.
+//
+// Decay has no value that can hold an entity, so no script can call `purchase`
+// directly -- a category controller cannot name this one. Buying therefore goes
+// over the shared board: a controller leaves a price, a cred and a ticket, and
+// this script settles it on the next frame and publishes the result. That is
+// one till for all thirteen categories rather than thirteen copies of the rule,
+// and it is why `purchase` is reachable at all.
 script WorkshopState {
     var free_purchases: bool = true;
     var money: f32 = 5000.0;
@@ -22,6 +29,17 @@ script WorkshopState {
     var camera: f32 = 0.0;
     var stripe: f32 = 0.0;
 
+    // The last ticket settled. A controller raises the ticket to ask; this
+    // never settles the same one twice.
+    var settled: f32 = 0.0;
+
+    fn start() { publish(); }
+
+    fn publish() {
+        Game.set("workshop.money", this.money);
+        Game.set("workshop.street_cred", this.street_cred);
+    }
+
     fn purchase(price: f32, cred: f32) -> bool {
         if this.free_purchases {
             this.street_cred = this.street_cred + cred;
@@ -31,6 +49,20 @@ script WorkshopState {
         this.money = this.money - price;
         this.street_cred = this.street_cred + cred;
         return true;
+    }
+
+    fn update(dt: f32) {
+        let ticket = Game.get("workshop.buy.ticket", 0.0);
+        if ticket > this.settled {
+            this.settled = ticket;
+            let granted = purchase(Game.get("workshop.buy.price", 0.0), Game.get("workshop.buy.cred", 0.0));
+            // The board carries numbers, so a refusal is 0 and a sale is 1.
+            // The asking controller matches `settled` against its own ticket
+            // before believing either.
+            if granted { Game.set("workshop.buy.granted", 1.0); } else { Game.set("workshop.buy.granted", 0.0); }
+            Game.set("workshop.buy.settled", ticket);
+            publish();
+        }
     }
 
     fn set_category(value: f32) { this.category = value; }

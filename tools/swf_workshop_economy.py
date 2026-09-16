@@ -76,6 +76,23 @@ class Purchase:
                 return name, float(value)
         return None
 
+    @property
+    def cool_delta(self) -> float | None:
+        """A flat move on `bil_cool`, which is how the stereo is priced.
+
+        Most categories keep a per-part `*_cool` and subtract the old
+        contribution before adding the new one. The speakers have no such
+        variable: each button adds a fixed amount, sized by how many levels the
+        purchase jumps, so upgrading front speakers from 1 to 3 adds what 1 to 2
+        and 2 to 3 would have added separately.
+        """
+        for name, value in self.assignments:
+            if name != "bil_cool" or not isinstance(value, tuple):
+                continue
+            if value[0] == "add" and value[1] == ("var", "bil_cool") and isinstance(value[2], (int, float)):
+                return float(value[2])
+        return None
+
 
 def _name(value: object) -> object:
     """`../../:penge` and `penge` are the same variable seen from two depths."""
@@ -209,6 +226,7 @@ def main() -> int:
             "price_check": None if p.threshold is None else f"money > {p.threshold}",
             "cool_variable": p.cool[0] if p.cool else None,
             "cool_value": p.cool[1] if p.cool else None,
+            "cool_delta": p.cool_delta,
             "sets": {n: v for n, v in p.assignments if not isinstance(v, tuple) and n != "penge"},
         }
         for p in found

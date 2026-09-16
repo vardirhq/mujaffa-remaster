@@ -18,6 +18,22 @@ def safe_id(value: str) -> str:
     return "".join(ch if ch.isalnum() else "-" for ch in value.lower()).strip("-")
 
 
+def neutralize_paint_texture(path: Path) -> None:
+    """Make the paint layer neutral so runtime RGB tint controls every channel.
+
+    The SWF extraction bakes the original blue paint into this layer. Multiplying
+    that blue raster by a runtime tint suppresses red and green. Preserve the
+    extracted alpha and light/shade information, but remove its baked hue.
+    """
+    from PIL import Image, ImageOps
+
+    image = Image.open(path).convert("RGBA")
+    alpha = image.getchannel("A")
+    neutral = ImageOps.grayscale(image.convert("RGB"))
+    image = Image.merge("RGBA", (neutral, neutral, neutral, alpha))
+    image.save(path)
+
+
 def install_car_scene(project: Path, manifest: dict) -> int:
     scene_path = project / "main.scene.json"
     scene = json.loads(scene_path.read_text(encoding="utf-8"))
@@ -118,6 +134,10 @@ def main() -> int:
         for png in (layers / "png").glob("*.png"):
             shutil.copy2(png, output / png.name)
         manifest = json.loads((layers / "layers-manifest.json").read_text(encoding="utf-8"))
+        paint_png = manifest["outputs"]["paint:tintable"].get("png")
+        if not paint_png:
+            raise SystemExit("paint:tintable has no generated PNG")
+        neutralize_paint_texture(output / Path(paint_png).name)
         shutil.copy2(layers / "layers-manifest.json", output / "layers-manifest.json")
 
     if registered.exists():

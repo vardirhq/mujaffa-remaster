@@ -30,13 +30,15 @@ def make_paint_controls(out):
     stripe=[('none','#32a8c8','#e33435'),('white','#fff','#2486bf'),('green','#5fd52e','#258cc1'),('black','#111','#217ead'),('pink','#f66ca9','#267eac')]
     for name,fill,line in stripe: render(out,f'stripe-{name}.png',34,26,f'<rect x="2" y="2" width="30" height="22" rx="5" fill="{fill}" stroke="#111" stroke-width="2"/><path d="M4 6 l26 16" stroke="{line}" stroke-width="4"/>')
     render(out,'rgb-mixer.png',343,111,'<rect x="2" y="2" width="339" height="107" rx="12" fill="#129bc4" stroke="#0b103b" stroke-width="4"/><rect x="28" y="11" width="12" height="9" fill="#f22" stroke="#111"/><rect x="56" y="11" width="12" height="9" fill="#3d3" stroke="#111"/><rect x="84" y="11" width="12" height="9" fill="#23e" stroke="#111"/><rect x="29" y="25" width="8" height="72" fill="#dff" stroke="#125"/><rect x="57" y="25" width="8" height="72" fill="#dff" stroke="#125"/><rect x="85" y="25" width="8" height="72" fill="#dff" stroke="#125"/><text x="120" y="49" font-family="Arial" font-size="12" font-weight="700">Velg farge ved å dra i</text><text x="120" y="66" font-family="Arial" font-size="12" font-weight="700">fargeskalaene, og trykk “OK”!</text>')
-    for n,c in [('red','#ef3038'),('green','#38cf42'),('blue','#254fe0')]: render(out,f'rgb-{n}.png',18,78,f'<rect x="5" y="2" width="8" height="74" rx="3" fill="#dff" stroke="#125"/><circle cx="9" cy="39" r="5" fill="{c}" stroke="#125"/>')
+    for n in ('red','green','blue'): render(out,f'rgb-{n}.png',18,78,'<rect x="5" y="2" width="8" height="74" rx="3" fill="#dff" stroke="#125"/>')
+    for n,c in [('red','#ef3038'),('green','#38cf42'),('blue','#254fe0')]: render(out,f'rgb-{n}-marker.png',16,7,f'<rect x="1" y="1" width="14" height="5" rx="2" fill="{c}" stroke="#10254f" stroke-width="2"/>')
     render(out,'rgb-ok.png',54,38,'<rect x="2" y="2" width="50" height="34" rx="4" fill="#2aa6ca" stroke="#17305f" stroke-width="2"/><text x="27" y="27" text-anchor="middle" font-family="Arial" font-size="22" font-weight="700" fill="#ef3345">OK!</text>')
 def control(eid,name,texture,x,y,w,h,layer=250):
     return {"id":eid,"name":name,"parent":"garage-ui-desktop","transform_3d":transform((stage_x(x),stage_y(y),0),(stage_size(w),stage_size(h),1)),"components":{"sindri.ui.image":{"texture":f"assets/generated/workshop-ui/{texture}","tint":[1,1,1,1],"anchor":"center","layer":layer},"sindri.ui.button":{"label":name}}}
+def image_control(eid,name,texture,x,y,w,h,layer=252):
+    entity=control(eid,name,texture,x,y,w,h,layer); entity["components"].pop("sindri.ui.button"); return entity
 def slider(eid,name,texture,x,y,w,h,value,layer=251):
-    entity=control(eid,name,texture,x,y,w,h,layer)
-    entity["components"].pop("sindri.ui.button")
+    entity=image_control(eid,name,texture,x,y,w,h,layer)
     entity["components"]["sindri.ui.slider"]={"label":name,"orientation":"vertical","min":0.0,"max":255.0,"step":1.0,"value":value,"disabled":False}
     return entity
 def main():
@@ -49,8 +51,10 @@ def main():
     scene['entities'].extend([
       control('workshop-paint-change','Workshop Paint Change','paint-change.png',205,433,56,38),
       control('workshop-stripe-none','Workshop Stripe None','stripe-none.png',359,400,34,26),control('workshop-stripe-white','Workshop Stripe White','stripe-white.png',397,400,34,26),control('workshop-stripe-green','Workshop Stripe Green','stripe-green.png',359,430,34,26),control('workshop-stripe-black','Workshop Stripe Black','stripe-black.png',397,430,34,26),control('workshop-stripe-pink','Workshop Stripe Pink','stripe-pink.png',435,430,34,26),
-      control('workshop-rgb-mixer','Workshop RGB Mixer','rgb-mixer.png',324.5,406.5,343,111,249),
-      slider('workshop-rgb-red','Workshop RGB Red','rgb-red.png',185,407,18,78,32.0),slider('workshop-rgb-green','Workshop RGB Green','rgb-green.png',213,407,18,78,64.0),slider('workshop-rgb-blue','Workshop RGB Blue','rgb-blue.png',241,407,18,78,184.0),control('workshop-rgb-ok','Workshop RGB OK','rgb-ok.png',459,431,54,38,252)])
+      image_control('workshop-rgb-mixer','Workshop RGB Mixer','rgb-mixer.png',324.5,406.5,343,111,249),
+      slider('workshop-rgb-red','Workshop RGB Red','rgb-red.png',185,407,18,78,32.0),slider('workshop-rgb-green','Workshop RGB Green','rgb-green.png',213,407,18,78,64.0),slider('workshop-rgb-blue','Workshop RGB Blue','rgb-blue.png',241,407,18,78,184.0),
+      image_control('workshop-rgb-red-marker','Workshop RGB Red Marker','rgb-red-marker.png',185,436,16,7),image_control('workshop-rgb-green-marker','Workshop RGB Green Marker','rgb-green-marker.png',213,426,16,7),image_control('workshop-rgb-blue-marker','Workshop RGB Blue Marker','rgb-blue-marker.png',241,390,16,7),
+      control('workshop-rgb-ok','Workshop RGB OK','rgb-ok.png',459,431,54,38,253)])
     scene['entities'] += [
       {"id":"workshop-state","name":"Workshop State","transform_3d":transform((0,0,0),(1,1,1)),"components":{"sindri.script":{"source":"scripts/workshop_state.decay","script":"WorkshopState","properties":{},"enabled":True}}},
       {"id":"workshop-category-controller","name":"Workshop Category Controller","transform_3d":transform((0,0,0),(1,1,1)),"components":{"sindri.script":{"source":"scripts/workshop_category_controller.decay","script":"WorkshopCategoryController","properties":{},"enabled":True}}},

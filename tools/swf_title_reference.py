@@ -85,6 +85,43 @@ def _tag_counts(data: bytes, tags_offset: int) -> dict[str, int]:
     return {name: count for name, count in counts.items() if count}
 
 
+def _opening_tag_trace(data: bytes, tags_offset: int, end_frame: int) -> list[dict[str, object]]:
+    """Trace main-timeline display mutations through the opening navigation range.
+
+    Payload decoding comes next. Keeping the raw tag family, frame and payload
+    size first makes that decoder auditable and prevents accidental inclusion of
+    workshop timeline activity after the title flow.
+    """
+    names = {
+        4: "PlaceObject",
+        26: "PlaceObject2",
+        70: "PlaceObject3",
+        5: "RemoveObject",
+        28: "RemoveObject2",
+        43: "FrameLabel",
+    }
+    frame = 1
+    trace: list[dict[str, object]] = []
+    for tag in iter_tags(data, tags_offset):
+        if frame > end_frame:
+            break
+        if tag.code == 1:
+            frame += 1
+            continue
+        name = names.get(tag.code)
+        if name is None:
+            continue
+        entry: dict[str, object] = {
+            "frame": frame,
+            "tag": name,
+            "payload_bytes": len(tag.payload),
+        }
+        if tag.code == 43:
+            entry["label"] = _cstring(tag.payload)
+        trace.append(entry)
+    return trace
+
+
 def extract(path: Path) -> dict[str, object]:
     raw = path.read_bytes()
     data, header = parse_header(raw)
@@ -106,18 +143,21 @@ def extract(path: Path) -> dict[str, object]:
         raise ValueError(f"opening labels missing from SWF: {', '.join(missing)}")
 
     labels.sort(key=lambda entry: int(entry["frame"]))
+    opening_end = max(int(entry["frame"]) for entry in labels)
     return {
-        "schema_version": 3,
+        "schema_version": 4,
         "source": path.name,
         "stage": [header.width, header.height],
         "frame_rate": header.fps,
         "opening_labels": labels,
         "named_characters": _named_characters(data, header.tags_offset),
         "title_relevant_tag_counts": _tag_counts(data, header.tags_offset),
+        "opening_display_trace": _opening_tag_trace(data, header.tags_offset, opening_end),
         "notes": [
             "Frame numbers are recovered from the main SWF timeline.",
             "Named characters come from SymbolClass and ExportAssets tags and are evidence, not inferred title membership.",
             "Tag counts are extraction guardrails, not evidence that every definition belongs to the opening title.",
+            "Opening display trace is limited to the main timeline through the last opening navigation label; placement payload decoding is intentionally a separate step.",
             "This file deliberately contains no workshop economy data.",
         ],
     }

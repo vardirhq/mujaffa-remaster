@@ -26,8 +26,6 @@ def _matrix(bits: BitReader) -> dict[str, float]:
     n = bits.read_unsigned(5)
     tx = bits.read_signed(n) / 20.0 if n else 0.0
     ty = bits.read_signed(n) / 20.0 if n else 0.0
-    # MATRIX is a byte-aligned SWF structure. The following gradient byte or
-    # fill-style field starts at the next byte, not at the next unread bit.
     _align(bits)
     return {"scale_x": sx, "scale_y": sy, "rotate_skew_0": r0, "rotate_skew_1": r1, "translate_x": tx, "translate_y": ty}
 
@@ -57,14 +55,14 @@ def _fill(bits: BitReader, shape_version: int) -> dict[str, object]:
 
 def _fill_array(bits: BitReader, shape_version: int) -> list[dict[str, object]]:
     count = bits.read_unsigned(8)
-    if count == 0xFF and shape_version >= 2:
+    if count == 0xFF:
         count = bits.read_unsigned(16)
     return [_fill(bits, shape_version) for _ in range(count)]
 
 
 def _line_array(bits: BitReader, shape_version: int) -> list[dict[str, object]]:
     count = bits.read_unsigned(8)
-    if count == 0xFF and shape_version >= 2:
+    if count == 0xFF:
         count = bits.read_unsigned(16)
     lines = []
     for _ in range(count):

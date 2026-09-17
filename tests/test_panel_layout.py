@@ -23,7 +23,7 @@ from swf_inventory import iter_tags, parse_header  # noqa: E402
 from swf_layout import placements, resolve, spacing  # noqa: E402
 from tools.install_workshop_interactivity import (  # noqa: E402
     AUDIO_ROW_Y, PANEL_SCALE, PANEL_X, PANEL_Y, SPOILER_BUTTON_X,
-    audio_row_y, audio_slot_x, exhaust_point, spoiler_point,
+    audio_row_y, audio_slot_x, exhaust_point, rims_point, spoiler_point, tyres_point,
 )
 
 SWF = ROOT / "mujaffa_3juni_2003.swf"
@@ -33,6 +33,10 @@ SPOILER_ROW = 393
 SPOILER_BUTTONS = [391, 390, 385, 384]      # cheapest first, left to right
 EXHAUST_ROW = 267
 EXHAUST_BUTTONS = [259, 260, 261]
+RIMS_ROW = 199
+RIMS_BUTTONS = [194, 193, 192]      # cheapest first
+TYRES_ROW = 156
+TYRES_BUTTONS = [145, 144, 143]
 
 
 @pytest.fixture(scope="module")
@@ -104,6 +108,7 @@ PLACED_BY_CONTROLLER = {
     "workshop_audio_controller": "audio",
     "workshop_spoiler_controller": "spoiler",
     "workshop_exhaust_controller": "exhaust",
+    "workshop_wheels_controller": "wheels",
 }
 
 
@@ -132,7 +137,7 @@ def test_controller_coordinates_match_the_installer():
     }
     for name, category in PLACED_BY_CONTROLLER.items():
         if category not in expected:
-            continue
+            continue        # wheels names its buttons per option, checked in its own file
         source = (ROOT / "scripts" / f"{name}.decay").read_text(encoding="utf-8")
         placed = re.findall(r"place\(this\.buy\d, ([\d.]+), ([\d.]+), ([\d.]+), ([\d.]+), unit\);", source)
         assert len(placed) == len(expected[category]), f"{name} places {len(placed)} controls"
@@ -153,11 +158,26 @@ def test_audio_controller_coordinates_match_the_installer():
     assert numbers("row_y") == pytest.approx([audio_row_y(row) for row in range(4)], abs=0.01)
 
 
+@pytest.mark.parametrize(
+    "row,buttons,point",
+    [(RIMS_ROW, RIMS_BUTTONS, rims_point), (TYRES_ROW, TYRES_BUTTONS, tyres_point)],
+    ids=["rims", "tyres"],
+)
+def test_wheel_buttons_sit_where_the_original_puts_them(found, row, buttons, point):
+    for index, character in enumerate(buttons):
+        x, y, _scale = resolve(found, [(None, WORKSHOP_PANEL), (WORKSHOP_PANEL, row), (row, character)])
+        ours = point(index)
+        assert ours[0] == pytest.approx(x, abs=0.05), f"{row} button {index} x"
+        assert ours[1] == pytest.approx(y, abs=0.05), f"{row} button {index} y"
+
+
 def test_everything_lands_inside_the_panel():
     """The remaster's panel is 153..496 by 351..462; the original's rows fit it."""
     points = [(audio_slot_x(slot), audio_row_y(row)) for slot in range(3) for row in range(4)]
     points += [spoiler_point(index) for index in range(4)]
     points += [exhaust_point(index) for index in range(3)]
+    points += [rims_point(index) for index in range(3)]
+    points += [tyres_point(index) for index in range(3)]
     for x, y in points:
         assert 153 <= x <= 496, f"x {x} escapes the panel"
         assert 351 <= y <= 462, f"y {y} escapes the panel"

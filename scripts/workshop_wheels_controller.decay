@@ -1,0 +1,213 @@
+// FELGER and DEKK: two categories that share one set of wheels.
+//
+// Prices and coolness are recovered from `mujaffa_3juni_2003.swf` and checked
+// against it by `tests/test_wheels_category.py`.
+//
+// These are one controller because the art makes them one. The car carries a
+// rim layer for every (tyre, rim) pair -- "Garage Car hjulkapsel-2-krom" is
+// chrome rims drawn over the second tyre -- so neither category can decide what
+// shows without the other's state. Splitting them would mean two controllers
+// racing to set the same sixteen layers.
+//
+// Both replace rather than accumulate, like the spoiler: the fitted part's
+// worth comes off before the new one goes on. Both refuse to sell what is
+// already fitted, which is the original's own rule -- sprite 199 and sprite 156
+// each swap character 140, a plain graphic, into the slot you own.
+script WorkshopWheelsController {
+    var rims: f32 = 0.0;
+    var tyres: f32 = 0.0;
+
+    var buy_rim_racer: Entity = null;
+    var buy_rim_krom: Entity = null;
+    var buy_rim_guld: Entity = null;
+    var buy_tyre_1: Entity = null;
+    var buy_tyre_2: Entity = null;
+    var buy_tyre_3: Entity = null;
+
+    var tyre_1: Entity = null;
+    var tyre_2: Entity = null;
+    var tyre_3: Entity = null;
+    var tyre_4: Entity = null;
+
+    var rim_1_standard: Entity = null; var rim_1_racer: Entity = null; var rim_1_krom: Entity = null; var rim_1_guld: Entity = null;
+    var rim_2_standard: Entity = null; var rim_2_racer: Entity = null; var rim_2_krom: Entity = null; var rim_2_guld: Entity = null;
+    var rim_3_standard: Entity = null; var rim_3_racer: Entity = null; var rim_3_krom: Entity = null; var rim_3_guld: Entity = null;
+    var rim_4_standard: Entity = null; var rim_4_racer: Entity = null; var rim_4_krom: Entity = null; var rim_4_guld: Entity = null;
+
+    // 0 nothing pending, 1 a rim, 2 a tyre.
+    var ticket: f32 = 0.0;
+    var pending_kind: f32 = 0.0;
+    var pending_value: f32 = 0.0;
+
+    fn start() {
+        this.buy_rim_racer = World.find("Workshop Rims Racer");
+        this.buy_rim_krom = World.find("Workshop Rims Krom");
+        this.buy_rim_guld = World.find("Workshop Rims Guld");
+        this.buy_tyre_1 = World.find("Workshop Tyres 1");
+        this.buy_tyre_2 = World.find("Workshop Tyres 2");
+        this.buy_tyre_3 = World.find("Workshop Tyres 3");
+        this.tyre_1 = World.find("Garage Car daek-1");
+        this.tyre_2 = World.find("Garage Car daek-2");
+        this.tyre_3 = World.find("Garage Car daek-3");
+        this.tyre_4 = World.find("Garage Car daek-4");
+        this.rim_1_standard = World.find("Garage Car hjulkapsel-1-standard");
+        this.rim_1_racer = World.find("Garage Car hjulkapsel-1-racer");
+        this.rim_1_krom = World.find("Garage Car hjulkapsel-1-krom");
+        this.rim_1_guld = World.find("Garage Car hjulkapsel-1-guld");
+        this.rim_2_standard = World.find("Garage Car hjulkapsel-2-standard");
+        this.rim_2_racer = World.find("Garage Car hjulkapsel-2-racer");
+        this.rim_2_krom = World.find("Garage Car hjulkapsel-2-krom");
+        this.rim_2_guld = World.find("Garage Car hjulkapsel-2-guld");
+        this.rim_3_standard = World.find("Garage Car hjulkapsel-3-standard");
+        this.rim_3_racer = World.find("Garage Car hjulkapsel-3-racer");
+        this.rim_3_krom = World.find("Garage Car hjulkapsel-3-krom");
+        this.rim_3_guld = World.find("Garage Car hjulkapsel-3-guld");
+        this.rim_4_standard = World.find("Garage Car hjulkapsel-4-standard");
+        this.rim_4_racer = World.find("Garage Car hjulkapsel-4-racer");
+        this.rim_4_krom = World.find("Garage Car hjulkapsel-4-krom");
+        this.rim_4_guld = World.find("Garage Car hjulkapsel-4-guld");
+        publish();
+        layout_controls();
+        refresh_car();
+        refresh_visibility();
+    }
+
+    fn publish() {
+        Game.set("workshop.rims", this.rims);
+        Game.set("workshop.tyres", this.tyres);
+    }
+
+    // The stage is square and the viewport is not, so the controls are placed
+    // against it every frame rather than left where the installer put them.
+    fn place(entity: Entity, x: f32, y: f32, w: f32, h: f32, unit: f32) {
+        entity.transform.position.x = (x - 250.0) * unit;
+        entity.transform.position.y = (250.0 - y) * unit;
+        entity.transform.scale.x = w * unit;
+        entity.transform.scale.y = h * unit;
+    }
+
+    fn layout_controls() {
+        let unit = 0.004 * min(Viewport.aspect, 1.0);
+        place(this.buy_rim_racer, 288.24, 418.17, 60.0, 26.0, unit);
+        place(this.buy_rim_krom, 365.73, 418.17, 60.0, 26.0, unit);
+        place(this.buy_rim_guld, 443.23, 418.17, 60.0, 26.0, unit);
+        place(this.buy_tyre_1, 288.66, 418.97, 60.0, 26.0, unit);
+        place(this.buy_tyre_2, 366.39, 418.97, 60.0, 26.0, unit);
+        place(this.buy_tyre_3, 444.22, 418.97, 60.0, 26.0, unit);
+    }
+
+    fn rim_price(value: f32) -> f32 {
+        if value == 1.0 { return 500.0; }
+        if value == 2.0 { return 800.0; }
+        return 5000.0;
+    }
+
+    fn rim_worth(value: f32) -> f32 {
+        if value == 0.0 { return 0.0; }
+        if value == 1.0 { return 0.05; }
+        if value == 2.0 { return 0.1; }
+        return 0.2;
+    }
+
+    fn tyre_price(value: f32) -> f32 {
+        if value == 1.0 { return 2000.0; }
+        if value == 2.0 { return 4000.0; }
+        return 8000.0;
+    }
+
+    fn tyre_worth(value: f32) -> f32 {
+        if value == 0.0 { return 0.0; }
+        if value == 1.0 { return 0.1; }
+        if value == 2.0 { return 0.15; }
+        return 0.3;
+    }
+
+    fn ask_rim(value: f32) {
+        if this.rims == value { return; }
+        if this.pending_kind > 0.0 { return; }
+        this.ticket = this.ticket + 1.0;
+        this.pending_kind = 1.0;
+        this.pending_value = value;
+        Game.set("workshop.buy.price", rim_price(value));
+        Game.set("workshop.buy.cred", rim_worth(value) - rim_worth(this.rims));
+        Game.set("workshop.buy.ticket", this.ticket);
+    }
+
+    fn ask_tyre(value: f32) {
+        if this.tyres == value { return; }
+        if this.pending_kind > 0.0 { return; }
+        this.ticket = this.ticket + 1.0;
+        this.pending_kind = 2.0;
+        this.pending_value = value;
+        Game.set("workshop.buy.price", tyre_price(value));
+        Game.set("workshop.buy.cred", tyre_worth(value) - tyre_worth(this.tyres));
+        Game.set("workshop.buy.ticket", this.ticket);
+    }
+
+    fn settle() {
+        if this.pending_kind <= 0.0 { return; }
+        if Game.get("workshop.buy.settled", 0.0) != this.ticket { return; }
+        if Game.get("workshop.buy.granted", 0.0) > 0.0 {
+            if this.pending_kind == 1.0 { this.rims = this.pending_value; }
+            else { this.tyres = this.pending_value; }
+            publish();
+            refresh_car();
+        }
+        this.pending_kind = 0.0;
+        refresh_visibility();
+    }
+
+    // One layer of the sixteen shows: the fitted rim drawn over the fitted tyre.
+    fn refresh_car() {
+        World.set_active(this.tyre_1, this.tyres == 0.0);
+        World.set_active(this.tyre_2, this.tyres == 1.0);
+        World.set_active(this.tyre_3, this.tyres == 2.0);
+        World.set_active(this.tyre_4, this.tyres == 3.0);
+
+        World.set_active(this.rim_1_standard, this.tyres == 0.0 && this.rims == 0.0);
+        World.set_active(this.rim_1_racer, this.tyres == 0.0 && this.rims == 1.0);
+        World.set_active(this.rim_1_krom, this.tyres == 0.0 && this.rims == 2.0);
+        World.set_active(this.rim_1_guld, this.tyres == 0.0 && this.rims == 3.0);
+        World.set_active(this.rim_2_standard, this.tyres == 1.0 && this.rims == 0.0);
+        World.set_active(this.rim_2_racer, this.tyres == 1.0 && this.rims == 1.0);
+        World.set_active(this.rim_2_krom, this.tyres == 1.0 && this.rims == 2.0);
+        World.set_active(this.rim_2_guld, this.tyres == 1.0 && this.rims == 3.0);
+        World.set_active(this.rim_3_standard, this.tyres == 2.0 && this.rims == 0.0);
+        World.set_active(this.rim_3_racer, this.tyres == 2.0 && this.rims == 1.0);
+        World.set_active(this.rim_3_krom, this.tyres == 2.0 && this.rims == 2.0);
+        World.set_active(this.rim_3_guld, this.tyres == 2.0 && this.rims == 3.0);
+        World.set_active(this.rim_4_standard, this.tyres == 3.0 && this.rims == 0.0);
+        World.set_active(this.rim_4_racer, this.tyres == 3.0 && this.rims == 1.0);
+        World.set_active(this.rim_4_krom, this.tyres == 3.0 && this.rims == 2.0);
+        World.set_active(this.rim_4_guld, this.tyres == 3.0 && this.rims == 3.0);
+    }
+
+    // FELGER is category 4 and DEKK is 5. Neither sells what is fitted.
+    fn refresh_visibility() {
+        let on_rims = Game.get("workshop.category", 0.0) == 4.0;
+        let on_tyres = Game.get("workshop.category", 0.0) == 5.0;
+        World.set_active(this.buy_rim_racer, on_rims && this.rims != 1.0);
+        World.set_active(this.buy_rim_krom, on_rims && this.rims != 2.0);
+        World.set_active(this.buy_rim_guld, on_rims && this.rims != 3.0);
+        World.set_active(this.buy_tyre_1, on_tyres && this.tyres != 1.0);
+        World.set_active(this.buy_tyre_2, on_tyres && this.tyres != 2.0);
+        World.set_active(this.buy_tyre_3, on_tyres && this.tyres != 3.0);
+    }
+
+    fn update(dt: f32) {
+        layout_controls();
+        settle();
+        refresh_visibility();
+        let category = Game.get("workshop.category", 0.0);
+        if category == 4.0 {
+            if Ui.is_pressed(this.buy_rim_racer) { ask_rim(1.0); }
+            if Ui.is_pressed(this.buy_rim_krom) { ask_rim(2.0); }
+            if Ui.is_pressed(this.buy_rim_guld) { ask_rim(3.0); }
+        }
+        if category == 5.0 {
+            if Ui.is_pressed(this.buy_tyre_1) { ask_tyre(1.0); }
+            if Ui.is_pressed(this.buy_tyre_2) { ask_tyre(2.0); }
+            if Ui.is_pressed(this.buy_tyre_3) { ask_tyre(3.0); }
+        }
+    }
+}

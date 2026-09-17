@@ -140,6 +140,48 @@ def exhaust_entities():
         out.append(control(f'workshop-exhaust-{value}',f'Workshop Exhaust {value}',f'exhaust-{value}.png',x,y,EXHAUST_W,EXHAUST_H))
     return out
 
+# FELGER and DEKK. Two categories, two panels, one set of wheel art: the car
+# carries a rim layer per (tyre, rim) pair, so neither category can decide what
+# shows without the other's state. One controller owns the grid.
+RIMS_OPTIONS=[('racer',500,194),('krom',800,193),('guld',5000,192)]
+RIMS_ROW=(-12.1,7.25)                       # sprite 199 inside 924, unscaled
+RIMS_BUTTON_X=(-40.8,41.75,124.3)
+RIMS_BUTTON_Y=14.5
+TYRES_OPTIONS=[(1,2000,145),(2,4000,144),(3,8000,143)]
+TYRES_ROW=(-13.1,6.25)                      # sprite 156 inside 924, unscaled
+TYRES_BUTTON_X=(-39.35,43.45,126.35)
+TYRES_BUTTON_Y=16.35
+WHEEL_W=60; WHEEL_H=26
+def rims_point(index):
+    return panel_point(RIMS_ROW[0]+RIMS_BUTTON_X[index],RIMS_ROW[1]+RIMS_BUTTON_Y)
+def tyres_point(index):
+    return panel_point(TYRES_ROW[0]+TYRES_BUTTON_X[index],TYRES_ROW[1]+TYRES_BUTTON_Y)
+def make_wheel_controls(out):
+    for value,price,_button in RIMS_OPTIONS:
+        render(out,f'rims-{value}.png',WHEEL_W,WHEEL_H,
+               f'<rect x="1" y="1" width="{WHEEL_W-2}" height="{WHEEL_H-2}" rx="3" fill="#2ca2c8" stroke="#0b103b" stroke-width="2"/>'
+               f'<circle cx="14" cy="13" r="7" fill="none" stroke="#0b103b" stroke-width="2"/>'
+               f'<text x="{WHEEL_W/2+6}" y="17" text-anchor="middle" font-family="Arial" font-size="9" font-weight="700" fill="#15151b">{price}</text>')
+    for value,price,_button in TYRES_OPTIONS:
+        render(out,f'tyres-{value}.png',WHEEL_W,WHEEL_H,
+               f'<rect x="1" y="1" width="{WHEEL_W-2}" height="{WHEEL_H-2}" rx="3" fill="#2ca2c8" stroke="#0b103b" stroke-width="2"/>'
+               f'<circle cx="14" cy="13" r="8" fill="#0b103b" opacity="0.55"/><circle cx="14" cy="13" r="4" fill="#2ca2c8"/>'
+               f'<text x="{WHEEL_W/2+6}" y="17" text-anchor="middle" font-family="Arial" font-size="9" font-weight="700" fill="#15151b">{price}</text>')
+def make_wheel_panels(out):
+    for pid,label in (('rims','FELGER'),('tyres','DEKK')):
+        render(out,f'panel-{pid}.png',500,500,
+               f'<rect x="153" y="351" width="343" height="111" rx="12" fill="#129bc4" stroke="#0b103b" stroke-width="4"/>'
+               f'<text x="176" y="368" font-family="Arial" font-size="14" font-weight="700">{label}</text>')
+def wheel_entities():
+    out=[]
+    for index,(value,price,_button) in enumerate(RIMS_OPTIONS):
+        x,y=rims_point(index)
+        out.append(control(f'workshop-rims-{value}',f'Workshop Rims {value.title()}',f'rims-{value}.png',x,y,WHEEL_W,WHEEL_H))
+    for index,(value,price,_button) in enumerate(TYRES_OPTIONS):
+        x,y=tyres_point(index)
+        out.append(control(f'workshop-tyres-{value}',f'Workshop Tyres {value}',f'tyres-{value}.png',x,y,WHEEL_W,WHEEL_H))
+    return out
+
 def control(eid,name,texture,x,y,w,h,layer=250):
     return {"id":eid,"name":name,"parent":"garage-ui-desktop","transform_3d":transform((stage_x(x),stage_y(y),0),(stage_size(w),stage_size(h),1)),"components":{"sindri.ui.image":{"texture":f"assets/generated/workshop-ui/{texture}","tint":[1,1,1,1],"anchor":"center","layer":layer},"sindri.ui.button":{"label":name}}}
 def image_control(eid,name,texture,x,y,w,h,layer=252):
@@ -150,13 +192,13 @@ def slider(eid,name,texture,x,y,w,h,value,layer=251):
     return entity
 def main():
     ap=argparse.ArgumentParser(); ap.add_argument('--project',type=Path,default=Path('.')); args=ap.parse_args(); p=args.project/'main.scene.json'; scene=json.loads(p.read_text())
-    scene['entities']=[e for e in scene['entities'] if not any(str(e.get('id','')).startswith(s) for s in ('workshop-category-','workshop-panel-','workshop-paint-','workshop-stripe-','workshop-rgb-','workshop-audio-','workshop-spoiler-','workshop-exhaust-')) and e.get('id') not in {'workshop-state','workshop-category-controller'}]
+    scene['entities']=[e for e in scene['entities'] if not any(str(e.get('id','')).startswith(s) for s in ('workshop-category-','workshop-panel-','workshop-paint-','workshop-stripe-','workshop-rgb-','workshop-audio-','workshop-spoiler-','workshop-exhaust-','workshop-rims-','workshop-tyres-')) and e.get('id') not in {'workshop-state','workshop-category-controller'}]
     out=args.project/'assets/generated/workshop-ui'
     for entry in CATEGORIES: make_button(out,entry)
     for entry in CATEGORIES[1:]:
-        if entry['id'] not in ('audio','spoiler','exhaust'): make_panel(out,entry)
+        if entry['id'] not in ('audio','spoiler','exhaust','rims','tyres'): make_panel(out,entry)
         scene['entities'].append(panel_entity(entry))
-    make_audio_panel(out); make_audio_controls(out); make_spoiler_panel(out); make_spoiler_controls(out); make_exhaust_panel(out); make_exhaust_controls(out)
+    make_audio_panel(out); make_audio_controls(out); make_spoiler_panel(out); make_spoiler_controls(out); make_exhaust_panel(out); make_exhaust_controls(out); make_wheel_panels(out); make_wheel_controls(out)
     make_paint_controls(out); scene['entities'].extend(button(e,i) for i,e in enumerate(CATEGORIES))
     scene['entities'].extend([
       control('workshop-paint-change','Workshop Paint Change','paint-change.png',205,433,56,38),
@@ -165,13 +207,14 @@ def main():
       slider('workshop-rgb-red','Workshop RGB Red','rgb-red.png',185,407,18,78,32.0),slider('workshop-rgb-green','Workshop RGB Green','rgb-green.png',213,407,18,78,64.0),slider('workshop-rgb-blue','Workshop RGB Blue','rgb-blue.png',241,407,18,78,184.0),
       image_control('workshop-rgb-red-marker','Workshop RGB Red Marker','rgb-red-marker.png',185,436,16,7),image_control('workshop-rgb-green-marker','Workshop RGB Green Marker','rgb-green-marker.png',213,426,16,7),image_control('workshop-rgb-blue-marker','Workshop RGB Blue Marker','rgb-blue-marker.png',241,390,16,7),
       control('workshop-rgb-ok','Workshop RGB OK','rgb-ok.png',459,431,54,38,253)])
-    scene['entities'].extend(audio_entities()); scene['entities'].extend(spoiler_entities()); scene['entities'].extend(exhaust_entities())
+    scene['entities'].extend(audio_entities()); scene['entities'].extend(spoiler_entities()); scene['entities'].extend(exhaust_entities()); scene['entities'].extend(wheel_entities())
     scene['entities'] += [
       {"id":"workshop-state","name":"Workshop State","transform_3d":transform((0,0,0),(1,1,1)),"components":{"sindri.script":{"source":"scripts/workshop_state.decay","script":"WorkshopState","properties":{},"enabled":True}}},
       {"id":"workshop-category-controller","name":"Workshop Category Controller","transform_3d":transform((0,0,0),(1,1,1)),"components":{"sindri.script":{"source":"scripts/workshop_category_controller.decay","script":"WorkshopCategoryController","properties":{},"enabled":True}}},
       {"id":"workshop-paint-controller","name":"Workshop Paint Controller","transform_3d":transform((0,0,0),(1,1,1)),"components":{"sindri.script":{"source":"scripts/workshop_paint_controller.decay","script":"WorkshopPaintController","properties":{},"enabled":True}}},
       {"id":"workshop-audio-controller","name":"Workshop Audio Controller","transform_3d":transform((0,0,0),(1,1,1)),"components":{"sindri.script":{"source":"scripts/workshop_audio_controller.decay","script":"WorkshopAudioController","properties":{},"enabled":True}}},
       {"id":"workshop-spoiler-controller","name":"Workshop Spoiler Controller","transform_3d":transform((0,0,0),(1,1,1)),"components":{"sindri.script":{"source":"scripts/workshop_spoiler_controller.decay","script":"WorkshopSpoilerController","properties":{},"enabled":True}}},
-      {"id":"workshop-exhaust-controller","name":"Workshop Exhaust Controller","transform_3d":transform((0,0,0),(1,1,1)),"components":{"sindri.script":{"source":"scripts/workshop_exhaust_controller.decay","script":"WorkshopExhaustController","properties":{},"enabled":True}}}]
+      {"id":"workshop-exhaust-controller","name":"Workshop Exhaust Controller","transform_3d":transform((0,0,0),(1,1,1)),"components":{"sindri.script":{"source":"scripts/workshop_exhaust_controller.decay","script":"WorkshopExhaustController","properties":{},"enabled":True}}},
+      {"id":"workshop-wheels-controller","name":"Workshop Wheels Controller","transform_3d":transform((0,0,0),(1,1,1)),"components":{"sindri.script":{"source":"scripts/workshop_wheels_controller.decay","script":"WorkshopWheelsController","properties":{},"enabled":True}}}]
     p.write_text(json.dumps(scene,indent=2,ensure_ascii=False)+'\n')
 if __name__=='__main__': main()

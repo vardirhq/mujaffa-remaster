@@ -32,8 +32,15 @@ script WorkshopState {
     // The last ticket settled. A controller raises the ticket to ask; this
     // never settles the same one twice.
     var settled: f32 = 0.0;
+    // Global sequence. Each controller reserves the next number when it asks.
+    // Category-local counters would collide on the first purchase in each panel.
 
-    fn start() { publish(); }
+    fn start() {
+        Game.set("workshop.buy.ticket", 0.0);
+        Game.set("workshop.buy.settled", 0.0);
+        Game.set("workshop.buy.granted", 0.0);
+        publish();
+    }
 
     fn publish() {
         Game.set("workshop.money", this.money);

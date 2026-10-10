@@ -229,7 +229,7 @@ def build(manifest: dict) -> dict:
     )
 
     return {
-        "format_version": 9,
+        "format_version": 10,
         "metadata": {"name": "Mujaffa Classic Title"},
         "entities": entities,
     }

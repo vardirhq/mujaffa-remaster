@@ -101,3 +101,14 @@ def test_a_refused_sale_does_not_fit_a_wing():
     assert 'if Game.get("workshop.buy.granted", 0.0) > 0.0 {' in source
     granted = source.index('if Game.get("workshop.buy.granted", 0.0) > 0.0 {')
     assert "this.fitted = this.pending;" in source[granted:granted + 200], "the wing is fitted only once paid for"
+
+
+def test_spoilers_follow_body_rgb_color_transform():
+    polish = Path('scripts/garage_polish.decay').read_text(encoding='utf-8')
+    paint = Path('scripts/workshop_paint_controller.decay').read_text(encoding='utf-8')
+    assert 'body.sprite.color_offset.r = this.red / 255.0' in paint
+    for channel in ('r', 'g', 'b'):
+        assert f's.sprite.color_multiply.{channel} = p.sprite.color_multiply.{channel};' in polish
+        assert f's.sprite.color_offset.{channel} = p.sprite.color_offset.{channel};' in polish
+    for number in range(1, 6):
+        assert f'tint_spoiler(this.spoiler{number}, this.paint)' in polish

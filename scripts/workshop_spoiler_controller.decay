@@ -18,6 +18,7 @@ script WorkshopSpoilerController {
     var buy1: Entity = null; var buy2: Entity = null; var buy3: Entity = null; var buy4: Entity = null;
     var layer0: Entity = null; var layer1: Entity = null; var layer2: Entity = null; var layer3: Entity = null; var layer4: Entity = null;
 
+    var ink0: Entity = null; var ink1: Entity = null; var ink2: Entity = null; var ink3: Entity = null; var ink4: Entity = null;
     var ticket: f32 = 0.0;
     var pending: f32 = 0.0;
 
@@ -27,6 +28,9 @@ script WorkshopSpoilerController {
         this.layer0 = World.find("Garage Car spoiler-1"); this.layer1 = World.find("Garage Car spoiler-2");
         this.layer2 = World.find("Garage Car spoiler-3"); this.layer3 = World.find("Garage Car spoiler-4");
         this.layer4 = World.find("Garage Car spoiler-5");
+        this.ink0 = World.find("Garage Car spoiler-1 ink"); this.ink1 = World.find("Garage Car spoiler-2 ink");
+        this.ink2 = World.find("Garage Car spoiler-3 ink"); this.ink3 = World.find("Garage Car spoiler-4 ink");
+        this.ink4 = World.find("Garage Car spoiler-5 ink");
         publish();
         layout_controls();
         refresh_car();
@@ -102,6 +106,9 @@ script WorkshopSpoilerController {
         World.set_active(this.layer2, this.fitted == 2.0);
         World.set_active(this.layer3, this.fitted == 3.0);
         World.set_active(this.layer4, this.fitted == 4.0);
+        World.set_active(this.ink0, this.fitted == 0.0); World.set_active(this.ink1, this.fitted == 1.0);
+        World.set_active(this.ink2, this.fitted == 2.0); World.set_active(this.ink3, this.fitted == 3.0);
+        World.set_active(this.ink4, this.fitted == 4.0);
     }
 
     // SPOILER is category 2. The wing already fitted is not for sale.

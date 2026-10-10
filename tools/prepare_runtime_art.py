@@ -34,35 +34,6 @@ def neutralize_paint_texture(path: Path) -> None:
     image.save(path)
 
 
-def normalize_window_glass(path: Path, variant: str) -> None:
-    """Restore the workshop's purple glass palette without changing its ink.
-
-    The SWF's RGB CXFORM is lost when CairoSVG rasterizes feComponentTransfer.
-    In particular, the gradient variant acquires a brown cast. Work only on
-    colored glass pixels: dark outlines, reflections and alpha stay intact.
-    """
-    from PIL import Image
-
-    image = Image.open(path).convert("RGBA")
-    pixels = image.load()
-    for y in range(image.height):
-        for x in range(image.width):
-            r, g, b, a = pixels[x, y]
-            if a == 0 or max(r, g, b) < 38:
-                continue
-            # Brown/orange is the missing Flash glass color transform.
-            # Shift its chroma toward violet, retaining original luminance.
-            if variant == "gradient" and r > b * 1.12 and r > g * 1.12:
-                luminance = (r * 30 + g * 59 + b * 11) // 100
-                pixels[x, y] = (
-                    min(255, round(luminance * 1.05)),
-                    min(255, round(luminance * 0.78)),
-                    min(255, round(luminance * 1.20)),
-                    a,
-                )
-    image.save(path)
-
-
 def split_spoiler_texture(path: Path) -> Path:
     """Create a flat paint mask and independent original-ink overlay.
 
@@ -203,7 +174,7 @@ def main() -> int:
             window = manifest["outputs"][f"vinduer:{variant}"].get("png")
             if not window:
                 raise SystemExit(f"missing window texture: {variant}")
-            normalize_window_glass(output / Path(window).name, variant)
+            # RGB CXFORM is already baked by swf_car_layers_alpha.py.
         for key, item in manifest["outputs"].items():
             if key.startswith("spoiler:") and item.get("png"):
                 split_spoiler_texture(output / Path(item["png"]).name)

@@ -140,7 +140,15 @@ jobs:
           npm install --prefix scripts/browser
           npx --prefix scripts/browser playwright install-deps chromium
           npx --prefix scripts/browser playwright install chromium
+      # The engine is pinned: reuse the compiled player across game-only changes.
+      - name: Cache compiled Sindri player
+        id: player-cache
+        uses: actions/cache@v4
+        with:
+          path: sindri2/crates/sindri-player/pkg
+          key: sindri-player-wasm-${{ runner.os }}-${{ steps.engine.outputs.ref }}-wasm-pack-0.13.1
       - name: Build Sindri browser host
+        if: steps.player-cache.outputs.cache-hit != 'true'
         working-directory: sindri2
         run: wasm-pack build crates/sindri-player --target web --release --out-dir pkg --no-opt
       - name: Export Mujaffa project
@@ -167,6 +175,24 @@ jobs:
           grep -q '"kind": "texture"' target/mujaffa-pages/assets/sindri.manifest
           grep -q 'aspect-ratio: 1 / 1' target/mujaffa-pages/index.html
           if find target/mujaffa-pages -name '*.swf' -print -quit | grep -q .; then echo 'Reference SWF leaked into the Pages payload.' >&2; exit 1; fi
+      - name: Verify generated workshop textures are packaged
+        working-directory: sindri2
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          root = Path('target/mujaffa-pages')
+          manifest = json.loads((root/'assets/sindri.manifest').read_text())
+          textures = sorted((Path('../mujaffa')/'assets/generated/workshop-ui').glob('*.png'))
+          assert textures, 'no workshop textures generated'
+          directories = [p for p in (root/'assets').iterdir() if p.is_dir()]
+          assert len(directories) == 1, directories
+          for file in textures:
+              asset_id = 'assets/generated/workshop-ui/' + file.name
+              assert asset_id in manifest['assets'], f'missing manifest asset: {asset_id}'
+              assert (directories[0]/asset_id).is_file(), f'missing export file: {asset_id}'
+          print(f'Packaged {len(textures)} workshop textures')
+          PY
       - name: Smoke Mujaffa in Chromium
         working-directory: sindri2
         run: |

@@ -34,6 +34,15 @@ def neutralize_paint_texture(path: Path) -> None:
     image.save(path)
 
 
+def neutralize_spoiler_texture(path: Path) -> None:
+    """Preserve dark outlines and highlights while removing baked-in blue."""
+    from PIL import Image, ImageOps
+    image = Image.open(path).convert("RGBA")
+    alpha = image.getchannel("A")
+    gray = ImageOps.autocontrast(ImageOps.grayscale(image.convert("RGB")), cutoff=1)
+    image = Image.merge("RGBA", (gray, gray, gray, alpha))
+    image.save(path)
+
 def install_car_scene(project: Path, manifest: dict) -> int:
     scene_path = project / "main.scene.json"
     scene = json.loads(scene_path.read_text(encoding="utf-8"))
@@ -138,6 +147,9 @@ def main() -> int:
         if not paint_png:
             raise SystemExit("paint:tintable has no generated PNG")
         neutralize_paint_texture(output / Path(paint_png).name)
+        for key, item in manifest["outputs"].items():
+            if key.startswith("spoiler:") and item.get("png"):
+                neutralize_spoiler_texture(output / Path(item["png"]).name)
         shutil.copy2(layers / "layers-manifest.json", output / "layers-manifest.json")
 
     if registered.exists():

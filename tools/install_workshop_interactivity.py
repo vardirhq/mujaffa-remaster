@@ -190,15 +190,26 @@ def slider(eid,name,texture,x,y,w,h,value,layer=251):
     entity=image_control(eid,name,texture,x,y,w,h,layer)
     entity["components"]["sindri.ui.slider"]={"label":name,"orientation":"vertical","min":0.0,"max":255.0,"step":1.0,"value":value,"disabled":False}
     return entity
+def make_glass_controls(out):
+    for value, price in ((1,700),(2,900),(3,1300)):
+        render(out,f'windows-{value}.png',60,26,
+               f'<rect x="1" y="1" width="58" height="24" rx="3" fill="#2ca2c8" stroke="#0b103b" stroke-width="2"/><text x="30" y="18" text-anchor="middle" font-family="Arial" font-size="11" font-weight="700">{price}</text>')
+    render(out,'sunroof-1.png',72,28,
+           '<rect x="1" y="1" width="70" height="26" rx="3" fill="#2ca2c8" stroke="#0b103b" stroke-width="2"/><text x="36" y="19" text-anchor="middle" font-family="Arial" font-size="12" font-weight="700">1500</text>')
+
+def glass_entities():
+    return [control(f'workshop-windows-{value}',f'Workshop Windows {value}',f'windows-{value}.png',288+77*(value-1),418,60,26)
+            for value in (1,2,3)] + [control('workshop-sunroof-1','Workshop Sunroof 1','sunroof-1.png',289,418,72,28)]
+
 def main():
     ap=argparse.ArgumentParser(); ap.add_argument('--project',type=Path,default=Path('.')); args=ap.parse_args(); p=args.project/'main.scene.json'; scene=json.loads(p.read_text())
-    scene['entities']=[e for e in scene['entities'] if not any(str(e.get('id','')).startswith(s) for s in ('workshop-category-','workshop-panel-','workshop-paint-','workshop-stripe-','workshop-rgb-','workshop-audio-','workshop-spoiler-','workshop-exhaust-','workshop-rims-','workshop-tyres-')) and e.get('id') not in {'workshop-state','workshop-category-controller'}]
+    scene['entities']=[e for e in scene['entities'] if not any(str(e.get('id','')).startswith(s) for s in ('workshop-category-','workshop-panel-','workshop-paint-','workshop-stripe-','workshop-rgb-','workshop-audio-','workshop-spoiler-','workshop-exhaust-','workshop-rims-','workshop-tyres-','workshop-windows-','workshop-sunroof-')) and e.get('id') not in {'workshop-state','workshop-category-controller'}]
     out=args.project/'assets/generated/workshop-ui'
     for entry in CATEGORIES: make_button(out,entry)
     for entry in CATEGORIES[1:]:
         if entry['id'] not in ('audio','spoiler','exhaust','rims','tyres'): make_panel(out,entry)
         scene['entities'].append(panel_entity(entry))
-    make_audio_panel(out); make_audio_controls(out); make_spoiler_panel(out); make_spoiler_controls(out); make_exhaust_panel(out); make_exhaust_controls(out); make_wheel_panels(out); make_wheel_controls(out)
+    make_audio_panel(out); make_audio_controls(out); make_spoiler_panel(out); make_spoiler_controls(out); make_exhaust_panel(out); make_exhaust_controls(out); make_wheel_panels(out); make_wheel_controls(out); make_glass_controls(out)
     make_paint_controls(out); scene['entities'].extend(button(e,i) for i,e in enumerate(CATEGORIES))
     scene['entities'].extend([
       control('workshop-paint-change','Workshop Paint Change','paint-change.png',205,433,56,38),
@@ -207,7 +218,7 @@ def main():
       slider('workshop-rgb-red','Workshop RGB Red','rgb-red.png',185,407,18,78,32.0),slider('workshop-rgb-green','Workshop RGB Green','rgb-green.png',213,407,18,78,64.0),slider('workshop-rgb-blue','Workshop RGB Blue','rgb-blue.png',241,407,18,78,184.0),
       image_control('workshop-rgb-red-marker','Workshop RGB Red Marker','rgb-red-marker.png',185,436,16,7),image_control('workshop-rgb-green-marker','Workshop RGB Green Marker','rgb-green-marker.png',213,426,16,7),image_control('workshop-rgb-blue-marker','Workshop RGB Blue Marker','rgb-blue-marker.png',241,390,16,7),
       control('workshop-rgb-ok','Workshop RGB OK','rgb-ok.png',459,431,54,38,253)])
-    scene['entities'].extend(audio_entities()); scene['entities'].extend(spoiler_entities()); scene['entities'].extend(exhaust_entities()); scene['entities'].extend(wheel_entities())
+    scene['entities'].extend(audio_entities()); scene['entities'].extend(spoiler_entities()); scene['entities'].extend(exhaust_entities()); scene['entities'].extend(wheel_entities()); scene['entities'].extend(glass_entities())
     scene['entities'] += [
       {"id":"workshop-state","name":"Workshop State","transform_3d":transform((0,0,0),(1,1,1)),"components":{"sindri.script":{"source":"scripts/workshop_state.decay","script":"WorkshopState","properties":{},"enabled":True}}},
       {"id":"workshop-category-controller","name":"Workshop Category Controller","transform_3d":transform((0,0,0),(1,1,1)),"components":{"sindri.script":{"source":"scripts/workshop_category_controller.decay","script":"WorkshopCategoryController","properties":{},"enabled":True}}},
@@ -215,6 +226,7 @@ def main():
       {"id":"workshop-audio-controller","name":"Workshop Audio Controller","transform_3d":transform((0,0,0),(1,1,1)),"components":{"sindri.script":{"source":"scripts/workshop_audio_controller.decay","script":"WorkshopAudioController","properties":{},"enabled":True}}},
       {"id":"workshop-spoiler-controller","name":"Workshop Spoiler Controller","transform_3d":transform((0,0,0),(1,1,1)),"components":{"sindri.script":{"source":"scripts/workshop_spoiler_controller.decay","script":"WorkshopSpoilerController","properties":{},"enabled":True}}},
       {"id":"workshop-exhaust-controller","name":"Workshop Exhaust Controller","transform_3d":transform((0,0,0),(1,1,1)),"components":{"sindri.script":{"source":"scripts/workshop_exhaust_controller.decay","script":"WorkshopExhaustController","properties":{},"enabled":True}}},
+      {"id":"workshop-windows-controller","name":"Workshop Windows Controller","transform_3d":transform((0,0,0),(1,1,1)),"components":{"sindri.script":{"source":"scripts/workshop_windows_controller.decay","script":"WorkshopWindowsController","properties":{},"enabled":True}}},
       {"id":"workshop-wheels-controller","name":"Workshop Wheels Controller","transform_3d":transform((0,0,0),(1,1,1)),"components":{"sindri.script":{"source":"scripts/workshop_wheels_controller.decay","script":"WorkshopWheelsController","properties":{},"enabled":True}}}]
     p.write_text(json.dumps(scene,indent=2,ensure_ascii=False)+'\n')
     # Disabled workshop panels may not be discovered by the scene texture walker.

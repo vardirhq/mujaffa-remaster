@@ -144,7 +144,7 @@ jobs:
       - name: Check out pinned Sindri
         uses: actions/checkout@v4
         with:
-          repository: vardirhq/sindri2
+          repository: vardirhq/sindri-engine
           ref: ${{ steps.engine.outputs.ref }}
           path: sindri2
       - name: Install Sindri Rust toolchain
@@ -152,7 +152,7 @@ jobs:
       - name: Install Sindri Linux build dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y libasound2-dev
+          sudo apt-get install -y libasound2-dev libudev-dev
           python -m pip install --disable-pip-version-check cairosvg
       - name: Generate runtime car from preserved SWF
         run: python mujaffa/tools/prepare_runtime_art.py --project mujaffa --scale 4 --install-scene

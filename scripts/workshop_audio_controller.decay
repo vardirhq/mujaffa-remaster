@@ -112,7 +112,8 @@ script WorkshopAudioController {
         // Already at or above this level, or still waiting on the till.
         if level_of(group) >= level { return; }
         if this.pending_level > 0.0 { return; }
-        this.ticket = this.ticket + 1.0;
+        // Reserve an ID from the global queue instead of a controller-local counter.
+        this.ticket = Game.get("workshop.buy.ticket", 0.0) + 1.0;
         this.pending_group = group;
         this.pending_level = level;
         Game.set("workshop.buy.price", price(group, level));

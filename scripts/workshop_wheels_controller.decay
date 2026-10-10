@@ -125,7 +125,8 @@ script WorkshopWheelsController {
     fn ask_rim(value: f32) {
         if this.rims == value { return; }
         if this.pending_kind > 0.0 { return; }
-        this.ticket = this.ticket + 1.0;
+        // Reserve an ID from the global queue instead of a controller-local counter.
+        this.ticket = Game.get("workshop.buy.ticket", 0.0) + 1.0;
         this.pending_kind = 1.0;
         this.pending_value = value;
         Game.set("workshop.buy.price", rim_price(value));
@@ -136,7 +137,8 @@ script WorkshopWheelsController {
     fn ask_tyre(value: f32) {
         if this.tyres == value { return; }
         if this.pending_kind > 0.0 { return; }
-        this.ticket = this.ticket + 1.0;
+        // Reserve an ID from the global queue instead of a controller-local counter.
+        this.ticket = Game.get("workshop.buy.ticket", 0.0) + 1.0;
         this.pending_kind = 2.0;
         this.pending_value = value;
         Game.set("workshop.buy.price", tyre_price(value));

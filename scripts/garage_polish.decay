@@ -45,6 +45,14 @@ script GaragePolish {
         s.sprite.tint.r = p.sprite.tint.r;
         s.sprite.tint.g = p.sprite.tint.g;
         s.sprite.tint.b = p.sprite.tint.b;
+        // The body uses an RGB offset over a neutralized mask. Copy the same
+        // transform, not just tint, or the original blue spoiler stays blue.
+        s.sprite.color_multiply.r = p.sprite.color_multiply.r;
+        s.sprite.color_multiply.g = p.sprite.color_multiply.g;
+        s.sprite.color_multiply.b = p.sprite.color_multiply.b;
+        s.sprite.color_offset.r = p.sprite.color_offset.r;
+        s.sprite.color_offset.g = p.sprite.color_offset.g;
+        s.sprite.color_offset.b = p.sprite.color_offset.b;
     }
 
     fn update(dt: f32) {

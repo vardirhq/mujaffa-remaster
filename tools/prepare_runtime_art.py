@@ -34,14 +34,37 @@ def neutralize_paint_texture(path: Path) -> None:
     image.save(path)
 
 
-def neutralize_spoiler_texture(path: Path) -> None:
-    """Preserve dark outlines and highlights while removing baked-in blue."""
-    from PIL import Image, ImageOps
+def split_spoiler_texture(path: Path) -> Path:
+    """Create a flat paint mask and independent original-ink overlay.
+
+    The paint mask gets the same RGB offset as the body. The ink overlay keeps
+    the black outlines and shaded details above it without recoloring them.
+    """
+    from PIL import Image
+
     image = Image.open(path).convert("RGBA")
-    alpha = image.getchannel("A")
-    gray = ImageOps.autocontrast(ImageOps.grayscale(image.convert("RGB")), cutoff=1)
-    image = Image.merge("RGBA", (gray, gray, gray, alpha))
-    image.save(path)
+    paint = Image.new("RGBA", image.size)
+    ink = Image.new("RGBA", image.size)
+    source = image.load()
+    fill = paint.load()
+    lines = ink.load()
+    for y in range(image.height):
+        for x in range(image.width):
+            r, g, b, a = source[x, y]
+            if not a:
+                continue
+            # Darkness relative to the source blue surface indicates ink.
+            # Keep soft antialiased edges; white/highlight pixels stay paint.
+            brightness = max(r, g, b)
+            ink_fraction = max(0.0, min(1.0, (170.0 - brightness) / 120.0))
+            ink_alpha = round(a * ink_fraction)
+            fill[x, y] = (255, 255, 255, a)
+            lines[x, y] = (r, g, b, ink_alpha)
+    paint.save(path)
+    overlay = path.with_name(path.stem + "-ink.png")
+    ink.save(overlay)
+    return overlay
+
 
 def install_car_scene(project: Path, manifest: dict) -> int:
     scene_path = project / "main.scene.json"
@@ -149,7 +172,7 @@ def main() -> int:
         neutralize_paint_texture(output / Path(paint_png).name)
         for key, item in manifest["outputs"].items():
             if key.startswith("spoiler:") and item.get("png"):
-                neutralize_spoiler_texture(output / Path(item["png"]).name)
+                split_spoiler_texture(output / Path(item["png"]).name)
         shutil.copy2(layers / "layers-manifest.json", output / "layers-manifest.json")
 
     if registered.exists():

@@ -69,7 +69,7 @@ script WorkshopPaintController {
     // garage_polish controller is deliberately excluded from exported scenes.
     fn paint_spoiler(entity: Entity) {
         let wing = entity;
-        wing.sprite.tint.r = this.red / 255.0; wing.sprite.tint.g = this.green / 255.0; wing.sprite.tint.b = this.blue / 255.0;
+        wing.sprite.tint.r = 1.0; wing.sprite.tint.g = 1.0; wing.sprite.tint.b = 1.0;
         wing.sprite.color_multiply.r = 0.0; wing.sprite.color_multiply.g = 0.0; wing.sprite.color_multiply.b = 0.0;
         wing.sprite.color_offset.r = this.red / 255.0; wing.sprite.color_offset.g = this.green / 255.0; wing.sprite.color_offset.b = this.blue / 255.0;
     }

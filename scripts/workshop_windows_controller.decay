@@ -1,0 +1,89 @@
+// RUTER and SOLTAK. Prices and coolness match original-workshop-data.json.
+script WorkshopWindowsController {
+    var windows: f32 = 0.0;
+    var sunroof: f32 = 0.0;
+    var ticket: f32 = 0.0;
+    var pending_kind: f32 = 0.0;
+    var pending_value: f32 = 0.0;
+    var buy1: Entity = null; var buy2: Entity = null; var buy3: Entity = null; var roof_buy: Entity = null;
+    var glass0: Entity = null; var glass1: Entity = null; var glass2: Entity = null; var glass3: Entity = null;
+    var roof0: Entity = null; var roof1: Entity = null;
+    fn start() {
+        this.buy1=World.find("Workshop Windows 1"); this.buy2=World.find("Workshop Windows 2");
+        this.buy3=World.find("Workshop Windows 3"); this.roof_buy=World.find("Workshop Sunroof 1");
+        this.glass0=World.find("Garage Car vinduer-standard"); this.glass1=World.find("Garage Car vinduer-gradient");
+        this.glass2=World.find("Garage Car vinduer-tonede"); this.glass3=World.find("Garage Car vinduer-spejlrefleks");
+        this.roof0=World.find("Garage Car soltag-off"); this.roof1=World.find("Garage Car soltag-on");
+        publish(); refresh_car(); refresh_visibility();
+    }
+    fn publish() { Game.set("workshop.windows",this.windows); Game.set("workshop.sunroof",this.sunroof); }
+    fn worth(value:f32)->f32 {
+        if value==1.0 { return 0.05; }
+        if value==2.0 { return 0.1; }
+        if value==3.0 { return 0.2; }
+        return 0.0;
+    }
+    fn price(value:f32)->f32 {
+        if value==1.0 { return 700.0; }
+        if value==2.0 { return 900.0; }
+        return 1300.0;
+    }
+    fn ask(kind:f32,value:f32) {
+        if this.pending_kind>0.0 { return; }
+        if kind==1.0 && value==this.windows { return; }
+        if kind==2.0 && this.sunroof==1.0 { return; }
+        this.ticket=Game.get("workshop.buy.ticket",0.0)+1.0;
+        this.pending_kind=kind; this.pending_value=value;
+        if kind==1.0 {
+            Game.set("workshop.buy.price",price(value));
+            Game.set("workshop.buy.cred",worth(value)-worth(this.windows));
+        } else {
+            Game.set("workshop.buy.price",1500.0);
+            Game.set("workshop.buy.cred",0.2);
+        }
+        Game.set("workshop.buy.ticket",this.ticket);
+    }
+    fn settle() {
+        if this.pending_kind==0.0 { return; }
+        if Game.get("workshop.buy.settled",0.0)!=this.ticket { return; }
+        if Game.get("workshop.buy.granted",0.0)>0.0 {
+            if this.pending_kind==1.0 { this.windows=this.pending_value; }
+            else { this.sunroof=1.0; }
+            publish(); refresh_car();
+        }
+        this.pending_kind=0.0;
+    }
+    fn refresh_car() {
+        World.set_active(this.glass0,this.windows==0.0);
+        World.set_active(this.glass1,this.windows==1.0);
+        World.set_active(this.glass2,this.windows==2.0);
+        World.set_active(this.glass3,this.windows==3.0);
+        World.set_active(this.roof0,this.sunroof==0.0);
+        World.set_active(this.roof1,this.sunroof==1.0);
+    }
+    fn refresh_visibility() {
+        let category=Game.get("workshop.category",0.0);
+        World.set_active(this.buy1,category==6.0 && this.windows!=1.0);
+        World.set_active(this.buy2,category==6.0 && this.windows!=2.0);
+        World.set_active(this.buy3,category==6.0 && this.windows!=3.0);
+        World.set_active(this.roof_buy,category==7.0 && this.sunroof==0.0);
+    }
+    fn place(entity:Entity,x:f32,y:f32,w:f32,h:f32,unit:f32) {
+        entity.transform.position.x=(x-250.0)*unit; entity.transform.position.y=(250.0-y)*unit;
+        entity.transform.scale.x=w*unit; entity.transform.scale.y=h*unit;
+    }
+    fn update(dt:f32) {
+        let unit=0.004*min(Viewport.aspect,1.0);
+        place(this.buy1,288.0,418.0,60.0,26.0,unit);
+        place(this.buy2,365.0,418.0,60.0,26.0,unit);
+        place(this.buy3,442.0,418.0,60.0,26.0,unit);
+        place(this.roof_buy,289.0,418.0,72.0,28.0,unit);
+        settle(); refresh_visibility();
+        if Game.get("workshop.category",0.0)==6.0 {
+            if Ui.is_pressed(this.buy1) { ask(1.0,1.0); }
+            if Ui.is_pressed(this.buy2) { ask(1.0,2.0); }
+            if Ui.is_pressed(this.buy3) { ask(1.0,3.0); }
+        }
+        if Game.get("workshop.category",0.0)==7.0 && Ui.is_pressed(this.roof_buy) { ask(2.0,1.0); }
+    }
+}

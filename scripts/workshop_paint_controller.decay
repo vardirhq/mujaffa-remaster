@@ -70,8 +70,8 @@ script WorkshopPaintController {
     fn paint_spoiler(entity: Entity) {
         let wing = entity;
         wing.sprite.tint.r = this.red / 255.0; wing.sprite.tint.g = this.green / 255.0; wing.sprite.tint.b = this.blue / 255.0;
-        wing.sprite.color_multiply.r = 0.0; wing.sprite.color_multiply.g = 0.0; wing.sprite.color_multiply.b = 0.0;
-        wing.sprite.color_offset.r = this.red / 255.0; wing.sprite.color_offset.g = this.green / 255.0; wing.sprite.color_offset.b = this.blue / 255.0;
+        wing.sprite.color_multiply.r = this.red / 255.0; wing.sprite.color_multiply.g = this.green / 255.0; wing.sprite.color_multiply.b = this.blue / 255.0;
+        wing.sprite.color_offset.r = 0.0; wing.sprite.color_offset.g = 0.0; wing.sprite.color_offset.b = 0.0;
     }
     fn refresh_paint() {
         let body = this.paint;

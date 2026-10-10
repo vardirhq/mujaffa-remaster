@@ -217,4 +217,12 @@ def main():
       {"id":"workshop-exhaust-controller","name":"Workshop Exhaust Controller","transform_3d":transform((0,0,0),(1,1,1)),"components":{"sindri.script":{"source":"scripts/workshop_exhaust_controller.decay","script":"WorkshopExhaustController","properties":{},"enabled":True}}},
       {"id":"workshop-wheels-controller","name":"Workshop Wheels Controller","transform_3d":transform((0,0,0),(1,1,1)),"components":{"sindri.script":{"source":"scripts/workshop_wheels_controller.decay","script":"WorkshopWheelsController","properties":{},"enabled":True}}}]
     p.write_text(json.dumps(scene,indent=2,ensure_ascii=False)+'\n')
+    # Disabled workshop panels may not be discovered by the scene texture walker.
+    # Explicitly ship every generated workshop image, including inactive panels.
+    config = args.project/'sindri.toml'
+    original = config.read_text(encoding='utf-8')
+    before = original.split('\n[assets]\n', 1)[0].rstrip() + '\n'
+    images = sorted(f'assets/generated/workshop-ui/{path.name}' for path in out.glob('*.png'))
+    assert images and 'assets/generated/workshop-ui/panel-audio.png' in images
+    config.write_text(before + '\n[assets]\ninclude = ' + json.dumps(images, ensure_ascii=False) + '\n', encoding='utf-8')
 if __name__=='__main__': main()

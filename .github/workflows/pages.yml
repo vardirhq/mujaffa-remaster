@@ -44,7 +44,7 @@ jobs:
       - name: Check out pinned Sindri
         uses: actions/checkout@v4
         with:
-          repository: vardirhq/sindri2
+          repository: vardirhq/sindri-engine
           ref: ${{ steps.engine.outputs.ref }}
           path: sindri2
       - name: Install Sindri Rust toolchain

@@ -142,7 +142,7 @@ jobs:
           npx --prefix scripts/browser playwright install chromium
       - name: Build Sindri browser host
         working-directory: sindri2
-        run: wasm-pack build game --target web --release --out-dir pkg
+        run: wasm-pack build crates/sindri-player --target web --release --out-dir pkg --no-opt
       - name: Export Mujaffa project
         working-directory: sindri2
         run: cargo run --quiet --package sindri-export --bin sindri-export -- ../mujaffa target/mujaffa-pages --base /mujaffa-remaster/ --build-id "${GITHUB_SHA:0:7}"
@@ -152,16 +152,16 @@ jobs:
         working-directory: sindri2
         run: |
           mkdir -p target/mujaffa-pages/pkg
-          cp -R game/pkg/. target/mujaffa-pages/pkg/
+          cp -R crates/sindri-player/pkg/. target/mujaffa-pages/pkg/
           touch target/mujaffa-pages/.nojekyll
       - name: Verify Pages payload
         working-directory: sindri2
         shell: bash
         run: |
           test -f target/mujaffa-pages/index.html
-          test -f target/mujaffa-pages/assets/sindri.manifest.json
-          test -f target/mujaffa-pages/pkg/sindri_gather.js
-          test -f target/mujaffa-pages/pkg/sindri_gather_bg.wasm
+          test -f target/mujaffa-pages/assets/sindri.manifest
+          test -f target/mujaffa-pages/pkg/sindri_player.js
+          test -f target/mujaffa-pages/pkg/sindri_player_bg.wasm
           grep -q '"kind": "scene"' target/mujaffa-pages/assets/sindri.manifest.json
           grep -q '"kind": "script"' target/mujaffa-pages/assets/sindri.manifest.json
           grep -q '"kind": "texture"' target/mujaffa-pages/assets/sindri.manifest.json

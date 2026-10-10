@@ -20,7 +20,10 @@ script WorkshopStripeController {
         this.ticket=Game.get("workshop.buy.ticket",0.0)+1.0;
         this.pending=value;
         Game.set("workshop.buy.price",250.0);
-        Game.set("workshop.buy.cred",(value==0.0?0.0:0.1)-(this.fitted==0.0?0.0:0.1));
+        let next_worth=0.1; let old_worth=0.1;
+        if value==0.0 { next_worth=0.0; }
+        if this.fitted==0.0 { old_worth=0.0; }
+        Game.set("workshop.buy.cred",next_worth-old_worth);
         Game.set("workshop.buy.ticket",this.ticket);
     }
     fn settle() {
@@ -53,7 +56,7 @@ script WorkshopStripeController {
         World.set_active(this.buy3,showing && this.fitted!=3.0);
         World.set_active(this.buy4,showing && this.fitted!=4.0);
         World.set_active(this.buy5,showing && this.fitted!=0.0);
-        if !showing { return; }
+        if showing==false { return; }
         if Ui.is_pressed(this.buy1) { ask(1.0); }
         if Ui.is_pressed(this.buy2) { ask(2.0); }
         if Ui.is_pressed(this.buy3) { ask(3.0); }

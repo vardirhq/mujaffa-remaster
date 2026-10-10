@@ -95,6 +95,16 @@ def add_car_layers(scene: dict, manifest: dict) -> None:
                 "sindri.tags": {"tags": ["garage-car-layer", "showroom-registered", *tags]},
             },
         })
+        if key.startswith("spoiler:"):
+            overlay = generated[-1].copy()
+            overlay["id"] = generated[-1]["id"] + "-ink"
+            overlay["name"] = generated[-1]["name"] + " ink"
+            overlay["components"] = json.loads(json.dumps(generated[-1]["components"]))
+            overlay["components"]["sindri.sprite"]["texture"] = (
+                f"assets/generated/car-stage/{Path(png).stem}-ink.png"
+            )
+            overlay["components"]["sindri.sprite"]["layer"] = layer + 1
+            generated.append(overlay)
 
     layer = 30
     for slot in manifest["body_stack"]:

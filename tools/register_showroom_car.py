@@ -53,6 +53,10 @@ def main() -> int:
         source = args.car_dir / Path(png).name
         target = args.out / source.name
         register_png(source, target, bounds, args.scale)
+        if source.with_name(source.stem + "-ink.png").exists():
+            ink_source = source.with_name(source.stem + "-ink.png")
+            register_png(ink_source, args.out / ink_source.name, bounds, args.scale)
+            count += 1
         count += 1
 
     (args.out / "stage-registration.json").write_text(json.dumps({

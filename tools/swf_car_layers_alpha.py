@@ -43,17 +43,24 @@ raster_helper = '''
             output_height=max(1, math.ceil(height * args.scale)),
         )
         image = Image.open(io.BytesIO(raw)).convert("RGBA")
-        pixels = image.load()
-        for py in range(image.height):
-            for px in range(image.width):
-                r, g, b, a = pixels[px, py]
-                if a == 0:
-                    continue
-                old = (r, g, b, a)
-                pixels[px, py] = tuple(
-                    max(0, min(255, round(old[i] * values[i][0] + values[i][1] * 255)))
-                    for i in range(4)
-                )
+        # Apply per-channel LUTs in native Pillow code. Python loops over
+        # millions of pixels per leaf would make the already-long CI worse.
+        alpha = image.getchannel("A")
+        channels = image.split()
+        adjusted = []
+        for index, channel in enumerate(channels):
+            slope, intercept = values[index]
+            lut = [
+                max(0, min(255, round(value * slope + intercept * 255)))
+                for value in range(256)
+            ]
+            adjusted.append(channel.point(lut))
+        # Never create color/alpha outside the original leaf silhouette.
+        adjusted[3] = Image.frombytes(
+            "L", image.size,
+            bytes(min(a, b) for a, b in zip(adjusted[3].tobytes(), alpha.tobytes()))
+        ) if values[3][1] > 0 else adjusted[3]
+        image = Image.merge("RGBA", tuple(adjusted))
         buffer = io.BytesIO()
         image.save(buffer, format="PNG")
         encoded = base64.b64encode(buffer.getvalue()).decode("ascii")

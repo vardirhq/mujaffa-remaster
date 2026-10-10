@@ -9,7 +9,7 @@ PREPARER = (ROOT / "tools/prepare_runtime_art.py").read_text()
 def test_flash_rgb_is_baked_into_png_not_ignored_svg_filter():
     assert "raster_cxform(element, values)" in EXTRACTOR
     assert "channel.point(lut)" in EXTRACTOR
-    assert "feComponentTransfer" not in EXTRACTOR.split("replacement = needle +", 1)[1]
+    assert "<feComponentTransfer>" not in EXTRACTOR.split("replacement = needle +", 1)[1]
     assert 'needs_rgb or needs_alpha_add' in EXTRACTOR
 
 

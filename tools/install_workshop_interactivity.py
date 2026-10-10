@@ -248,6 +248,7 @@ def main():
       {"id":"workshop-windows-controller","name":"Workshop Windows Controller","transform_3d":transform((0,0,0),(1,1,1)),"components":{"sindri.script":{"source":"scripts/workshop_windows_controller.decay","script":"WorkshopWindowsController","properties":{},"enabled":True}}},
       {"id":"workshop-interior-controller","name":"Workshop Interior Controller","transform_3d":transform((0,0,0),(1,1,1)),"components":{"sindri.script":{"source":"scripts/workshop_interior_controller.decay","script":"WorkshopInteriorController","properties":{},"enabled":True}}},
       {"id":"workshop-trinket-controller","name":"Workshop Trinket Controller","transform_3d":transform((0,0,0),(1,1,1)),"components":{"sindri.script":{"source":"scripts/workshop_trinket_controller.decay","script":"WorkshopTrinketController","properties":{},"enabled":True}}},
+      {"id":"workshop-stripe-controller","name":"Workshop Stripe Controller","transform_3d":transform((0,0,0),(1,1,1)),"components":{"sindri.script":{"source":"scripts/workshop_stripe_controller.decay","script":"WorkshopStripeController","properties":{},"enabled":True}}},
       {"id":"workshop-wheels-controller","name":"Workshop Wheels Controller","transform_3d":transform((0,0,0),(1,1,1)),"components":{"sindri.script":{"source":"scripts/workshop_wheels_controller.decay","script":"WorkshopWheelsController","properties":{},"enabled":True}}}]
     p.write_text(json.dumps(scene,indent=2,ensure_ascii=False)+'\n')
     # Disabled workshop panels may not be discovered by the scene texture walker.

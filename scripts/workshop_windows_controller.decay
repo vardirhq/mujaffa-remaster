@@ -13,7 +13,7 @@ script WorkshopWindowsController {
         this.buy3=World.find("Workshop Windows 3"); this.roof_buy=World.find("Workshop Sunroof 1");
         this.glass0=World.find("Garage Car vinduer-standard"); this.glass1=World.find("Garage Car vinduer-gradient");
         this.glass2=World.find("Garage Car vinduer-tonede"); this.glass3=World.find("Garage Car vinduer-spejlrefleks");
-        this.roof0=World.find("Garage Car soltag-0"); this.roof1=World.find("Garage Car soltag-1");
+        this.roof0=World.find("Garage Car soltag-off"); this.roof1=World.find("Garage Car soltag-on");
         publish(); refresh_car(); refresh_visibility();
     }
     fn publish() { Game.set("workshop.windows",this.windows); Game.set("workshop.sunroof",this.sunroof); }

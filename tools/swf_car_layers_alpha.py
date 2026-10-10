@@ -17,6 +17,58 @@ source = source.replace(
     "from swf_car_display import IDENT, IDENT_CX, Movie, combine_cxform, mul, transform_bounds, svg_filter_values",
 )
 source = source.replace("BODY_FRAME = 5", "BODY_FRAME = 1")
+source = source.replace(
+    "import argparse\\n",
+    "import argparse\\nimport base64\\nimport io\\nfrom PIL import Image\\n",
+    1,
+)
+
+# Apply Flash CXFORM to isolated rasterized leaves, not unsupported SVG filters.
+# The leaf is rasterized against transparency before recoloring so additive
+# channels never paint outside the original geometry.
+raster_helper = '''
+    def raster_cxform(element: str, values) -> str:
+        import cairosvg
+        from PIL import Image
+        import io
+        import base64
+
+        svg = (
+            f'<svg xmlns="http://www.w3.org/2000/svg" '
+            f'viewBox="{x0} {y0} {width} {height}">{element}</svg>'
+        )
+        raw = cairosvg.svg2png(
+            bytestring=svg.encode(),
+            output_width=max(1, math.ceil(width * args.scale)),
+            output_height=max(1, math.ceil(height * args.scale)),
+        )
+        image = Image.open(io.BytesIO(raw)).convert("RGBA")
+        pixels = image.load()
+        for py in range(image.height):
+            for px in range(image.width):
+                r, g, b, a = pixels[px, py]
+                if a == 0:
+                    continue
+                old = (r, g, b, a)
+                pixels[px, py] = tuple(
+                    max(0, min(255, round(old[i] * values[i][0] + values[i][1] * 255)))
+                    for i in range(4)
+                )
+        buffer = io.BytesIO()
+        image.save(buffer, format="PNG")
+        encoded = base64.b64encode(buffer.getvalue()).decode("ascii")
+        return (
+            f'<image x="{x0}" y="{y0}" width="{width}" height="{height}" '
+            f'href="data:image/png;base64,{encoded}"/>'
+        )
+
+'''
+source = source.replace(
+    "    def render_svg(leaves: list[dict]) -> tuple[str, list[int]]:",
+    raster_helper + "    def render_svg(leaves: list[dict]) -> tuple[str, list[int]]:",
+    1,
+)
+
 
 source = source.replace(
     "masks=tuple(active_masks),\n        )",
@@ -61,26 +113,16 @@ replacement = needle + '''            values = svg_filter_values(leaf.get("cxfor
             rgb_values = values[:3]
             alpha_slope, alpha_intercept = values[3]
 
-            # Flash alpha multiplier -> SVG group opacity. Unlike
-            # feComponentTransfer this is actually implemented by CairoSVG.
-            if abs(alpha_intercept) < 1e-9 and abs(alpha_slope - 1.0) > 1e-7:
-                opacity = max(0.0, min(1.0, alpha_slope))
-                element = f'<g opacity="{opacity:.8g}">{element}</g>'
-
-            # Retain non-alpha/additive CXFORM information in the diagnostic SVG.
-            # CairoSVG ignores this filter, so alpha parity never depends on it.
+            # CairoSVG ignores feComponentTransfer. Bake non-identity Flash
+            # RGB/alpha transforms into a transparent leaf raster instead.
+            # Pure multiplicative alpha remains SVG opacity for performance.
             needs_rgb = any(abs(s - 1.0) > 1e-7 or abs(i) > 1e-7 for s, i in rgb_values)
             needs_alpha_add = abs(alpha_intercept) > 1e-9
             if needs_rgb or needs_alpha_add:
-                fid = f"cx{len(defs)+1}_{inline_serial}"
-                channels = ("R", "G", "B", "A")
-                filter_values = values if needs_alpha_add else rgb_values + [(1.0, 0.0)]
-                funcs = "".join(
-                    f'<feFunc{channel} type="linear" slope="{slope:.8g}" intercept="{intercept:.8g}"/>'
-                    for channel, (slope, intercept) in zip(channels, filter_values)
-                )
-                defs.append(f'<filter id="{fid}" color-interpolation-filters="sRGB"><feComponentTransfer>{funcs}</feComponentTransfer></filter>')
-                element = f'<g filter="url(#{fid})">{element}</g>'
+                element = raster_cxform(element, values)
+            elif abs(alpha_slope - 1.0) > 1e-7:
+                opacity = max(0.0, min(1.0, alpha_slope))
+                element = f'<g opacity="{opacity:.8g}">{element}</g>'
 '''
 if needle not in source:
     raise SystemExit("swf_car_layers.py render hook changed")

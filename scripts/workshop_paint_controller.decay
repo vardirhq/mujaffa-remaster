@@ -8,6 +8,7 @@ script WorkshopPaintController {
     var red_track: Entity = null; var green_track: Entity = null; var blue_track: Entity = null;
     var red_marker: Entity = null; var green_marker: Entity = null; var blue_marker: Entity = null;
     var paint: Entity = null;
+    var spoiler0: Entity = null; var spoiler1: Entity = null; var spoiler2: Entity = null; var spoiler3: Entity = null; var spoiler4: Entity = null;
     var stripe_none: Entity = null; var stripe_white: Entity = null; var stripe_green: Entity = null;
     var stripe_black: Entity = null; var stripe_pink: Entity = null;
     var stripe0: Entity = null; var stripe1: Entity = null; var stripe2: Entity = null; var stripe3: Entity = null; var stripe4: Entity = null;
@@ -21,6 +22,9 @@ script WorkshopPaintController {
         this.stripe_none = World.find("Workshop Stripe None"); this.stripe_white = World.find("Workshop Stripe White");
         this.stripe_green = World.find("Workshop Stripe Green"); this.stripe_black = World.find("Workshop Stripe Black"); this.stripe_pink = World.find("Workshop Stripe Pink");
         this.paint = World.find("Garage Car paint-tintable");
+        this.spoiler0 = World.find("Garage Car spoiler-1"); this.spoiler1 = World.find("Garage Car spoiler-2");
+        this.spoiler2 = World.find("Garage Car spoiler-3"); this.spoiler3 = World.find("Garage Car spoiler-4");
+        this.spoiler4 = World.find("Garage Car spoiler-5");
         this.stripe0 = World.find("Garage Car farvestribe-empty"); this.stripe1 = World.find("Garage Car farvestribe-hvid");
         this.stripe2 = World.find("Garage Car farvestribe-grøn"); this.stripe3 = World.find("Garage Car farvestribe-sort"); this.stripe4 = World.find("Garage Car farvestribe-pink");
         layout_controls(); sync_sliders(); publish_rgb(); refresh_paint(); refresh_stripe(); set_mixer(false);
@@ -61,16 +65,21 @@ script WorkshopPaintController {
     // silhouette, and an offset there would fill its transparent corners with
     // a rectangle.
     //
-    // `tint` still carries the chosen colour even though the body no longer
-    // reads it: `garage_polish` mirrors this sprite's tint onto the paintable
-    // spoilers, whose art is blue over black rather than a flat mask, and an
-    // offset there would swallow the black detailing. The spoilers keep the
-    // multiply they have always had.
+    // The active workshop also owns spoiler paint synchronization. The old
+    // garage_polish controller is deliberately excluded from exported scenes.
+    fn paint_spoiler(entity: Entity) {
+        let wing = entity;
+        wing.sprite.tint.r = this.red / 255.0; wing.sprite.tint.g = this.green / 255.0; wing.sprite.tint.b = this.blue / 255.0;
+        wing.sprite.color_multiply.r = 0.0; wing.sprite.color_multiply.g = 0.0; wing.sprite.color_multiply.b = 0.0;
+        wing.sprite.color_offset.r = this.red / 255.0; wing.sprite.color_offset.g = this.green / 255.0; wing.sprite.color_offset.b = this.blue / 255.0;
+    }
     fn refresh_paint() {
         let body = this.paint;
         body.sprite.tint.r = this.red / 255.0; body.sprite.tint.g = this.green / 255.0; body.sprite.tint.b = this.blue / 255.0;
         body.sprite.color_multiply.r = 0.0; body.sprite.color_multiply.g = 0.0; body.sprite.color_multiply.b = 0.0;
         body.sprite.color_offset.r = this.red / 255.0; body.sprite.color_offset.g = this.green / 255.0; body.sprite.color_offset.b = this.blue / 255.0;
+        paint_spoiler(this.spoiler0); paint_spoiler(this.spoiler1); paint_spoiler(this.spoiler2);
+        paint_spoiler(this.spoiler3); paint_spoiler(this.spoiler4);
         publish_rgb();
     }
     fn read_sliders() {

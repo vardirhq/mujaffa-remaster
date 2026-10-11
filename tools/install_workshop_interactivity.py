@@ -221,7 +221,7 @@ def accessory_entities():
     return out
 
 def make_remaining_controls(out):
-    for kind, options in (("horn", [(1, 900), (2, 1700)]), ("camera", [(1, 6000)]), ("plate", [(1, 3000), (2, 0)])):
+    for kind, options in (("horn", [(1, 900), (2, 1700)]), ("camera", [(1, 6000)]), ("plate", [(1, 3000)])):
         for level, price in options:
             render(out, f"{kind}-{level}.png", 72, 26,
                    f'<rect x="1" y="1" width="70" height="24" rx="3" fill="#2ca2c8" stroke="#0b103b" stroke-width="2"/>'
@@ -233,7 +233,6 @@ def remaining_entities():
         control("workshop-horn-2", "Workshop Horn 2", "horn-2.png", 402, 418, 72, 26),
         control("workshop-camera-1", "Workshop Camera 1", "camera-1.png", 325, 418, 72, 26),
         control("workshop-plate-1", "Workshop Plate Edit", "plate-1.png", 325, 405, 100, 26),
-        control("workshop-plate-2", "Workshop Plate Confirm", "plate-2.png", 325, 434, 100, 26),
     ]
 
 def main():

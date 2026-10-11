@@ -1,0 +1,38 @@
+name: Vendor Chakra Petch font
+on:
+  push:
+    branches: [chore/bundle-ui-font]
+    paths: [.github/workflows/vendor-chakra-petch.yml]
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  vendor-font:
+    if: github.ref == 'refs/heads/chore/bundle-ui-font'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - name: Fetch font and license from Google Fonts
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p fonts
+          base=https://raw.githubusercontent.com/google/fonts/main/ofl/chakrapetch
+          curl --fail --location --retry 3 "$base/ChakraPetch-Regular.ttf" --output fonts/ChakraPetch-Regular.ttf
+          curl --fail --location --retry 3 "$base/OFL.txt" --output fonts/OFL-ChakraPetch.txt
+          test "$(wc -c < fonts/ChakraPetch-Regular.ttf)" -gt 10000
+          test "$(head -c 4 fonts/ChakraPetch-Regular.ttf | od -An -tx1 | tr -d ' \n')" = "00010000" || file fonts/ChakraPetch-Regular.ttf
+          grep -q "SIL OPEN FONT LICENSE" fonts/OFL-ChakraPetch.txt
+      - name: Commit binary font to this branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add fonts/ChakraPetch-Regular.ttf fonts/OFL-ChakraPetch.txt
+          if ! git diff --cached --quiet; then
+            git commit -m "Bundle licensed Chakra Petch UI font"
+            git push
+          fi

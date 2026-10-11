@@ -125,8 +125,11 @@ script Title {
         this.page = value;
         let titled = value == 0.0;
         World.set_active(this.title_screen, titled);
-        World.set_active(this.arm, titled);
-        World.set_active(this.mouth, titled);
+        // The settled title backdrop already contains the final SWF pose.
+        // Opening performance tracks begin at frame 10, so replaying them
+        // over the frame-188 backdrop duplicates the hand and mouth.
+        World.set_active(this.arm, false);
+        World.set_active(this.mouth, false);
         World.set_active(this.prompt, titled);
         World.set_active(this.page_1, value == 1.0);
         World.set_active(this.page_2, value == 2.0);

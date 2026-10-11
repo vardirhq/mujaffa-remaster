@@ -221,22 +221,39 @@ def accessory_entities():
     return out
 
 def make_remaining_controls(out):
-    for kind, options in (("horn", [(1, 900), (2, 1700)]), ("camera", [(1, 6000)])):
+    for kind, options in (("horn", [(1, 900), (2, 1700)]), ("camera", [(1, 6000)]), ("plate", [(1, 3000), (2, 0)])):
         for level, price in options:
             render(out, f"{kind}-{level}.png", 72, 26,
                    f'<rect x="1" y="1" width="70" height="24" rx="3" fill="#2ca2c8" stroke="#0b103b" stroke-width="2"/>'
                    f'<text x="36" y="18" text-anchor="middle" font-family="Arial" font-size="11" font-weight="700">{price}</text>')
+
+def plate_input_entity():
+    entity=control("workshop-plate-input","Workshop Plate Input","plate-1.png",325,405,120,26)
+    entity["components"].pop("sindri.ui.button")
+    entity["components"]["sindri.ui.text_input"]={"label":"Nummerplade","value":"","placeholder":"Skriv nummerplade","max_length":12}
+    return entity
+
+def plate_display_entity():
+    return {"id":"workshop-plate-display","name":"Workshop Plate Display",
+      "parent":"garage-ui-desktop",
+      "transform_3d":transform((stage_x(340),stage_y(320),0),(stage_size(115),stage_size(23),1)),
+      "components":{"sindri.ui.text":{"text":"","font_size":0.045,
+        "bounds":[stage_size(115),stage_size(23)],"anchor":"center","layer":255}}}
 
 def remaining_entities():
     return [
         control("workshop-horn-1", "Workshop Horn 1", "horn-1.png", 290, 418, 72, 26),
         control("workshop-horn-2", "Workshop Horn 2", "horn-2.png", 402, 418, 72, 26),
         control("workshop-camera-1", "Workshop Camera 1", "camera-1.png", 325, 418, 72, 26),
+        control("workshop-plate-1", "Workshop Plate Edit", "plate-1.png", 325, 405, 100, 26),
+        plate_input_entity(),
+        plate_display_entity(),
+        control("workshop-plate-2", "Workshop Plate Confirm", "plate-2.png", 325, 437, 100, 26),
     ]
 
 def main():
     ap=argparse.ArgumentParser(); ap.add_argument('--project',type=Path,default=Path('.')); args=ap.parse_args(); p=args.project/'main.scene.json'; scene=json.loads(p.read_text())
-    scene['entities']=[e for e in scene['entities'] if not any(str(e.get('id','')).startswith(s) for s in ('workshop-category-','workshop-panel-','workshop-paint-','workshop-stripe-','workshop-rgb-','workshop-audio-','workshop-spoiler-','workshop-exhaust-','workshop-rims-','workshop-tyres-','workshop-windows-','workshop-sunroof-','workshop-interior-','workshop-trinket-','workshop-horn-','workshop-camera-')) and e.get('id') not in {'workshop-state','workshop-category-controller'}]
+    scene['entities']=[e for e in scene['entities'] if not any(str(e.get('id','')).startswith(s) for s in ('workshop-category-','workshop-panel-','workshop-paint-','workshop-stripe-','workshop-rgb-','workshop-audio-','workshop-spoiler-','workshop-exhaust-','workshop-rims-','workshop-tyres-','workshop-windows-','workshop-sunroof-','workshop-interior-','workshop-trinket-','workshop-horn-','workshop-camera-','workshop-plate-')) and e.get('id') not in {'workshop-state','workshop-category-controller'}]
     out=args.project/'assets/generated/workshop-ui'
     for entry in CATEGORIES: make_button(out,entry)
     for entry in CATEGORIES[1:]:
@@ -263,6 +280,7 @@ def main():
       {"id":"workshop-interior-controller","name":"Workshop Interior Controller","transform_3d":transform((0,0,0),(1,1,1)),"components":{"sindri.script":{"source":"scripts/workshop_interior_controller.decay","script":"WorkshopInteriorController","properties":{},"enabled":True}}},
       {"id":"workshop-trinket-controller","name":"Workshop Trinket Controller","transform_3d":transform((0,0,0),(1,1,1)),"components":{"sindri.script":{"source":"scripts/workshop_trinket_controller.decay","script":"WorkshopTrinketController","properties":{},"enabled":True}}},
       {"id":"workshop-horn-controller","name":"Workshop Horn Controller","transform_3d":transform((0,0,0),(1,1,1)),"components":{"sindri.script":{"source":"scripts/workshop_horn_controller.decay","script":"WorkshopHornController","properties":{},"enabled":True}}},
+      {"id":"workshop-plate-controller","name":"Workshop Plate Controller","transform_3d":transform((0,0,0),(1,1,1)),"components":{"sindri.script":{"source":"scripts/workshop_plate_controller.decay","script":"WorkshopPlateController","properties":{},"enabled":True}}},
       {"id":"workshop-camera-controller","name":"Workshop Camera Controller","transform_3d":transform((0,0,0),(1,1,1)),"components":{"sindri.script":{"source":"scripts/workshop_camera_controller.decay","script":"WorkshopCameraController","properties":{},"enabled":True}}},
       {"id":"workshop-wheels-controller","name":"Workshop Wheels Controller","transform_3d":transform((0,0,0),(1,1,1)),"components":{"sindri.script":{"source":"scripts/workshop_wheels_controller.decay","script":"WorkshopWheelsController","properties":{},"enabled":True}}}]
     p.write_text(json.dumps(scene,indent=2,ensure_ascii=False)+'\n')

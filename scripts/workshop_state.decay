@@ -28,6 +28,9 @@ script WorkshopState {
     var horn: f32 = 0.0;
     var camera: f32 = 0.0;
     var stripe: f32 = 0.0;
+    var plate_confirmed: f32 = 0.0;
+    var plate_moused: f32 = 0.0;
+    var plate_cool: bool = false;
 
     // The last ticket settled. A controller raises the ticket to ask; this
     // never settles the same one twice.
@@ -59,6 +62,21 @@ script WorkshopState {
     }
 
     fn update(dt: f32) {
+        let confirmed = Game.get("workshop.plate.confirmed", 0.0);
+        if confirmed > this.plate_confirmed {
+            this.plate_confirmed = confirmed;
+            if !this.plate_cool {
+                this.street_cred = this.street_cred + 0.3;
+                this.plate_cool = true;
+            }
+            publish();
+        }
+        let moused = Game.get("workshop.plate.moused", 0.0);
+        if moused > this.plate_moused {
+            this.money = this.money + 20000.0 * (moused - this.plate_moused);
+            this.plate_moused = moused;
+            publish();
+        }
         let ticket = Game.get("workshop.buy.ticket", 0.0);
         if ticket > this.settled {
             this.settled = ticket;

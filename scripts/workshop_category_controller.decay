@@ -3,12 +3,14 @@ script WorkshopCategoryController {
  var category:f32=0.0;
  var paint:Entity=null; var audio:Entity=null; var spoiler:Entity=null; var exhaust:Entity=null; var rims:Entity=null; var tyres:Entity=null; var windows:Entity=null; var sunroof:Entity=null; var plate:Entity=null; var interior:Entity=null; var trinket:Entity=null; var horn:Entity=null; var camera:Entity=null;
  var panel_audio:Entity=null; var panel_spoiler:Entity=null; var panel_exhaust:Entity=null; var panel_rims:Entity=null; var panel_tyres:Entity=null; var panel_windows:Entity=null; var panel_sunroof:Entity=null; var panel_plate:Entity=null; var panel_interior:Entity=null; var panel_trinket:Entity=null; var panel_horn:Entity=null; var panel_camera:Entity=null;
+ var plate_buy:Entity=null;
  var horn_buy1:Entity=null; var horn_buy2:Entity=null; var camera_buy1:Entity=null;
  var paint_change:Entity=null; var stripe_none:Entity=null; var stripe_white:Entity=null; var stripe_green:Entity=null; var stripe_black:Entity=null; var stripe_pink:Entity=null;
  var mixer:Entity=null; var rgb_ok:Entity=null; var rgb_red:Entity=null; var rgb_green:Entity=null; var rgb_blue:Entity=null; var rgb_red_marker:Entity=null; var rgb_green_marker:Entity=null; var rgb_blue_marker:Entity=null;
  fn start(){
   this.paint=World.find("Workshop Category LAKKERING"); this.audio=World.find("Workshop Category BILSTEREO"); this.spoiler=World.find("Workshop Category SPOILER"); this.exhaust=World.find("Workshop Category EKSOSANLEGG"); this.rims=World.find("Workshop Category FELGER"); this.tyres=World.find("Workshop Category DEKK"); this.windows=World.find("Workshop Category RUTER"); this.sunroof=World.find("Workshop Category SOLTAK"); this.plate=World.find("Workshop Category NUMMERSKILT"); this.interior=World.find("Workshop Category SETETREKK"); this.trinket=World.find("Workshop Category BILNIPS"); this.horn=World.find("Workshop Category BÅT-HORN"); this.camera=World.find("Workshop Category BMW CAM");
   this.panel_audio=World.find("Workshop Panel BILSTEREO"); this.panel_spoiler=World.find("Workshop Panel SPOILER"); this.panel_exhaust=World.find("Workshop Panel EKSOSANLEGG"); this.panel_rims=World.find("Workshop Panel FELGER"); this.panel_tyres=World.find("Workshop Panel DEKK"); this.panel_windows=World.find("Workshop Panel RUTER"); this.panel_sunroof=World.find("Workshop Panel SOLTAK"); this.panel_plate=World.find("Workshop Panel NUMMERSKILT"); this.panel_interior=World.find("Workshop Panel SETETREKK"); this.panel_trinket=World.find("Workshop Panel BILNIPS"); this.panel_horn=World.find("Workshop Panel BÅT-HORN"); this.panel_camera=World.find("Workshop Panel BMW CAM");
+  this.plate_buy=World.find("Workshop Plate Edit");
   this.horn_buy1=World.find("Workshop Horn 1"); this.horn_buy2=World.find("Workshop Horn 2"); this.camera_buy1=World.find("Workshop Camera 1");
   this.paint_change=World.find("Workshop Paint Change"); this.stripe_none=World.find("Workshop Stripe None"); this.stripe_white=World.find("Workshop Stripe White"); this.stripe_green=World.find("Workshop Stripe Green"); this.stripe_black=World.find("Workshop Stripe Black"); this.stripe_pink=World.find("Workshop Stripe Pink");
   this.mixer=World.find("Workshop RGB Mixer"); this.rgb_ok=World.find("Workshop RGB OK"); this.rgb_red=World.find("Workshop RGB Red"); this.rgb_green=World.find("Workshop RGB Green"); this.rgb_blue=World.find("Workshop RGB Blue"); this.rgb_red_marker=World.find("Workshop RGB Red Marker"); this.rgb_green_marker=World.find("Workshop RGB Green Marker"); this.rgb_blue_marker=World.find("Workshop RGB Blue Marker"); layout_controls(); set_category(0.0);
@@ -17,6 +19,9 @@ script WorkshopCategoryController {
  fn layout_controls(){ let unit=0.004*min(Viewport.aspect,1.0); layout_button(this.paint,0.0,unit); layout_button(this.audio,1.0,unit); layout_button(this.spoiler,2.0,unit); layout_button(this.exhaust,3.0,unit); layout_button(this.rims,4.0,unit); layout_button(this.tyres,5.0,unit); layout_button(this.windows,6.0,unit); layout_button(this.sunroof,7.0,unit); layout_button(this.plate,8.0,unit); layout_button(this.interior,9.0,unit); layout_button(this.trinket,10.0,unit); layout_button(this.horn,11.0,unit); layout_button(this.camera,12.0,unit); }
  fn layout_new_purchases(){
   let unit=0.004*min(Viewport.aspect,1.0);
+  this.plate_buy.transform.position.x=(325.0-250.0)*unit;
+  this.plate_buy.transform.position.y=(250.0-405.0)*unit;
+  this.plate_buy.transform.scale.x=100.0*unit; this.plate_buy.transform.scale.y=26.0*unit;
   this.horn_buy1.transform.position.x=(290.0-250.0)*unit;
   this.horn_buy1.transform.position.y=(250.0-418.0)*unit;
   this.horn_buy1.transform.scale.x=72.0*unit; this.horn_buy1.transform.scale.y=26.0*unit;
@@ -28,6 +33,7 @@ script WorkshopCategoryController {
   this.camera_buy1.transform.scale.x=72.0*unit; this.camera_buy1.transform.scale.y=26.0*unit;
  }
  fn refresh_new_purchase_visibility(){
+  World.set_active(this.plate_buy,this.category==8.0 && Game.get("workshop.plate.editing",0.0)==0.0);
   let horn_selected=this.category==11.0;
   let camera_selected=this.category==12.0;
   let horn_fitted=Game.get("workshop.horn",0.0);
@@ -36,6 +42,7 @@ script WorkshopCategoryController {
   World.set_active(this.camera_buy1,camera_selected && Game.get("workshop.camera",0.0)==0.0);
  }
  fn dispatch_new_purchase_clicks(){
+  if this.category==8.0 && Ui.is_pressed(this.plate_buy) { Game.set("workshop.plate.request",1.0); }
   if this.category==11.0 {
    if Ui.is_pressed(this.horn_buy1) { Game.set("workshop.horn.request",1.0); }
    if Ui.is_pressed(this.horn_buy2) { Game.set("workshop.horn.request",2.0); }

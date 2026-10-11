@@ -25,7 +25,7 @@ script WorkshopPlateController {
   }
   let showing=Game.get("workshop.category",0.0)==8.0;
   World.set_active(this.edit,showing && !this.editing);
-  World.set_active(this.confirm,showing && this.editing);
+  World.set_active(this.confirm,false);
   if showing && !this.pending && !this.editing && Ui.is_pressed(this.edit) {
    this.ticket=Game.get("workshop.buy.ticket",0.0)+1.0;
    this.pending=true;
@@ -33,10 +33,8 @@ script WorkshopPlateController {
    Game.set("workshop.buy.cred",0.0);
    Game.set("workshop.buy.ticket",this.ticket);
   }
-  if showing && this.editing && Ui.is_pressed(this.confirm) {
-   this.editing=false;
-   Game.set("workshop.plate.editing",0.0);
-   Game.set("workshop.plate",1.0);
-  }
+  // Confirmation is deliberately disabled until a real editable plate field
+  // exists. The original SWF does not accept an empty fake confirmation.
+
  }
 }

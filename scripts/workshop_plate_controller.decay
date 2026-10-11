@@ -30,7 +30,6 @@ script WorkshopPlateController {
   let showing=Game.get("workshop.category",0.0)==8.0;
   World.set_active(this.field,showing && this.editing);
   World.set_active(this.confirm,showing && this.editing);
-  World.set_active(this.edit,showing && !this.editing);
   let request=Game.get("workshop.plate.request",0.0);
   if request>0.0 { Game.set("workshop.plate.request",0.0); }
   if showing && !this.pending && !this.editing && request>0.0 {
@@ -48,7 +47,8 @@ script WorkshopPlateController {
     Game.set("workshop.plate.editing",0.0);
     Game.set("workshop.plate",1.0);
     Ui.set_text(this.plate_display,value);
-    // Coolness and the moused bonus are applied in a later parity slice.
+    Game.set("workshop.plate.confirmed",Game.get("workshop.plate.confirmed",0.0)+1.0);
+    if value=="moused" { Game.set("workshop.plate.moused",Game.get("workshop.plate.moused",0.0)+1.0); }
    }
   }
 

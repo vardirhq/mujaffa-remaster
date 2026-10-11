@@ -47,7 +47,7 @@ script WorkshopPlateController {
     Game.set("workshop.plate.editing",0.0);
     Game.set("workshop.plate",1.0);
     Game.set("workshop.plate.text",value);
-    Game.set("workshop.buy.cred",0.3);
+    // Coolness and the moused bonus are applied in a later parity slice.
    }
   }
 

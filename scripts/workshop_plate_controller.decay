@@ -2,9 +2,10 @@
 // Text entry needs an engine-backed editable field and is tracked separately.
 script WorkshopPlateController {
  var editing:bool=false; var pending:bool=false; var ticket:f32=0.0;
- var edit:Entity=null;
+ var edit:Entity=null; var field:Entity=null; var confirm:Entity=null; var plate_text:String="";
  fn start(){
   this.edit=World.find("Workshop Plate Edit");
+  this.field=World.find("Workshop Plate Input"); this.confirm=World.find("Workshop Plate Confirm");
   Game.set("workshop.plate.editing",0.0);
  }
  fn update(dt:f32){
@@ -12,6 +13,12 @@ script WorkshopPlateController {
   this.edit.transform.position.x=(325.0-250.0)*unit;
   this.edit.transform.position.y=(250.0-405.0)*unit;
   this.edit.transform.scale.x=100.0*unit; this.edit.transform.scale.y=26.0*unit;
+  this.field.transform.position.x=(325.0-250.0)*unit;
+  this.field.transform.position.y=(250.0-405.0)*unit;
+  this.field.transform.scale.x=120.0*unit; this.field.transform.scale.y=26.0*unit;
+  this.confirm.transform.position.x=(325.0-250.0)*unit;
+  this.confirm.transform.position.y=(250.0-437.0)*unit;
+  this.confirm.transform.scale.x=100.0*unit; this.confirm.transform.scale.y=26.0*unit;
   if this.pending && Game.get("workshop.buy.settled",0.0)==this.ticket {
    if Game.get("workshop.buy.granted",0.0)>0.0 {
     this.editing=true;
@@ -20,6 +27,8 @@ script WorkshopPlateController {
    this.pending=false;
   }
   let showing=Game.get("workshop.category",0.0)==8.0;
+  World.set_active(this.field,showing && this.editing);
+  World.set_active(this.confirm,showing && this.editing);
   World.set_active(this.edit,showing && !this.editing);
   let request=Game.get("workshop.plate.request",0.0);
   if request>0.0 { Game.set("workshop.plate.request",0.0); }
@@ -30,8 +39,17 @@ script WorkshopPlateController {
    Game.set("workshop.buy.cred",0.0);
    Game.set("workshop.buy.ticket",this.ticket);
   }
-  // Confirmation is deliberately disabled until a real editable plate field
-  // exists. The original SWF does not accept an empty fake confirmation.
+  if showing && this.editing && (Ui.is_pressed(this.confirm) || Ui.submitted(this.field)) {
+   let value=Ui.input_text(this.field);
+   if value!="" {
+    this.plate_text=value;
+    this.editing=false;
+    Game.set("workshop.plate.editing",0.0);
+    Game.set("workshop.plate",1.0);
+    Game.set("workshop.plate.text",value);
+    Game.set("workshop.buy.cred",0.3);
+   }
+  }
 
  }
 }

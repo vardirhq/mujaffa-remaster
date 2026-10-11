@@ -38,9 +38,10 @@ script WorkshopHornController {
    this.pending=0.0;
   }
   let showing=Game.get("workshop.category",0.0)==11.0;
-  if showing {
-   if Ui.is_pressed(this.compressor) { ask(1.0); }
-   if Ui.is_pressed(this.multitone) { ask(2.0); }
+  let request=Game.get("workshop.horn.request",0.0);
+  if request>0.0 {
+   Game.set("workshop.horn.request",0.0);
+   if showing { ask(request); }
   }
  }
 }

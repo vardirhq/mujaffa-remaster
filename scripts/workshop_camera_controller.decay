@@ -19,7 +19,9 @@ script WorkshopCameraController {
    this.pending=false;
   }
   let showing=Game.get("workshop.category",0.0)==12.0 && !this.fitted;
-  if showing && !this.pending && Ui.is_pressed(this.button) {
+  let request=Game.get("workshop.camera.request",0.0);
+  if request>0.0 { Game.set("workshop.camera.request",0.0); }
+  if showing && !this.pending && request>0.0 {
    this.ticket=Game.get("workshop.buy.ticket",0.0)+1.0;
    this.pending=true;
    Game.set("workshop.buy.price",6000.0);

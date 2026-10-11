@@ -1,0 +1,24 @@
+script WorkshopCameraController {
+ var fitted:bool=false; var pending:bool=false; var ticket:f32=0.0;
+ var button:Entity=null;
+ fn start() { this.button=World.find("Workshop Camera 1"); Game.set("workshop.camera",0.0); }
+ fn update(dt:f32) {
+  let unit=0.004*min(Viewport.aspect,1.0);
+  this.button.transform.position.x=(325.0-250.0)*unit;
+  this.button.transform.position.y=(250.0-418.0)*unit;
+  this.button.transform.scale.x=72.0*unit; this.button.transform.scale.y=26.0*unit;
+  if this.pending && Game.get("workshop.buy.settled",0.0)==this.ticket {
+   if Game.get("workshop.buy.granted",0.0)>0.0 { this.fitted=true; Game.set("workshop.camera",1.0); }
+   this.pending=false;
+  }
+  let showing=Game.get("workshop.category",0.0)==12.0 && !this.fitted;
+  World.set_active(this.button,showing);
+  if showing && !this.pending && Ui.is_pressed(this.button) {
+   this.ticket=Game.get("workshop.buy.ticket",0.0)+1.0;
+   this.pending=true;
+   Game.set("workshop.buy.price",6000.0);
+   Game.set("workshop.buy.cred",0.7);
+   Game.set("workshop.buy.ticket",this.ticket);
+  }
+ }
+}

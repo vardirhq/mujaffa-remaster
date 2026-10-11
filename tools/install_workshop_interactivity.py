@@ -247,7 +247,6 @@ def remaining_entities():
         control("workshop-camera-1", "Workshop Camera 1", "camera-1.png", 325, 418, 72, 26),
         control("workshop-plate-1", "Workshop Plate Edit", "plate-1.png", 325, 405, 100, 26),
         plate_input_entity(),
-        plate_display_entity(),
         control("workshop-plate-2", "Workshop Plate Confirm", "plate-2.png", 325, 437, 100, 26),
     ]
 

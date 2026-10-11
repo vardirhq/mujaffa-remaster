@@ -220,24 +220,38 @@ def accessory_entities():
                                f'{group}-{index+1}.png',x,y,58,24))
     return out
 
+def make_remaining_controls(out):
+    for kind, options in (("horn", [(1, 900), (2, 1700)]), ("camera", [(1, 6000)])):
+        for level, price in options:
+            render(out, f"{kind}-{level}.png", 72, 26,
+                   f'<rect x="1" y="1" width="70" height="24" rx="3" fill="#2ca2c8" stroke="#0b103b" stroke-width="2"/>'
+                   f'<text x="36" y="18" text-anchor="middle" font-family="Arial" font-size="11" font-weight="700">{price}</text>')
+
+def remaining_entities():
+    return [
+        control("workshop-horn-1", "Workshop Horn 1", "horn-1.png", 290, 418, 72, 26),
+        control("workshop-horn-2", "Workshop Horn 2", "horn-2.png", 402, 418, 72, 26),
+        control("workshop-camera-1", "Workshop Camera 1", "camera-1.png", 325, 418, 72, 26),
+    ]
+
 def main():
     ap=argparse.ArgumentParser(); ap.add_argument('--project',type=Path,default=Path('.')); args=ap.parse_args(); p=args.project/'main.scene.json'; scene=json.loads(p.read_text())
-    scene['entities']=[e for e in scene['entities'] if not any(str(e.get('id','')).startswith(s) for s in ('workshop-category-','workshop-panel-','workshop-paint-','workshop-stripe-','workshop-rgb-','workshop-audio-','workshop-spoiler-','workshop-exhaust-','workshop-rims-','workshop-tyres-','workshop-windows-','workshop-sunroof-','workshop-interior-','workshop-trinket-')) and e.get('id') not in {'workshop-state','workshop-category-controller'}]
+    scene['entities']=[e for e in scene['entities'] if not any(str(e.get('id','')).startswith(s) for s in ('workshop-category-','workshop-panel-','workshop-paint-','workshop-stripe-','workshop-rgb-','workshop-audio-','workshop-spoiler-','workshop-exhaust-','workshop-rims-','workshop-tyres-','workshop-windows-','workshop-sunroof-','workshop-interior-','workshop-trinket-','workshop-horn-','workshop-camera-')) and e.get('id') not in {'workshop-state','workshop-category-controller'}]
     out=args.project/'assets/generated/workshop-ui'
     for entry in CATEGORIES: make_button(out,entry)
     for entry in CATEGORIES[1:]:
         if entry['id'] not in ('audio','spoiler','exhaust','rims','tyres'): make_panel(out,entry)
         scene['entities'].append(panel_entity(entry))
-    make_audio_panel(out); make_audio_controls(out); make_spoiler_panel(out); make_spoiler_controls(out); make_exhaust_panel(out); make_exhaust_controls(out); make_wheel_panels(out); make_wheel_controls(out); make_glass_controls(out); make_accessory_controls(out)
+    make_audio_panel(out); make_audio_controls(out); make_spoiler_panel(out); make_spoiler_controls(out); make_exhaust_panel(out); make_exhaust_controls(out); make_wheel_panels(out); make_wheel_controls(out); make_glass_controls(out); make_accessory_controls(out); make_remaining_controls(out)
     make_paint_controls(out); scene['entities'].extend(button(e,i) for i,e in enumerate(CATEGORIES))
     scene['entities'].extend([
       control('workshop-paint-change','Workshop Paint Change','paint-change.png',205,433,56,38),
       control('workshop-stripe-none','Workshop Stripe None','stripe-none.png',359,400,34,26),control('workshop-stripe-white','Workshop Stripe White','stripe-white.png',397,400,34,26),control('workshop-stripe-green','Workshop Stripe Green','stripe-green.png',359,430,34,26),control('workshop-stripe-black','Workshop Stripe Black','stripe-black.png',397,430,34,26),control('workshop-stripe-pink','Workshop Stripe Pink','stripe-pink.png',435,430,34,26),
       image_control('workshop-rgb-mixer','Workshop RGB Mixer','rgb-mixer.png',324.5,406.5,343,111,249),
-      slider('workshop-rgb-red','Workshop RGB Red','rgb-red.png',185,407,18,78,32.0),slider('workshop-rgb-green','Workshop RGB Green','rgb-green.png',213,407,18,78,64.0),slider('workshop-rgb-blue','Workshop RGB Blue','rgb-blue.png',241,407,18,78,184.0),
+      slider('workshop-rgb-red','Workshop RGB Red','rgb-red.png',185,407,18,78,0.0),slider('workshop-rgb-green','Workshop RGB Green','rgb-green.png',213,407,18,78,52.0),slider('workshop-rgb-blue','Workshop RGB Blue','rgb-blue.png',241,407,18,78,156.0),
       image_control('workshop-rgb-red-marker','Workshop RGB Red Marker','rgb-red-marker.png',185,436,16,7),image_control('workshop-rgb-green-marker','Workshop RGB Green Marker','rgb-green-marker.png',213,426,16,7),image_control('workshop-rgb-blue-marker','Workshop RGB Blue Marker','rgb-blue-marker.png',241,390,16,7),
       control('workshop-rgb-ok','Workshop RGB OK','rgb-ok.png',459,431,54,38,253)])
-    scene['entities'].extend(audio_entities()); scene['entities'].extend(spoiler_entities()); scene['entities'].extend(exhaust_entities()); scene['entities'].extend(wheel_entities()); scene['entities'].extend(glass_entities()); scene['entities'].extend(e for e in accessory_entities() if not e["id"].startswith("workshop-stripe-"))
+    scene['entities'].extend(audio_entities()); scene['entities'].extend(spoiler_entities()); scene['entities'].extend(exhaust_entities()); scene['entities'].extend(wheel_entities()); scene['entities'].extend(glass_entities()); scene['entities'].extend(e for e in accessory_entities() if not e["id"].startswith("workshop-stripe-")); scene['entities'].extend(remaining_entities())
     scene['entities'] += [
       {"id":"workshop-state","name":"Workshop State","transform_3d":transform((0,0,0),(1,1,1)),"components":{"sindri.script":{"source":"scripts/workshop_state.decay","script":"WorkshopState","properties":{},"enabled":True}}},
       {"id":"workshop-category-controller","name":"Workshop Category Controller","transform_3d":transform((0,0,0),(1,1,1)),"components":{"sindri.script":{"source":"scripts/workshop_category_controller.decay","script":"WorkshopCategoryController","properties":{},"enabled":True}}},
@@ -248,6 +262,8 @@ def main():
       {"id":"workshop-windows-controller","name":"Workshop Windows Controller","transform_3d":transform((0,0,0),(1,1,1)),"components":{"sindri.script":{"source":"scripts/workshop_windows_controller.decay","script":"WorkshopWindowsController","properties":{},"enabled":True}}},
       {"id":"workshop-interior-controller","name":"Workshop Interior Controller","transform_3d":transform((0,0,0),(1,1,1)),"components":{"sindri.script":{"source":"scripts/workshop_interior_controller.decay","script":"WorkshopInteriorController","properties":{},"enabled":True}}},
       {"id":"workshop-trinket-controller","name":"Workshop Trinket Controller","transform_3d":transform((0,0,0),(1,1,1)),"components":{"sindri.script":{"source":"scripts/workshop_trinket_controller.decay","script":"WorkshopTrinketController","properties":{},"enabled":True}}},
+      {"id":"workshop-horn-controller","name":"Workshop Horn Controller","transform_3d":transform((0,0,0),(1,1,1)),"components":{"sindri.script":{"source":"scripts/workshop_horn_controller.decay","script":"WorkshopHornController","properties":{},"enabled":True}}},
+      {"id":"workshop-camera-controller","name":"Workshop Camera Controller","transform_3d":transform((0,0,0),(1,1,1)),"components":{"sindri.script":{"source":"scripts/workshop_camera_controller.decay","script":"WorkshopCameraController","properties":{},"enabled":True}}},
       {"id":"workshop-wheels-controller","name":"Workshop Wheels Controller","transform_3d":transform((0,0,0),(1,1,1)),"components":{"sindri.script":{"source":"scripts/workshop_wheels_controller.decay","script":"WorkshopWheelsController","properties":{},"enabled":True}}}]
     p.write_text(json.dumps(scene,indent=2,ensure_ascii=False)+'\n')
     # Disabled workshop panels may not be discovered by the scene texture walker.

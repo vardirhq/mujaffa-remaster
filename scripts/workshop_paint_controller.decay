@@ -1,7 +1,7 @@
 // LAKKERING mirrors the original two-step flow: the normal panel contains
 // `skift`; pressing it opens the native RGB sliders and OK commits the preview.
 script WorkshopPaintController {
-    var red: f32 = 32.0; var green: f32 = 64.0; var blue: f32 = 184.0;
+    var red: f32 = 0.0; var green: f32 = 52.0; var blue: f32 = 156.0;
     var saved_red: f32 = 32.0; var saved_green: f32 = 64.0; var saved_blue: f32 = 184.0;
     var mixing: bool = false;
     var change_paint: Entity = null; var mixer: Entity = null; var ok: Entity = null;

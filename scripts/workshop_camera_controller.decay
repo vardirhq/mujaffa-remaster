@@ -19,7 +19,6 @@ script WorkshopCameraController {
    this.pending=false;
   }
   let showing=Game.get("workshop.category",0.0)==12.0 && !this.fitted;
-  World.set_active(this.button,showing);
   if showing && !this.pending && Ui.is_pressed(this.button) {
    this.ticket=Game.get("workshop.buy.ticket",0.0)+1.0;
    this.pending=true;

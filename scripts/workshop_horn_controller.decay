@@ -20,14 +20,19 @@ script WorkshopHornController {
   Game.set("workshop.buy.cred",contribution-old);
   Game.set("workshop.buy.ticket",this.ticket);
  }
- fn update(dt:f32) {
+ fn place(entity:Entity,x:f32,y:f32,w:f32,h:f32,unit:f32) {
+  entity.transform.position.x=(x-250.0)*unit;
+  entity.transform.position.y=(250.0-y)*unit;
+  entity.transform.scale.x=w*unit;
+  entity.transform.scale.y=h*unit;
+ }
+ fn layout_controls() {
   let unit=0.004*min(Viewport.aspect,1.0);
-  this.compressor.transform.position.x=(290.0-250.0)*unit;
-  this.compressor.transform.position.y=(250.0-418.0)*unit;
-  this.compressor.transform.scale.x=72.0*unit; this.compressor.transform.scale.y=26.0*unit;
-  this.multitone.transform.position.x=(402.0-250.0)*unit;
-  this.multitone.transform.position.y=(250.0-418.0)*unit;
-  this.multitone.transform.scale.x=72.0*unit; this.multitone.transform.scale.y=26.0*unit;
+  place(this.compressor,290.0,418.0,72.0,26.0,unit);
+  place(this.multitone,402.0,418.0,72.0,26.0,unit);
+ }
+ fn update(dt:f32) {
+  layout_controls();
   if this.pending>0.0 && Game.get("workshop.buy.settled",0.0)==this.ticket {
    if Game.get("workshop.buy.granted",0.0)>0.0 { this.fitted=this.pending; Game.set("workshop.horn",this.fitted); }
    this.pending=0.0;

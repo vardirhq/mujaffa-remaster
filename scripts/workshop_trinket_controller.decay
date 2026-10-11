@@ -1,0 +1,84 @@
+// Trinket: original SWF purchase values, shared ticket and replacement semantics.
+script WorkshopTrinketController {
+    var fitted:f32=0.0; var pending:f32=0.0; var ticket:f32=0.0;
+    var buy1: Entity = null; var layer0: Entity = null;
+    var buy2: Entity = null; var layer1: Entity = null;
+    var buy3: Entity = null; var layer2: Entity = null;
+    var buy4: Entity = null; var layer3: Entity = null;
+    var buy5: Entity = null; var layer4: Entity = null;
+    fn start() {
+        this.buy1=World.find("Workshop Trinket 1");
+        this.buy2=World.find("Workshop Trinket 2");
+        this.buy3=World.find("Workshop Trinket 3");
+        this.buy4=World.find("Workshop Trinket 4");
+        this.layer0=World.find("Garage Car forrude-empty");
+        this.layer1=World.find("Garage Car forrude-hjerte");
+        this.layer2=World.find("Garage Car forrude-wunderbaum");
+        this.layer3=World.find("Garage Car forrude-nosser");
+        this.layer4=World.find("Garage Car forrude-koran");
+        publish(); refresh_car(); refresh_visibility();
+    }
+    fn publish() { Game.set("workshop.trinket",this.fitted); }
+    fn price(value:f32)->f32 {
+        if value==1.0 { return 25.0; }
+        if value==2.0 { return 50.0; }
+        if value==3.0 { return 70.0; }
+        if value==4.0 { return 125.0; }
+        return 0.0;
+    }
+    fn worth(value:f32)->f32 {
+        if value==1.0 { return 0.02; }
+        if value==2.0 { return 0.05; }
+        if value==3.0 { return 0.07; }
+        if value==4.0 { return 0.1; }
+        return 0.0;
+    }
+    fn ask(value:f32) {
+        if this.pending>0.0 || value==this.fitted { return; }
+        this.ticket=Game.get("workshop.buy.ticket",0.0)+1.0;
+        this.pending=value;
+        Game.set("workshop.buy.price",price(value));
+        Game.set("workshop.buy.cred",worth(value)-worth(this.fitted));
+        Game.set("workshop.buy.ticket",this.ticket);
+    }
+    fn settle() {
+        if this.pending==0.0 { return; }
+        if Game.get("workshop.buy.settled",0.0)!=this.ticket { return; }
+        if Game.get("workshop.buy.granted",0.0)>0.0 {
+            this.fitted=this.pending; publish(); refresh_car();
+        }
+        this.pending=0.0;
+    }
+    fn refresh_car() {
+        World.set_active(this.layer0,this.fitted==0.0);
+        World.set_active(this.layer1,this.fitted==1.0);
+        World.set_active(this.layer2,this.fitted==2.0);
+        World.set_active(this.layer3,this.fitted==3.0);
+        World.set_active(this.layer4,this.fitted==4.0);
+    }
+    fn refresh_visibility() {
+        let showing=Game.get("workshop.category",0.0)==10.0;
+        World.set_active(this.buy1,showing && this.fitted!=1.0);
+        World.set_active(this.buy2,showing && this.fitted!=2.0);
+        World.set_active(this.buy3,showing && this.fitted!=3.0);
+        World.set_active(this.buy4,showing && this.fitted!=4.0);
+    }
+    fn place(entity:Entity,x:f32,y:f32,w:f32,h:f32,unit:f32) {
+        entity.transform.position.x=(x-250.0)*unit;
+        entity.transform.position.y=(250.0-y)*unit;
+        entity.transform.scale.x=w*unit; entity.transform.scale.y=h*unit;
+    }
+    fn update(dt:f32) {
+        let unit=0.004*min(Viewport.aspect,1.0);
+        place(this.buy1,205.0,399.0,58.0,24.0,unit);
+        place(this.buy2,274.0,399.0,58.0,24.0,unit);
+        place(this.buy3,343.0,399.0,58.0,24.0,unit);
+        place(this.buy4,412.0,399.0,58.0,24.0,unit);
+        settle(); refresh_visibility();
+        if Game.get("workshop.category",0.0)!=10.0 { return; }
+        if Ui.is_pressed(this.buy1) { ask(1.0); }
+        if Ui.is_pressed(this.buy2) { ask(2.0); }
+        if Ui.is_pressed(this.buy3) { ask(3.0); }
+        if Ui.is_pressed(this.buy4) { ask(4.0); }
+    }
+}

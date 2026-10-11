@@ -15,6 +15,7 @@ script WorkshopHornController {
   let old=0.0;
   if this.fitted==1.0 { old=0.1; }
   if this.fitted==2.0 { old=0.3; }
+  // Original horn upgrade from compressor to multitone adds 0.2 cool.
   Game.set("workshop.buy.price",price);
   Game.set("workshop.buy.cred",contribution-old);
   Game.set("workshop.buy.ticket",this.ticket);

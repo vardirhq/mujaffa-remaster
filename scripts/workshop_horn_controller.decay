@@ -38,8 +38,6 @@ script WorkshopHornController {
    this.pending=0.0;
   }
   let showing=Game.get("workshop.category",0.0)==11.0;
-  World.set_active(this.compressor,showing && this.fitted!=1.0);
-  World.set_active(this.multitone,showing && this.fitted!=2.0);
   if showing {
    if Ui.is_pressed(this.compressor) { ask(1.0); }
    if Ui.is_pressed(this.multitone) { ask(2.0); }

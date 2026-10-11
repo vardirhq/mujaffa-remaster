@@ -225,7 +225,7 @@ def make_remaining_controls(out):
         for level, price in options:
             render(out, f"{kind}-{level}.png", 72, 26,
                    f'<rect x="1" y="1" width="70" height="24" rx="3" fill="#2ca2c8" stroke="#0b103b" stroke-width="2"/>'
-                   f'<text x="36" y="18" text-anchor="middle" font-family="Arial" font-size="11" font-weight="700">{price}</text>')
+                   f'<text x="36" y="18" text-anchor="middle" font-family="Arial" font-size="11" font-weight="700">{("OK" if kind == "plate" and level == 2 else price)}</text>')
 
 def plate_input_entity():
     entity=control("workshop-plate-input","Workshop Plate Input","plate-1.png",325,405,120,26)
@@ -236,8 +236,8 @@ def plate_input_entity():
 def plate_display_entity():
     return {"id":"workshop-plate-display","name":"Workshop Plate Display",
       "parent":"garage-ui-desktop",
-      "transform_3d":transform((stage_x(340),stage_y(320),0),(stage_size(115),stage_size(23),1)),
-      "components":{"sindri.ui.text":{"text":"","font":"fonts/ChakraPetch-Regular.ttf","font_size":0.045,
+      "transform_3d":transform((stage_x(440),stage_y(306),0),(stage_size(65),stage_size(18),1)),
+      "components":{"sindri.ui.text":{"text":"","font":"fonts/ChakraPetch-Regular.ttf","font_size":0.033,
         "bounds":[stage_size(115),stage_size(23)],"anchor":"center","layer":255}}}
 
 def remaining_entities():

@@ -39,6 +39,10 @@ script WorkshopPlateController {
    Game.set("workshop.buy.cred",0.0);
    Game.set("workshop.buy.ticket",this.ticket);
   }
+  if showing && this.editing {
+   let preview=Ui.input_text(this.field);
+   if preview!="" { Ui.set_text(this.plate_display,preview); }
+  }
   if showing && this.editing && (Ui.is_pressed(this.confirm) || Ui.submitted(this.field)) {
    let value=Ui.input_text(this.field);
    if value!="" {

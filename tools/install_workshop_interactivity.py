@@ -237,7 +237,7 @@ def plate_display_entity():
     return {"id":"workshop-plate-display","name":"Workshop Plate Display",
       "parent":"garage-ui-desktop",
       "transform_3d":transform((stage_x(340),stage_y(320),0),(stage_size(115),stage_size(23),1)),
-      "components":{"sindri.ui.text":{"text":"","font_size":0.045,
+      "components":{"sindri.ui.text":{"text":"","font":"default","font_size":0.045,
         "bounds":[stage_size(115),stage_size(23)],"anchor":"center","layer":255}}}
 
 def remaining_entities():

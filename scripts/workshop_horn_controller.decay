@@ -1,0 +1,42 @@
+script WorkshopHornController {
+ var fitted:f32=0.0; var pending:f32=0.0; var ticket:f32=0.0;
+ var compressor:Entity=null; var multitone:Entity=null;
+ fn start() {
+  this.compressor=World.find("Workshop Horn 1");
+  this.multitone=World.find("Workshop Horn 2");
+  Game.set("workshop.horn",this.fitted);
+ }
+ fn ask(value:f32) {
+  if this.pending>0.0 || this.fitted==value { return; }
+  this.ticket=Game.get("workshop.buy.ticket",0.0)+1.0;
+  this.pending=value;
+  let price=900.0; let contribution=0.1;
+  if value==2.0 { price=1700.0; contribution=0.3; }
+  let old=0.0;
+  if this.fitted==1.0 { old=0.1; }
+  if this.fitted==2.0 { old=0.3; }
+  Game.set("workshop.buy.price",price);
+  Game.set("workshop.buy.cred",contribution-old);
+  Game.set("workshop.buy.ticket",this.ticket);
+ }
+ fn update(dt:f32) {
+  let unit=0.004*min(Viewport.aspect,1.0);
+  this.compressor.transform.position.x=(290.0-250.0)*unit;
+  this.compressor.transform.position.y=(250.0-418.0)*unit;
+  this.compressor.transform.scale.x=72.0*unit; this.compressor.transform.scale.y=26.0*unit;
+  this.multitone.transform.position.x=(402.0-250.0)*unit;
+  this.multitone.transform.position.y=(250.0-418.0)*unit;
+  this.multitone.transform.scale.x=72.0*unit; this.multitone.transform.scale.y=26.0*unit;
+  if this.pending>0.0 && Game.get("workshop.buy.settled",0.0)==this.ticket {
+   if Game.get("workshop.buy.granted",0.0)>0.0 { this.fitted=this.pending; Game.set("workshop.horn",this.fitted); }
+   this.pending=0.0;
+  }
+  let showing=Game.get("workshop.category",0.0)==11.0;
+  World.set_active(this.compressor,showing && this.fitted!=1.0);
+  World.set_active(this.multitone,showing && this.fitted!=2.0);
+  if showing {
+   if Ui.is_pressed(this.compressor) { ask(1.0); }
+   if Ui.is_pressed(this.multitone) { ask(2.0); }
+  }
+ }
+}

@@ -231,7 +231,6 @@ def plate_input_entity():
     entity=control("workshop-plate-input","Workshop Plate Input","plate-1.png",325,405,120,26)
     entity["components"].pop("sindri.ui.button")
     entity["components"]["sindri.ui.text_input"]={"label":"Nummerplade","value":"","placeholder":"Skriv nummerplade","max_length":12}
-    entity["disabled"]=True
     return entity
 
 def plate_display_entity():

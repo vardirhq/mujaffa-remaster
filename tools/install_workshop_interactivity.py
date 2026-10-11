@@ -234,6 +234,13 @@ def plate_input_entity():
     entity["disabled"]=True
     return entity
 
+def plate_display_entity():
+    return {"id":"workshop-plate-display","name":"Workshop Plate Display",
+      "parent":"garage-ui-desktop",
+      "transform_3d":transform((stage_x(340),stage_y(320),0),(stage_size(115),stage_size(23),1)),
+      "components":{"sindri.ui.text":{"text":"","font_size":0.045,
+        "bounds":[stage_size(115),stage_size(23)],"anchor":"center","layer":255}}}
+
 def remaining_entities():
     return [
         control("workshop-horn-1", "Workshop Horn 1", "horn-1.png", 290, 418, 72, 26),
@@ -241,6 +248,7 @@ def remaining_entities():
         control("workshop-camera-1", "Workshop Camera 1", "camera-1.png", 325, 418, 72, 26),
         control("workshop-plate-1", "Workshop Plate Edit", "plate-1.png", 325, 405, 100, 26),
         plate_input_entity(),
+        plate_display_entity(),
         control("workshop-plate-2", "Workshop Plate Confirm", "plate-2.png", 325, 437, 100, 26),
     ]
 

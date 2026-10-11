@@ -2,10 +2,9 @@
 // Text entry needs an engine-backed editable field and is tracked separately.
 script WorkshopPlateController {
  var editing:bool=false; var pending:bool=false; var ticket:f32=0.0;
- var edit:Entity=null; var field:Entity=null; var confirm:Entity=null; var plate_display:Entity=null; var plate_text:String="";
+ var edit:Entity=null; var field:Entity=null; var confirm:Entity=null; var plate_text:String="";
  fn start(){
   this.edit=World.find("Workshop Plate Edit");
-  this.plate_display=World.find("Workshop Plate Display");
   this.field=World.find("Workshop Plate Input"); this.confirm=World.find("Workshop Plate Confirm");
   Game.set("workshop.plate.editing",0.0);
  }
@@ -46,7 +45,6 @@ script WorkshopPlateController {
     this.editing=false;
     Game.set("workshop.plate.editing",0.0);
     Game.set("workshop.plate",1.0);
-    Ui.set_text(this.plate_display,value);
     Game.set("workshop.plate.confirmed",Game.get("workshop.plate.confirmed",0.0)+1.0);
     if value=="moused" { Game.set("workshop.plate.moused",Game.get("workshop.plate.moused",0.0)+1.0); }
    }

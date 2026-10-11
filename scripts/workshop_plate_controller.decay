@@ -2,10 +2,9 @@
 // Text entry needs an engine-backed editable field and is tracked separately.
 script WorkshopPlateController {
  var editing:bool=false; var pending:bool=false; var ticket:f32=0.0;
- var edit:Entity=null; var confirm:Entity=null;
+ var edit:Entity=null;
  fn start(){
   this.edit=World.find("Workshop Plate Edit");
-  this.confirm=World.find("Workshop Plate Confirm");
   Game.set("workshop.plate.editing",0.0);
  }
  fn update(dt:f32){
@@ -13,9 +12,6 @@ script WorkshopPlateController {
   this.edit.transform.position.x=(325.0-250.0)*unit;
   this.edit.transform.position.y=(250.0-405.0)*unit;
   this.edit.transform.scale.x=100.0*unit; this.edit.transform.scale.y=26.0*unit;
-  this.confirm.transform.position.x=(325.0-250.0)*unit;
-  this.confirm.transform.position.y=(250.0-434.0)*unit;
-  this.confirm.transform.scale.x=100.0*unit; this.confirm.transform.scale.y=26.0*unit;
   if this.pending && Game.get("workshop.buy.settled",0.0)==this.ticket {
    if Game.get("workshop.buy.granted",0.0)>0.0 {
     this.editing=true;
@@ -25,7 +21,6 @@ script WorkshopPlateController {
   }
   let showing=Game.get("workshop.category",0.0)==8.0;
   World.set_active(this.edit,showing && !this.editing);
-  World.set_active(this.confirm,false);
   let request=Game.get("workshop.plate.request",0.0);
   if request>0.0 { Game.set("workshop.plate.request",0.0); }
   if showing && !this.pending && !this.editing && request>0.0 {

@@ -1,0 +1,199 @@
+// The nav strip, the live header numbers and the frame-730 SHOWROOM.
+//
+// VERKSTED is main-timeline frame 722 (`køb`) and SHOWROOM is frame 730
+// (`showroom`). Both share one stage, so switching is a matter of which world
+// group is on; `workshop.view` tells the garage which car placement to use.
+//
+// Entering the showroom runs frame 745 (`makeDescription`), which writes the
+// car's state into edit-text 935 (`beskrivelse`). `describe()` is that program
+// with its strings and its quirks kept: white stripes have no comma, the
+// medium spoiler has two spaces, the racer and krom rim labels are swapped,
+// and its `forude` typo means the tyres are always followed by ", ".
+script ShowroomController {
+    var view: f32 = 0.0;
+    var workshop: Entity = null;
+    var showroom: Entity = null;
+    var description: Entity = null;
+    var penger: Entity = null;
+    var bmw: Entity = null;
+    var street_cred: Entity = null;
+    var nav_workshop: Entity = null;
+    var nav_showroom: Entity = null;
+
+    fn start() {
+        this.workshop = World.find("Workshop View");
+        this.showroom = World.find("Showroom View");
+        this.description = World.find("Showroom Description");
+        this.penger = World.find("Header Penger");
+        this.bmw = World.find("Header BMW");
+        this.street_cred = World.find("Header Street Cred");
+        this.nav_workshop = World.find("Nav Verksted");
+        this.nav_showroom = World.find("Nav Showroom");
+        layout_nav();
+        set_view(0.0);
+    }
+
+    // The tabs drawn in the chrome at stage (205, 474) and (315, 474), 105x20.
+    fn layout_tab(entity: Entity, left: f32, unit: f32) {
+        entity.transform.position.x = (left + 52.5 - 250.0) * unit;
+        entity.transform.position.y = (250.0 - 484.0) * unit;
+        entity.transform.scale.x = 105.0 * unit;
+        entity.transform.scale.y = 20.0 * unit;
+    }
+
+    fn layout_nav() {
+        let unit = 0.004 * min(Viewport.aspect, 1.0);
+        layout_tab(this.nav_workshop, 205.0, unit);
+        layout_tab(this.nav_showroom, 315.0, unit);
+    }
+
+    fn set_view(value: f32) {
+        this.view = value;
+        Game.set("workshop.view", value);
+        World.set_active(this.workshop, value == 0.0);
+        World.set_active(this.showroom, value == 1.0);
+        if value == 1.0 {
+            Ui.set_text(this.description, describe());
+        }
+    }
+
+    fn refresh_header() {
+        // Edit-texts 928 `penge`, 931 `bil_cool` and 927 `cool`. Frame 202
+        // starts `bil_cool` at 1; the workshop's street cred is its increments.
+        Ui.set_number(this.penger, Game.get("workshop.money", 5000.0));
+        Ui.set_number(this.bmw, 1.0 + Game.get("workshop.street_cred", 0.0));
+        Ui.set_number(this.street_cred, Game.get("game.cool", 0.0));
+    }
+
+    fn stripe_text(stripe: f32) -> String {
+        // workshop.stripe: 0 none, 1 hvid, 2 grøn, 3 sort, 4 pink.
+        if stripe == 1.0 { return " hvit fartsstripe"; }
+        if stripe == 2.0 { return " lysegrønn fartsstripe,"; }
+        if stripe == 3.0 { return " sort fartsstripe,"; }
+        if stripe == 4.0 { return " rosa fartsstripe,"; }
+        return "";
+    }
+
+    fn spoiler_text(spoiler: f32) -> String {
+        if spoiler == 1.0 { return " liten sporty spoiler,"; }
+        if spoiler == 2.0 { return "  medium-sized fet spoiler,"; }
+        if spoiler == 3.0 { return " stor megarå spoiler,"; }
+        if spoiler == 4.0 { return " den villeste kongespoilern,"; }
+        return "";
+    }
+
+    fn exhaust_text(exhaust: f32) -> String {
+        if exhaust == 1.0 { return " frekt dobbeltløps eksosanlegg,"; }
+        if exhaust == 2.0 { return " firedobbelt power-eksosanlegg,"; }
+        if exhaust == 3.0 { return " spesialdesignet og forlenget 8-rørs ekso-sanlegg,"; }
+        return " kjedelig enkeltløps eksosanlegg,";
+    }
+
+    fn rims_text(rims: f32) -> String {
+        // workshop.rims: 0 standard, 1 racer, 2 krom, 3 guld.
+        if rims == 1.0 { return " hippe forkrommede felger,"; }
+        if rims == 2.0 { return " hippe sportsfelger,"; }
+        if rims == 3.0 { return " gullbelagte gangster-boss felger,"; }
+        return " standard felger,";
+    }
+
+    fn horn_text(horn: f32) -> String {
+        if horn == 1.0 { return " stort kompressorhorn,"; }
+        if horn == 2.0 { return " irriterende Wild Turkey flertonehorn,"; }
+        return " standardhorn,";
+    }
+
+    fn tyres_text(tyres: f32) -> String {
+        if tyres == 1.0 { return " brede contact-plus dekk"; }
+        if tyres == 2.0 { return " ekstra brede ultra-grip dekk"; }
+        if tyres == 3.0 { return " superbrede power-cruiser dekk"; }
+        return " standard dekk";
+    }
+
+    fn windows_text(windows: f32) -> String {
+        if windows == 1.0 { return " graderte fargede taxiruter,"; }
+        if windows == 2.0 { return " tonede wanna-be mafia-ruter,"; }
+        if windows == 3.0 { return " superfete speilrefleksruter,"; }
+        return " vanlige bilruter,";
+    }
+
+    fn interior_text(interior: f32) -> String {
+        if interior == 1.0 { return " kunstig tigerplysj på setene"; }
+        if interior == 2.0 { return " skai av beste kvalitet på setene"; }
+        if interior == 3.0 { return " pornosmart sebraskinn på setene"; }
+        return " polyester på setene";
+    }
+
+    fn roof_text(sunroof: f32, trinket: f32) -> String {
+        if sunroof == 1.0 {
+            if trinket == 0.0 { return " og elektrisk soltak."; }
+            return ", elektrisk soltak og";
+        }
+        if trinket == 0.0 { return "."; }
+        return " og";
+    }
+
+    fn trinket_text(trinket: f32) -> String {
+        // workshop.trinket: 0 empty, 1 hjerte, 2 wunderbaum, 3 nosser, 4 koran.
+        if trinket == 1.0 { return " blinkende neonhjerte i frontruten."; }
+        if trinket == 2.0 { return " en velduftende wunderbaum i frontruten."; }
+        if trinket == 3.0 { return " tidløse og trendy polyester-terninger i frontruten."; }
+        if trinket == 4.0 { return " en stilfull, forgyldt minimodell av Taj Mahal i frontruta."; }
+        return "";
+    }
+
+    fn front_text(level: f32) -> String {
+        if level == 2.0 { return "brakende 140 watts høytalere i front"; }
+        if level == 3.0 { return "øredøvende 350 watts boomers i front"; }
+        return "små 45 watts høytalere i front";
+    }
+
+    fn side_text(level: f32) -> String {
+        if level == 2.0 { return "rungende 60 watts høytalere i sidedørene"; }
+        if level == 3.0 { return "superbass 220 watts sidedørs-boomers"; }
+        return "20 watts høytalere i sidedørene";
+    }
+
+    fn rear_text(level: f32) -> String {
+        if level == 2.0 { return "solide 140 watts bakhøytalere"; }
+        if level == 3.0 { return "gigantiske 350 watts bakhøytalere som sperrer utsynet totalt"; }
+        return "ynkelige 45 watts bakhøytalere";
+    }
+
+    fn woofer_text(level: f32) -> String {
+        if level == 1.0 { return "en 200 watts bakhyler av en subwoofer"; }
+        if level == 2.0 { return "en 400 watts woofer som kan rykke bilen i stykker"; }
+        if level == 3.0 { return "800 watts psycho-stor woofer som fyller hele bagasjerommet"; }
+        return "ingen subwoofer (taper)";
+    }
+
+    fn describe() -> String {
+        let trinket = Game.get("workshop.trinket", 0.0);
+        var text = "Spesiallakert BMW 320i med ";
+        text = text + stripe_text(Game.get("workshop.stripe", 0.0));
+        text = text + spoiler_text(Game.get("workshop.spoiler", 0.0));
+        text = text + exhaust_text(Game.get("workshop.exhaust", 0.0));
+        text = text + rims_text(Game.get("workshop.rims", 0.0));
+        text = text + horn_text(Game.get("workshop.horn", 0.0));
+        text = text + tyres_text(Game.get("workshop.tyres", 0.0));
+        // Frame 745 tests `forude`, which nothing sets, so this is always ", ".
+        text = text + ", ";
+        text = text + windows_text(Game.get("workshop.windows", 0.0));
+        text = text + interior_text(Game.get("workshop.interior", 0.0));
+        text = text + roof_text(Game.get("workshop.sunroof", 0.0), trinket);
+        text = text + trinket_text(trinket);
+        text = text + "\n\nAnlegg: ";
+        text = text + front_text(Game.get("workshop.audio.front", 1.0)) + ", ";
+        text = text + side_text(Game.get("workshop.audio.side", 1.0)) + ", ";
+        text = text + rear_text(Game.get("workshop.audio.rear", 1.0)) + ", ";
+        text = text + woofer_text(Game.get("workshop.audio.woofer", 0.0)) + ".";
+        return text;
+    }
+
+    fn update(dt: f32) {
+        layout_nav();
+        refresh_header();
+        if Ui.is_pressed(this.nav_workshop) { set_view(0.0); }
+        if Ui.is_pressed(this.nav_showroom) { set_view(1.0); }
+    }
+}

@@ -165,6 +165,9 @@ script GameState {
     }
 
     fn update(dt: f32) {
+        // The header's STREET CRED is edit-text 927, bound to `cool`.
+        Game.set("game.cool", this.cool);
+
         if this.phase == 0.0 {
             if Input.just_pressed("Digit1") { select_route(1.0); }
             if Input.just_pressed("Digit2") { select_route(2.0); }

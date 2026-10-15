@@ -12,10 +12,31 @@ Current reconstructed layers:
 
 The customizable car remains a live layered object rather than a flattened showroom layer.
 
-The next parity work is the remaining foreground UI from frame 730:
+## Playable showroom
 
-- button definitions 925 and 936
-- text/edit-text definitions 927–932
-- exact purchase/category interaction behavior
+`tools/install_showroom.py` puts frame 730 in the game beside the frame-722
+workshop. Run it after `install_workshop_interactivity.py`; Pages CI does.
 
-Those definitions need button/text-aware SWF reconstruction rather than being guessed from screenshots or replaced with generic UI art.
+- The workshop-only layers move under `Workshop View`; room 934, Mujaffa 869
+  and panel 279 go under a disabled `Showroom View`. The VERKSTED and SHOWROOM
+  tabs switch between them, and `workshop.view` on the game board says which
+  is showing.
+- The car is not copied. Frame 730 places character 875 at (259.4, 180.95)
+  instead of frame 722's (329.65, 193.9) at the same scale, so
+  `Garage.refresh_layout` moves the live car by that offset and hides the
+  UTSTYR rail.
+- Entering the showroom runs `describe()` in
+  `scripts/showroom_controller.decay`, a port of frame 745 (`makeDescription`)
+  into edit-text 935 (`beskrivelse`). It keeps the original's strings and
+  quirks: the white stripe has no comma, the medium spoiler has two spaces,
+  racer rims read as chrome and krom rims as sport, and the `forude` typo means
+  the tyres are always followed by ", ".
+- The header numbers are live text, not pixels in the chrome: PENGER is
+  `workshop.money` (edit-text 928, `penge`), BMW is 1 plus
+  `workshop.street_cred` (931, `bil_cool`, which frame 202 starts at 1), and
+  STREET CRED is `game.cool` (927, `cool`).
+
+World text (`sindri.text`) needs Sindri `2510aac8` or later, which is why the
+pin moved with this change.
+
+Still not reconstructed: the KJØR! button and the driving it leads to.

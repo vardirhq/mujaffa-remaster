@@ -71,9 +71,9 @@ def make_chrome(out: Path) -> None:
       <rect x="0" y="34" width="500" height="29" fill="#41608d"/>
       <text x="307" y="27" text-anchor="middle" font-size="25" font-weight="700" fill="#30517d">BHAIAS VERKSTED</text>
       <rect x="0" y="55" width="500" height="25" fill="#2d9dc0"/>
-      <text x="151" y="72" font-size="11" font-weight="700" fill="#111">PENGER:</text><text x="204" y="72" font-size="14" font-weight="700" fill="#e8f3f0">5000</text>
-      <text x="269" y="72" font-size="11" font-weight="700" fill="#111">BMW:</text><text x="309" y="72" font-size="14" font-weight="700" fill="#e8f3f0">1</text>
-      <text x="372" y="72" font-size="11" font-weight="700" fill="#111">STREET CRED:</text><text x="469" y="72" font-size="14" font-weight="700" fill="#e8f3f0">0</text>
+      <text x="151" y="72" font-size="11" font-weight="700" fill="#111">PENGER:</text>
+      <text x="269" y="72" font-size="11" font-weight="700" fill="#111">BMW:</text>
+      <text x="372" y="72" font-size="11" font-weight="700" fill="#111">STREET CRED:</text>
 
       <rect x="4" y="83" width="145" height="381" rx="12" fill="#139bc3" stroke="#0c1039" stroke-width="4"/>
       <text x="76" y="108" text-anchor="middle" font-size="20" font-weight="800" fill="#d6ffff">UTSTYR</text>

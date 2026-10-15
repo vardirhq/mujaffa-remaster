@@ -251,7 +251,9 @@ script Garage {
         if Ui.is_pressed(this.d_stripes) || Ui.is_pressed(this.m_stripes) { set_category(8.0); }
         if Ui.is_pressed(this.d_windscreen) || Ui.is_pressed(this.m_windscreen) { set_category(9.0); }
 
-        if Ui.is_pressed(this.desktop_prev) || Ui.is_pressed(this.mobile_prev) || Input.just_pressed("ArrowLeft") { step(-1.0); }
-        if Ui.is_pressed(this.desktop_next) || Ui.is_pressed(this.mobile_next) || Input.just_pressed("ArrowRight") { step(1.0); }
+        // Buttons only: the arrow keys steer the drive, and this script runs on
+        // every screen, so they used to repaint the garage car grey.
+        if Ui.is_pressed(this.desktop_prev) || Ui.is_pressed(this.mobile_prev) { step(-1.0); }
+        if Ui.is_pressed(this.desktop_next) || Ui.is_pressed(this.mobile_next) { step(1.0); }
     }
 }

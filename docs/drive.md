@@ -188,7 +188,7 @@ if (soltag == 1) /bil/soltag → frame 2
 /bil/vinduer  → standard 1, gradient 2, tonede 3, spejlrefleks 4
 /bil/hjul     → daek 0..3 → frame 1..4
 /bil/heks (spoiler sprite 1120) → spoiler 0 → frame 1, 1 "lille", 2 "mellem", 3 "stor", 4 "enorm"
-h = new Color(_root.bil.heks.hf); h.setRGB(parseInt(_root.colorHEX, 16));
+h = new Color(_root.bil.heks.hf); h.setRGB(parseInt(_root.colorHEX, 16));   // remaster: `car-heksfarve-N`, tinted like the body
 c = new Color(_root.bil.farve);   c.setRGB(parseInt(_root.colorHEX, 16));
 // #5 per-run reset
 _quality = "MEDIUM"; bane = 0; gummiSafe = 0; pickup = 0; speed = 20; /info:cool = cool_old;

@@ -39,6 +39,11 @@ from swf_car_extract import IDENT  # noqa: E402
 PX = 10.0 / 500.0
 SCALE = 2.0
 FONT = "fonts/ChakraPetch-Regular.ttf"
+# The page background (the runtime's clear colour), and a sprite layer above
+# every drive and trip layer.
+MATTE = "assets/generated/drive/png/matte.png"
+MATTE_RGB = "#242c3c"
+MATTE_LAYER = 250
 
 # Field variables a script writes. The picture leaves them empty.
 LIVE_VARIABLES = {
@@ -78,6 +83,11 @@ STATUS_BUTTONS = (659, 660)
 CRUISE_FRAME = 740
 CRUISE_DIALOG = 300
 CRUISE_BUTTONS = {"ja": 293, "nei": 294, "lukk": 295}
+# "Din fattiglus!" (`brokeassalert`, frame 722): raised by every refused
+# purchase; OK (281) and the corner cross (285) both hide it.
+BROKE_FRAME = 722
+BROKE_DIALOG = 290
+BROKE_BUTTONS = {"ok": 281, "lukk": 285}
 
 DRIVE_FRAME = 806
 ROAD = 951
@@ -269,6 +279,10 @@ def render_all(art: Art) -> None:
 
     # The cruise dialog over the workshop at frame 740.
     art.stage("cruise-dialog", art.draws(CRUISE_DIALOG, art.placement(CRUISE_FRAME, CRUISE_DIALOG)))
+    art.stage("broke-dialog", art.draws(BROKE_DIALOG, art.placement(BROKE_FRAME, BROKE_DIALOG)))
+    broke = [{"character": BROKE_DIALOG, "matrix": art.placement(BROKE_FRAME, BROKE_DIALOG)}]
+    for key, button in BROKE_BUTTONS.items():
+        art.manifest["buttons"][f"broke-{key}"] = art.button_rect(BROKE_FRAME, button, broke)
     dialog = [{"character": CRUISE_DIALOG, "matrix": art.placement(CRUISE_FRAME, CRUISE_DIALOG)}]
     for key, button in CRUISE_BUTTONS.items():
         art.manifest["buttons"][f"cruise-{key}"] = art.button_rect(CRUISE_FRAME, button, dialog)
@@ -338,6 +352,21 @@ def render_all(art: Art) -> None:
             # is cut white and the sprite tint is the paint.
             art.object("car-farve-1", art.draws(child, local, cxform=((0.0, 0.0, 0.0, 1.0), (255.0, 255.0, 255.0, 0.0))))
             continue
+        if name == "heks":
+            # Each spoiler frame holds `hf`, painted with `h.setRGB(colorHEX)`
+            # like the body, under its unpainted outline: cut apart so the
+            # wing takes the paint and the outline keeps its ink.
+            for n in range(1, sprite_frames(movie, child) + 1):
+                parts = [p for p in movie.sprite_display(child, n) if p.get("character") is not None]
+                paint = next((p for p in parts if p.get("name") == "hf"), None)
+                skip = {paint["character"]} if paint else set()
+                draws = art.draws(child, local, {child: n}, skip=skip)
+                if T._bounds(draws, art.shapes, movie.extents) is not None:
+                    art.object(f"car-heks-{n}", draws)
+                if paint:
+                    art.object(f"car-heksfarve-{n}", art.draws(paint["character"], T.mul(local, paint.get("matrix", IDENT)),
+                                                             cxform=((0.0, 0.0, 0.0, 1.0), (255.0, 255.0, 255.0, 0.0))))
+            continue
         if movie.types.get(child) == 39 and name:
             for n in range(1, sprite_frames(movie, child) + 1):
                 draws = art.draws(child, local, {child: n})
@@ -405,7 +434,7 @@ def transform(position=(0.0, 0.0, 0.0), scale=(1.0, 1.0, 1.0)) -> dict:
 
 def stage_layer(entity_id, name, texture, layer, parent, disabled=False):
     entity = {"id": entity_id, "name": name, "parent": parent, "transform_3d": transform((0, 0, 0), (10.0, 10.0, 1.0)),
-              "components": {"sindri.sprite": {"texture": texture, "tint": [1, 1, 1, 1], "layer": layer}}}
+              "components": {"sindri.sprite": {"texture": texture, "tint": [1.0, 1.0, 1.0, 1.0], "layer": layer}}}
     if disabled:
         entity["disabled"] = True
     return entity
@@ -416,7 +445,7 @@ def child_sprite(entity_id, name, entry, layer, parent, disabled=False, texture=
     x, y, w, h = entry["rect"]
     entity = {"id": entity_id, "name": name, "parent": parent,
               "transform_3d": transform((round((x + w / 2) * PX, 4), round(-(y + h / 2) * PX, 4), 0.0), (round(w * PX, 4), round(h * PX, 4), 1.0)),
-              "components": {"sindri.sprite": {"texture": texture or entry["png"], "tint": [1, 1, 1, 1], "layer": layer}}}
+              "components": {"sindri.sprite": {"texture": texture or entry["png"], "tint": [1.0, 1.0, 1.0, 1.0], "layer": layer}}}
     if disabled:
         entity["disabled"] = True
     return entity
@@ -435,7 +464,7 @@ def sheet_sprite(entity_id, name, entry, layer, parent, clips: dict):
     return {"id": entity_id, "name": name, "parent": parent,
             "transform_3d": transform((round((x + w / 2) * PX, 4), round(-(y + h / 2) * PX, 4), 0.0), (round(w * PX, 4), round(h * PX, 4), 1.0)),
             "components": {
-                "sindri.sprite": {"texture": f"{entry['png']}#{first}", "tint": [1, 1, 1, 1], "layer": layer},
+                "sindri.sprite": {"texture": f"{entry['png']}#{first}", "tint": [1.0, 1.0, 1.0, 1.0], "layer": layer},
                 "sindri.animation.sprite": {
                     "clips": {clip: {"frames": [entry["frames"][n - 1] for n in frames], "seconds_per_frame": 1.0 / 12.0, "looping": looping}
                               for clip, (frames, looping) in clips.items()},
@@ -479,11 +508,31 @@ def build_entities(art: Art) -> list[dict]:
     out: list[dict] = []
     out.append({"id": "trip", "name": "Trip", "transform_3d": transform()})
 
+    # The original is a 500x500 movie; Flash never drew outside it. A screen
+    # that is taller or wider than square would otherwise show the road
+    # scrolling past the stage and the actors parked off it, so four mattes in
+    # the page's colour sit over everything outside the square.
+    for side, (x, y) in {"top": (0.0, 10.0), "bottom": (0.0, -10.0), "left": (-10.0, 0.0), "right": (10.0, 0.0)}.items():
+        width = 30.0 if side in ("top", "bottom") else 10.0
+        out.append({"id": f"trip-matte-{side}", "name": f"Trip Matte {side.capitalize()}", "parent": "trip",
+                    "transform_3d": transform((x, y, 0.0), (width, 10.0, 1.0)),
+                    "components": {"sindri.sprite": {"texture": MATTE, "tint": [1.0, 1.0, 1.0, 1.0], "layer": MATTE_LAYER}}})
+
     # The cruise dialog (frame 740), over the workshop.
     out.append({"id": "trip-cruise", "name": "Trip Cruise", "parent": "trip", "disabled": True, "transform_3d": transform()})
     out.append(stage_layer("trip-cruise-art", "Trip Cruise Dialog", layers["cruise-dialog"]["png"], 200, "trip-cruise"))
     for key in CRUISE_BUTTONS:
         out.append(hit_button(f"trip-cruise-{key}", f"Cruise {key.capitalize()}", key.upper(), "trip-cruise"))
+
+    out.append({"id": "trip-broke", "name": "Trip Broke", "parent": "trip", "disabled": True, "transform_3d": transform()})
+    # The workshop is drawn on the UI canvas, so the dialog is too, above it;
+    # the trip controller lays both out on the stage each frame.
+    out.append({"id": "trip-broke-art", "name": "Trip Broke Dialog", "parent": "trip-broke", "transform_3d": transform((0, 0, 0), (2.0, 2.0, 1.0)),
+                "components": {"sindri.ui.image": {"texture": layers["broke-dialog"]["png"], "tint": [1.0, 1.0, 1.0, 1.0], "anchor": "center", "layer": 260}}})
+    for key in BROKE_BUTTONS:
+        button = hit_button(f"trip-broke-{key}", f"Broke {key.capitalize()}", key.upper(), "trip-broke")
+        button["components"]["sindri.ui.shape"]["layer"] = 265
+        out.append(button)
 
     # The map: one picture per state, shown one at a time.
     out.append({"id": "trip-map", "name": "Trip Map", "parent": "trip", "disabled": True, "transform_3d": transform()})
@@ -538,6 +587,12 @@ def build_entities(art: Art) -> list[dict]:
     layer = 10
     for item in m["car_depths"]:
         name = item["name"]
+        if name == "heks":
+            # The painted wing sits a layer under its outline.
+            for key in sorted(k for k in objects if k.startswith("car-heksfarve-")):
+                n = int(key.rsplit("-", 1)[1])
+                out.append(child_sprite(f"drive-{key}", f"Drive Car heksfarve {n}", objects[key], layer, "drive-car", disabled=True))
+            layer += 1
         if name:
             for key in sorted(k for k in objects if k.startswith(f"car-{name}-")):
                 n = int(key.rsplit("-", 1)[1])
@@ -553,22 +608,22 @@ def build_entities(art: Art) -> list[dict]:
                              "flipper": (list(range(206, 222)), False)}))
     out.append(child_sprite("drive-car-boom", "Drive Car Boom", objects["car-boom"], layer + 2, "drive-car", disabled=True))
 
-    for name, layer_index in (("gold", 22), ("gold-2", 23)):
+    for name, layer_index in (("gold", 24), ("gold-2", 25)):
         out.append(anchor(f"drive-{name}", f"Drive {name.capitalize()}", "drive"))
         out.append(child_sprite(f"drive-{name}-art", f"Drive {name.capitalize()} Art", objects["gold"], layer_index, f"drive-{name}"))
     out.append(anchor("drive-moped", "Drive Moped", "drive"))
     for look in (1, 2, 3):
-        out.append(child_sprite(f"drive-moped-{look}", f"Drive Moped {look}", objects[f"moped-{look}"], 24, "drive-moped", disabled=look != 1))
+        out.append(child_sprite(f"drive-moped-{look}", f"Drive Moped {look}", objects[f"moped-{look}"], 26, "drive-moped", disabled=look != 1))
     out.append(anchor("drive-traffic", "Drive Traffic", "drive"))
     for district, info in m["traffic"].items():
         for n in info["looks"] + list(range(info["boom"], info["boom"] + 5)):
             key = f"traffic-{_slug(district)}-{n}"
             if key in objects:
-                out.append(child_sprite(f"drive-{key}", f"Drive Traffic {district} {n}", objects[key], 25, "drive-traffic", disabled=True))
+                out.append(child_sprite(f"drive-{key}", f"Drive Traffic {district} {n}", objects[key], 27, "drive-traffic", disabled=True))
 
     # Pop-up numbers: +N for the cousin and the girl, -25, and gold money.
     for key in ("cool", "girl-cool", "kill", "gold", "gold-2"):
-        out.append(text(f"drive-pop-{key}", f"Drive Pop {key}", "drive", -1000, -1000, 22, [1.0, 1.0, 0.2, 1.0], 27, "center", template="{}"))
+        out.append(text(f"drive-pop-{key}", f"Drive Pop {key}", "drive", -1000, -1000, 22, [1.0, 1.0, 0.2, 1.0], 28, "center", template="{}"))
 
     out.append(stage_layer("drive-hud", "Drive HUD", layers["hud"]["png"], 30, "drive"))
     anchors = objects["hud-anchors"]
@@ -578,7 +633,7 @@ def build_entities(art: Art) -> list[dict]:
     ex, ey, ew, eh = sheets["hud-en"]["rect"]
     out.append({"id": "drive-hud-en", "name": "Drive HUD en", "parent": "drive",
                 "transform_3d": transform((world_x(HUD_BAR[0]), world_y(en_y + ey + eh / 2), 0.0), (0.0, round(eh * PX, 4), 1.0)),
-                "components": {"sindri.sprite": {"texture": sheets["hud-en"]["png"], "tint": [1, 1, 1, 1], "layer": 31}}})
+                "components": {"sindri.sprite": {"texture": sheets["hud-en"]["png"], "tint": [1.0, 1.0, 1.0, 1.0], "layer": 31}}})
     for name in ("di", "kondom"):
         x, y = anchors[name]
         out.append(anchor(f"drive-hud-{name}", f"Drive HUD {name}", "drive", x, y))
@@ -607,6 +662,10 @@ def build_entities(art: Art) -> list[dict]:
 def install(project: Path) -> None:
     art = Art(project)
     render_all(art)
+    import cairosvg
+
+    cairosvg.svg2png(bytestring=f'<svg xmlns="http://www.w3.org/2000/svg" width="8" height="8"><rect width="8" height="8" fill="{MATTE_RGB}"/></svg>'.encode(),
+                     write_to=str(project / MATTE))
     (art.out / "manifest.json").write_text(json.dumps(art.manifest, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
 
     scene_path = project / "main.scene.json"

@@ -112,3 +112,45 @@ def test_touch_drives_through_the_keyboard_rules():
 def test_small_buttons_grow_for_thumbs():
     assert "entity.transform.scale.x = max(width, 36.0) * unit;" in TRIP
     assert "entity.transform.scale.y = 32.0 * unit;" in SHOWROOM
+
+
+def test_mattes_cover_everything_outside_the_stage():
+    # Flash never drew outside the 500x500 movie; on a phone the road and the
+    # actors parked off-stage would otherwise show above and below it.
+    from install_drive import MATTE_LAYER
+
+    for side in ('"top": (0.0, 10.0)', '"bottom": (0.0, -10.0)', '"left": (-10.0, 0.0)', '"right": (10.0, 0.0)'):
+        assert side in INSTALLER
+    # Sprite layers only: the UI canvas (dialogs, hit areas) is drawn apart.
+    sprite_lines = [line for line in INSTALLER.splitlines() if "sindri.ui" not in line]
+    layers = [int(n) for line in sprite_lines for n in re.findall(r'"layer": (\d+)', line)]
+    layers += [int(n) for n in re.findall(r', (\d+), "(?:trip|drive)', INSTALLER)]
+    assert MATTE_LAYER > max(n for n in layers if n != MATTE_LAYER)
+
+
+def test_scripted_tints_are_authored_as_floats():
+    # A Decay write keeps the authored number's type: an integer tint of 1
+    # rounds every paint write to 0 or 1, so a 00349C car drove pure blue.
+    assert '"tint": [1, 1, 1, 1]' not in INSTALLER
+    assert '"tint": [1.0, 1.0, 1.0, 1.0]' in INSTALLER
+
+
+def test_the_drive_spoiler_takes_the_paint():
+    # Frame 794: `h = new Color(_root.bil.heks.hf); h.setRGB(colorHEX)`.
+    assert 'car-heksfarve-' in INSTALLER
+    assert 'one_of("Drive Car heksfarve ", 5.0' in DRIVE
+    assert "wing.sprite.tint.r = this.car_body.sprite.tint.r" in DRIVE
+
+
+def test_paint_bytes_are_converted_to_linear_light():
+    paint = (ROOT / "scripts/workshop_paint_controller.decay").read_text(encoding="utf-8")
+    for script in (paint, DRIVE):
+        assert "fn to_linear(byte: f32) -> f32" in script
+    assert "/ 255.0;" not in DRIVE[DRIVE.index("Frame 794"):DRIVE.index("dress_car();", DRIVE.index("Frame 794"))]
+
+
+def test_the_broke_dialog_answers_every_refusal():
+    state = (ROOT / "scripts/workshop_state.decay").read_text(encoding="utf-8")
+    assert 'Game.set("workshop.buy.refused"' in state
+    assert 'Game.get("workshop.buy.refused", 0.0)' in TRIP
+    assert "BROKE_BUTTONS = {\"ok\": 281, \"lukk\": 285}" in INSTALLER

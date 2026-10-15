@@ -34,35 +34,31 @@ def neutralize_paint_texture(path: Path) -> None:
     image.save(path)
 
 
-def split_spoiler_texture(path: Path) -> Path:
-    """Create a flat paint mask and independent original-ink overlay.
+def split_spoiler_texture(path: Path, ink_source: Path) -> Path:
+    """Flatten the wing to a white paint mask beside its original ink.
 
-    The paint mask gets the same RGB offset as the body. The ink overlay keeps
-    the black outlines and shaded details above it without recoloring them.
+    The original paints only the `spoilerlak` child with `setRGB(colorHEX)`;
+    the outline and the struts above it keep their own colours. The layer
+    extractor cuts that ink alone (`spoiler:<n>:ink`), so the mask gets the
+    body's paint and the ink overlay goes on top unchanged, whatever the
+    paint is -- a dark paint no longer swallows the outline, and no paint
+    blue is left in it.
     """
     from PIL import Image
 
     image = Image.open(path).convert("RGBA")
-    paint = Image.new("RGBA", image.size)
-    ink = Image.new("RGBA", image.size)
-    source = image.load()
-    fill = paint.load()
-    lines = ink.load()
-    for y in range(image.height):
-        for x in range(image.width):
-            r, g, b, a = source[x, y]
-            if not a:
-                continue
-            # Darkness relative to the source blue surface indicates ink.
-            # Keep soft antialiased edges; white/highlight pixels stay paint.
-            brightness = max(r, g, b)
-            ink_fraction = max(0.0, min(1.0, (170.0 - brightness) / 120.0))
-            ink_alpha = round(a * ink_fraction)
-            fill[x, y] = (255, 255, 255, a)
-            lines[x, y] = (r, g, b, ink_alpha)
-    paint.save(path)
+    alpha = image.getchannel("A")
+    white = Image.new("RGBA", image.size, (255, 255, 255, 0))
+    white.putalpha(alpha)
+    white.save(path)
+    # `spoiler:<n>:ink` already lands as `spoiler-<n>-ink.png`, the name the
+    # stage registration looks for beside its wing.
     overlay = path.with_name(path.stem + "-ink.png")
-    ink.save(overlay)
+    if ink_source != overlay:
+        raise SystemExit(f"expected the wing's ink at {overlay.name}, got {ink_source.name}")
+    ink = Image.open(ink_source)
+    if ink.size != image.size:
+        raise SystemExit(f"{ink_source.name} is {ink.size}, its wing is {image.size}")
     return overlay
 
 
@@ -176,9 +172,12 @@ def main() -> int:
                 raise SystemExit(f"missing window texture: {variant}")
             # RGB CXFORM is already baked by swf_car_layers_alpha.py.
         for key, item in manifest["outputs"].items():
-            if key.startswith("spoiler:") and item.get("png"):
-                split_spoiler_texture(output / Path(item["png"]).name)
-        shutil.copy2(layers / "layers-manifest.json", output / "layers-manifest.json")
+            if key.startswith("spoiler:") and not key.endswith(":ink") and item.get("png"):
+                ink = manifest["outputs"][f"{key}:ink"]["png"]
+                split_spoiler_texture(output / Path(item["png"]).name, output / Path(ink).name)
+        # The ink cuts now live beside their wings as `-ink.png`.
+        manifest["outputs"] = {k: v for k, v in manifest["outputs"].items() if not k.endswith(":ink")}
+        (output / "layers-manifest.json").write_text(json.dumps(manifest, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
 
     if registered.exists():
         shutil.rmtree(registered)

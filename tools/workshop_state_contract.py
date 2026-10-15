@@ -1,5 +1,5 @@
 DEFAULTS = {
-    "free_purchases": True,
+    "free_purchases": False,
     "money": 5000,
     "street_cred": 0,
     "bmw_count": 1,

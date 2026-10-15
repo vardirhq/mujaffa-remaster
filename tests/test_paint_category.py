@@ -21,9 +21,10 @@ def test_paint_reaches_the_body_through_the_colour_transform():
     # sliders said. The transform is what makes the slider value land: a zero
     # multiply drops the mask's grey and the offset supplies the colour whole.
     assert "color_multiply.r = 0.0" in source
-    assert "color_offset.r = this.red / 255.0" in source
-    assert "color_offset.g = this.green / 255.0" in source
-    assert "color_offset.b = this.blue / 255.0" in source
+    # The slider bytes are sRGB; the transform works in linear light.
+    assert "color_offset.r = to_linear(this.red)" in source
+    assert "color_offset.g = to_linear(this.green)" in source
+    assert "color_offset.b = to_linear(this.blue)" in source
     # The alpha channels stay at the identity. The mask's alpha is the car's
     # silhouette, and an offset there would fill its transparent corners with
     # a visible rectangle.
@@ -36,3 +37,5 @@ def test_paint_slice_does_not_fake_economy_values():
     assert "purchase(" not in source
     assert "street_cred" not in source
     assert "money" not in source
+    # `skift` pays through the shared till like every other category.
+    assert 'Game.set("workshop.buy.ticket", this.ticket);' in source

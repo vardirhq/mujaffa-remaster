@@ -255,7 +255,9 @@ def install(project: Path, manifest: dict) -> None:
     field = json.loads(json.dumps(display))
     field.update({"id": "workshop-panel-art-plate-field", "name": "Workshop Plate Field", "disabled": True})
     field["transform_3d"]["position"] = [round(321.0 / 250.0 - 1.0, 4), round(1.0 - 416.0 / 250.0, 4), 0.0]
-    field["components"]["sindri.ui.text"]["color"] = [0.0, 0.0, 0.0, 1.0]
+    # Field 212: Arial Bold 22 px, grey 666666, centred, 137 px wide.
+    field["components"]["sindri.ui.text"].update({"color": [0.4, 0.4, 0.4, 1.0], "font_size": round(22.0 / 250.0, 4),
+                                                  "bounds": [round(137.0 / 250.0, 4), round(30.0 / 250.0, 4)]})
     field["components"]["sindri.ui.text"]["layer"] = 256
     entities.append(field)
 

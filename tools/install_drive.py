@@ -38,12 +38,15 @@ from swf_car_extract import IDENT  # noqa: E402
 
 PX = 10.0 / 500.0
 SCALE = 2.0
-FONT = "fonts/ChakraPetch-Regular.ttf"
+FONT = "fonts/LiberationSans-Bold.ttf"
 # The page background (the runtime's clear colour), and a sprite layer above
 # every drive and trip layer.
 MATTE = "assets/generated/drive/png/matte.png"
 MATTE_RGB = "#242c3c"
 MATTE_LAYER = 250
+# The SWF's background colour (SetBackgroundColor ffffff): the end screens
+# leave most of the stage empty, so the original shows white there.
+PAPER = "assets/generated/drive/png/paper.png"
 
 # Field variables a script writes. The picture leaves them empty.
 LIVE_VARIABLES = {
@@ -472,7 +475,7 @@ def sheet_sprite(entity_id, name, entry, layer, parent, clips: dict):
 
 
 def text(entity_id, name, parent, x, y, size, color, layer, anchor_name="top_left", value="", template=None, bounds=None):
-    component = {"text": template if template is not None else value, "font": FONT, "font_size": round(size * PX, 4),
+    component = {"text": template if template is not None else value, "font": FONT, "bold": True, "font_size": round(size * PX, 4),
                  "line_height": round(size * 1.2 * PX, 4), "color": color, "anchor": anchor_name, "layer": layer}
     if template is not None:
         component["values"] = [0.0]
@@ -547,9 +550,11 @@ def build_entities(art: Art) -> list[dict]:
 
     # The end screens.
     out.append({"id": "trip-over", "name": "Trip Game Over", "parent": "trip", "disabled": True, "transform_3d": transform()})
+    out.append(stage_layer("trip-over-paper", "Game Over Paper", PAPER, 0, "trip-over"))
     out.append(stage_layer("trip-over-art", "Game Over Art", layers["game-over"]["png"], 1, "trip-over"))
     out.append(hit_button("trip-over-go", "Game Over Go", "OK", "trip-over"))
     out.append({"id": "trip-status", "name": "Trip Status", "parent": "trip", "disabled": True, "transform_3d": transform()})
+    out.append(stage_layer("trip-status-paper", "Status Paper", PAPER, 0, "trip-status"))
     for tier in STATUS:
         # "Status N" is already taken by the GameState prototype's markers.
         out.append(stage_layer(f"trip-status-{tier}", f"Trip Status {tier}", layers[f"status-{tier}"]["png"], 1, "trip-status", disabled=True))
@@ -642,7 +647,7 @@ def build_entities(art: Art) -> list[dict]:
     for index, field in enumerate(m["fields"].get("hud", [])):
         name = FIELD_NAMES.get(field["variable"])
         if name:
-            template = "{}" if name in ("Cred", "Penger", "Level") else ("{.1}" if name == "BMW" else None)
+            template = "{}" if name in ("BMW", "Cred", "Penger", "Level") else None
             out.append(field_text(f"drive-hud-field-{index}", f"Drive HUD {name}", "drive", field, 32, template))
     for frame in (7, 21, 41):
         out.append(stage_layer(f"drive-intro-{frame}", f"Drive Intro {frame}", layers[f"intro-{frame}"]["png"], 40, "drive", disabled=True))
@@ -666,6 +671,8 @@ def install(project: Path) -> None:
 
     cairosvg.svg2png(bytestring=f'<svg xmlns="http://www.w3.org/2000/svg" width="8" height="8"><rect width="8" height="8" fill="{MATTE_RGB}"/></svg>'.encode(),
                      write_to=str(project / MATTE))
+    cairosvg.svg2png(bytestring=b'<svg xmlns="http://www.w3.org/2000/svg" width="8" height="8"><rect width="8" height="8" fill="#ffffff"/></svg>',
+                     write_to=str(project / PAPER))
     (art.out / "manifest.json").write_text(json.dumps(art.manifest, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
 
     scene_path = project / "main.scene.json"

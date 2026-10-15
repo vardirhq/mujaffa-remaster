@@ -181,7 +181,7 @@ def description_entity() -> dict:
         "components": {
             "sindri.text": {
                 "text": "",
-                "font": "fonts/ChakraPetch-Regular.ttf",
+                "font": "fonts/LiberationSans-Bold.ttf", "bold": True,
                 "font_size": round(11.0 * sy * PX, 4),
                 "line_height": round((11.0 + 2.0) * sy * PX, 4),
                 "color": [0.0, 0.0, 0.0, 1.0],
@@ -202,7 +202,7 @@ def header_entity(key: str, spec: dict) -> dict:
         "components": {
             "sindri.text": {
                 "text": "{}",
-                "font": "fonts/ChakraPetch-Regular.ttf",
+                "font": "fonts/LiberationSans-Bold.ttf", "bold": True,
                 "font_size": round(HEADER_FONT_PX * 0.8 * PX, 4),
                 "line_height": round(HEADER_FONT_PX * PX, 4),
                 "color": HEADER_COLOUR,

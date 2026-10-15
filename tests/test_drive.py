@@ -154,3 +154,25 @@ def test_the_broke_dialog_answers_every_refusal():
     assert 'Game.set("workshop.buy.refused"' in state
     assert 'Game.get("workshop.buy.refused", 0.0)' in TRIP
     assert "BROKE_BUTTONS = {\"ok\": 281, \"lukk\": 285}" in INSTALLER
+
+
+def test_live_text_is_bold_arial_metric_like_the_original():
+    # Every edit text in the SWF is embedded Arial Bold (font 2). Liberation
+    # Sans Bold has Arial's metrics under the OFL; `bold` asks for the face's
+    # bold, without which a system regular of the same family can win.
+    for tool in ("install_drive.py", "install_showroom.py", "install_workshop_interactivity.py"):
+        source = (ROOT / "tools" / tool).read_text(encoding="utf-8")
+        assert "ChakraPetch" not in source
+        assert "LiberationSans-Bold.ttf" in source
+        assert re.search(r'"bold":\s*True', source)
+    assert (ROOT / "fonts/LiberationSans-Bold.ttf").is_file()
+    assert "SIL Open Font License" in (ROOT / "fonts/OFL-LiberationSans.txt").read_text(encoding="utf-8")
+
+
+def test_hud_bmw_reads_like_flash_and_end_screens_are_on_white():
+    source = (ROOT / "tools/install_drive.py").read_text(encoding="utf-8")
+    # Flash prints bil_cool 1 as "1" and 1.15 as "1.15": `{}` does the same.
+    assert '"{.1}"' not in source
+    assert 'name in ("BMW", "Cred", "Penger", "Level")' in source
+    assert 'stage_layer("trip-over-paper", "Game Over Paper", PAPER, 0, "trip-over")' in source
+    assert 'stage_layer("trip-status-paper", "Status Paper", PAPER, 0, "trip-status")' in source

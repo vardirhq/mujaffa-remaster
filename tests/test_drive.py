@@ -112,3 +112,14 @@ def test_touch_drives_through_the_keyboard_rules():
 def test_small_buttons_grow_for_thumbs():
     assert "entity.transform.scale.x = max(width, 36.0) * unit;" in TRIP
     assert "entity.transform.scale.y = 32.0 * unit;" in SHOWROOM
+
+
+def test_mattes_cover_everything_outside_the_stage():
+    # Flash never drew outside the 500x500 movie; on a phone the road and the
+    # actors parked off-stage would otherwise show above and below it.
+    from install_drive import MATTE_LAYER
+
+    for side in ('"top": (0.0, 10.0)', '"bottom": (0.0, -10.0)', '"left": (-10.0, 0.0)', '"right": (10.0, 0.0)'):
+        assert side in INSTALLER
+    layers = [int(n) for n in re.findall(r'"layer": (\d+)', INSTALLER)] + [int(n) for n in re.findall(r', (\d+), "(?:trip|drive)', INSTALLER)]
+    assert MATTE_LAYER > max(n for n in layers if n != MATTE_LAYER)

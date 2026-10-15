@@ -39,6 +39,11 @@ from swf_car_extract import IDENT  # noqa: E402
 PX = 10.0 / 500.0
 SCALE = 2.0
 FONT = "fonts/ChakraPetch-Regular.ttf"
+# The page background (the runtime's clear colour), and a sprite layer above
+# every drive and trip layer.
+MATTE = "assets/generated/drive/png/matte.png"
+MATTE_RGB = "#242c3c"
+MATTE_LAYER = 250
 
 # Field variables a script writes. The picture leaves them empty.
 LIVE_VARIABLES = {
@@ -479,6 +484,16 @@ def build_entities(art: Art) -> list[dict]:
     out: list[dict] = []
     out.append({"id": "trip", "name": "Trip", "transform_3d": transform()})
 
+    # The original is a 500x500 movie; Flash never drew outside it. A screen
+    # that is taller or wider than square would otherwise show the road
+    # scrolling past the stage and the actors parked off it, so four mattes in
+    # the page's colour sit over everything outside the square.
+    for side, (x, y) in {"top": (0.0, 10.0), "bottom": (0.0, -10.0), "left": (-10.0, 0.0), "right": (10.0, 0.0)}.items():
+        width = 30.0 if side in ("top", "bottom") else 10.0
+        out.append({"id": f"trip-matte-{side}", "name": f"Trip Matte {side.capitalize()}", "parent": "trip",
+                    "transform_3d": transform((x, y, 0.0), (width, 10.0, 1.0)),
+                    "components": {"sindri.sprite": {"texture": MATTE, "tint": [1, 1, 1, 1], "layer": MATTE_LAYER}}})
+
     # The cruise dialog (frame 740), over the workshop.
     out.append({"id": "trip-cruise", "name": "Trip Cruise", "parent": "trip", "disabled": True, "transform_3d": transform()})
     out.append(stage_layer("trip-cruise-art", "Trip Cruise Dialog", layers["cruise-dialog"]["png"], 200, "trip-cruise"))
@@ -607,6 +622,10 @@ def build_entities(art: Art) -> list[dict]:
 def install(project: Path) -> None:
     art = Art(project)
     render_all(art)
+    import cairosvg
+
+    cairosvg.svg2png(bytestring=f'<svg xmlns="http://www.w3.org/2000/svg" width="8" height="8"><rect width="8" height="8" fill="{MATTE_RGB}"/></svg>'.encode(),
+                     write_to=str(project / MATTE))
     (art.out / "manifest.json").write_text(json.dumps(art.manifest, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
 
     scene_path = project / "main.scene.json"

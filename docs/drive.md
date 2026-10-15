@@ -61,6 +61,10 @@ handshake that starts a drive and reports it finished (1) or crashed (2).
   answer: "respect" gives +15 on JA!, and its cross leaves `repairok` set so it
   asks again next time the workshop opens; "open" shows the bill as digit
   pictures from the embedded Arial Bold, and NEI! drives on with the damage.
+- "Bhaias Verksted" (755-793) plays after START, after every finished drive
+  and after a level's NESTE SIDE, as `workshop.view` 7. Its BMW (946) holds the
+  same `karosseri` as the garage's `bil` (875), so the fitted garage car itself
+  drives in, moved by the `Trip Arrival` sequence through 946's placements.
 - JA on the KJØR! dialog goes straight to the map; the BMW's drive-away
   animation (sprite 875 frames 2-50) is not cut yet.
 - NESTE SIDE on the status screen goes back to the title, where 659 opened the

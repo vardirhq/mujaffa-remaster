@@ -90,12 +90,14 @@ GARAGE_LAYOUT_VIEWS = f'''    fn refresh_layout() {{
         // UTSTYR rail and its controls and moves the car to its frame-730 place.
         // 2 is the KJØR! dialog over the workshop; from 3 on (map, drive, end
         // screens) the trip covers the stage and the garage car is put away.
+        // 7 is "Bhaias Verksted", where the arrival sequence drives the car.
         let view = Game.get("workshop.view", 0.0);
         let showroom = view == 1.0;
         World.set_active(this.desktop, view == 0.0);
         World.set_active(this.mobile, false);
         let car = this.car;
-        World.set_active(car, view <= 2.0);
+        World.set_active(car, view <= 2.0 || view == 7.0);
+        if view == 7.0 {{ return; }}
         car.transform.position.x = 0.0;
         car.transform.position.y = 0.0;
         if showroom {{

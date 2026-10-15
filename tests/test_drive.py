@@ -195,3 +195,18 @@ def test_repair_and_respect_ask_like_repair_car():
     assert "if Ui.is_pressed(this.respect_lukk) { World.set_active(this.respect, false); }" in answer
     # The bill's digit pictures follow field 882 and Arial Bold's digit advance.
     assert "291.4 + (slot - 1.0) * 11.133, 202.35, 15.133, 30.0" in TRIP
+
+
+def test_bhaias_verksted_plays_after_start_and_every_drive():
+    from install_drive import ARRIVAL, ARRIVAL_CAR, GARAGE_CAR
+    assert (ARRIVAL[0], ARRIVAL[-1], ARRIVAL_CAR, GARAGE_CAR) == (755, 793, 946, 875)
+    # START, a finished drive and both level-complete pages arrive; none of
+    # them opens the workshop directly any more.
+    assert TRIP.count("arrive();") == 4
+    assert "show(0.0);\n                    back_in_garage();" not in TRIP
+    assert 'if Sequence.is_finished(this.arrival) { arrived(); }' in TRIP
+    # The garage leaves the car to the sequence while it plays.
+    showroom = (ROOT / "tools/install_showroom.py").read_text(encoding="utf-8")
+    assert "World.set_active(car, view <= 2.0 || view == 7.0);" in showroom
+    assert "if view == 7.0 {{ return; }}" in showroom
+    assert '"target": "/Parity Car"' in INSTALLER

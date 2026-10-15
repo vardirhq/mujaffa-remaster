@@ -9,7 +9,8 @@
 // the garage, except after Tveita, which shows the level-complete map.
 //
 // `workshop.view` says which of these covers the stage: 0 workshop,
-// 1 showroom, 2 dialog, 3 map, 4 drive, 5 game over, 6 status. The drive
+// 1 showroom, 2 dialog, 3 map, 4 drive, 5 game over, 6 status, 7 "Bhaias
+// Verksted" (the arrival, 755-793). The drive
 // itself is the drive controller's: this raises `drive.ticket` and waits for
 // `drive.result_ticket` to match it.
 //
@@ -42,6 +43,9 @@ script TripController {
     var respect_ja: Entity = null;
     var respect_lukk: Entity = null;
     var bill: f32 = 0.0;
+    // "Bhaias Verksted" (755-793): the street and the car's sequence.
+    var arrival: Entity = null;
+    var shadow: Entity = null;
     var cruise: Entity = null;
     var cruise_ja: Entity = null;
     var cruise_nei: Entity = null;
@@ -65,6 +69,8 @@ script TripController {
         this.broke_art = World.find("Trip Broke Dialog");
         this.broke_ok = World.find("Broke Ok");
         this.broke_lukk = World.find("Broke Lukk");
+        this.arrival = World.find("Trip Arrival");
+        this.shadow = World.find("Garage Car root-shadow");
         this.repair = World.find("Trip Repair");
         this.repair_art = World.find("Trip Repair Dialog");
         this.repair_ja = World.find("Repair Ja");
@@ -100,7 +106,8 @@ script TripController {
         Game.set("game.cool", 0.0);
         // Tickets only ever go up, so a board left over from an earlier run
         // cannot start or end a drive by itself.
-        show(0.0);
+        // START (frame 202) goes on through "Bhaias Verksted" (755).
+        arrive();
     }
 
     // ---- the route ---------------------------------------------------------
@@ -193,6 +200,9 @@ script TripController {
         World.set_active(this.drive, value == 4.0);
         World.set_active(this.over, value == 5.0);
         World.set_active(this.status, value == 6.0);
+        World.set_active(this.arrival, value == 7.0);
+        // 946 has no shadow (61) under the BMW; the garage's `bil` does.
+        World.set_active(this.shadow, value != 7.0);
         if value == 3.0 { show_map(); }
         if value == 6.0 { show_status(); }
     }
@@ -233,6 +243,20 @@ script TripController {
     }
 
     // ---- the garage after a drive -----------------------------------------
+
+    // 755-793, then 722: the BMW drives up to the garage, and the workshop
+    // opens with the repair question when a drive has just ended.
+    fn arrive() {
+        show(7.0);
+        Sequence.play(this.arrival, "arrive");
+        Sequence.restart(this.arrival);
+    }
+
+    fn arrived() {
+        Sequence.stop(this.arrival);
+        show(0.0);
+        back_in_garage();
+    }
 
     // Frame 722 with `repairok == 1` opens `repair_car`: "respect" when the
     // BMW came back without a scratch, "open" with the bill (`repair =
@@ -435,12 +459,10 @@ script TripController {
                 } else if this.state == 483.0 {
                     // 640: `goto_label = "bane2_start"`, back through the garage.
                     this.state = 404.0;
-                    show(0.0);
-                    back_in_garage();
+                    arrive();
                 } else if this.state == 492.0 {
                     this.state = 443.0;
-                    show(0.0);
-                    back_in_garage();
+                    arrive();
                 } else {
                     show(6.0);
                 }
@@ -454,10 +476,11 @@ script TripController {
                 } else if is_level_complete(this.state) {
                     show(3.0);
                 } else {
-                    show(0.0);
-                    back_in_garage();
+                    arrive();
                 }
             }
+        } else if this.view == 7.0 {
+            if Sequence.is_finished(this.arrival) { arrived(); }
         } else if this.view == 5.0 {
             if Ui.is_pressed(this.over_go) { show(6.0); }
         } else if this.view == 6.0 {

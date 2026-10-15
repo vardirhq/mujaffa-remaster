@@ -182,6 +182,9 @@ jobs:
       - name: Verify pinned editor builds
         working-directory: sindri2
         run: cargo check --package sindri-editor
+      - name: Check Decay scripts with the pinned checker
+        working-directory: sindri2
+        run: cargo run --quiet --package decay-lsp -- --check ../mujaffa/scripts
       - name: Export project from outside the Sindri repository
         working-directory: sindri2
         run: cargo run --package sindri-export --bin sindri-export -- ../mujaffa "$RUNNER_TEMP/mujaffa-export" --base /mujaffa-remaster/ --build-id "$GITHUB_SHA"

@@ -26,6 +26,12 @@ script TripController {
     var shown_map: Entity = null;
     var shown_status: Entity = null;
 
+    // "Din fattiglus!" (`brokeassalert`) over the workshop, raised by the till.
+    var broke: Entity = null;
+    var broke_art: Entity = null;
+    var broke_ok: Entity = null;
+    var broke_lukk: Entity = null;
+    var broke_seen: f32 = 0.0;
     var cruise: Entity = null;
     var cruise_ja: Entity = null;
     var cruise_nei: Entity = null;
@@ -45,6 +51,10 @@ script TripController {
     var status_go: Entity = null;
 
     fn start() {
+        this.broke = World.find("Trip Broke");
+        this.broke_art = World.find("Trip Broke Dialog");
+        this.broke_ok = World.find("Broke Ok");
+        this.broke_lukk = World.find("Broke Lukk");
         this.cruise = World.find("Trip Cruise");
         this.cruise_ja = World.find("Cruise Ja");
         this.cruise_nei = World.find("Cruise Nei");
@@ -255,6 +265,9 @@ script TripController {
     }
 
     fn layout(unit: f32) {
+        hit(this.broke_art, 0.0, 0.0, 500.0, 500.0, unit);
+        hit(this.broke_ok, 216.662, 310.612, 91.975, 34.981, unit);
+        hit(this.broke_lukk, 411.45, 134.029, 20.474, 19.255, unit);
         hit(this.cruise_ja, 124.844, 298.515, 93.466, 35.548, unit);
         hit(this.cruise_nei, 290.547, 298.515, 93.466, 35.548, unit);
         hit(this.cruise_lukk, 414.063, 132.692, 20.806, 19.567, unit);
@@ -291,6 +304,17 @@ script TripController {
             if board == 0.0 { back_in_garage(); }
         }
         layout(0.004 * min(Viewport.aspect, 1.0));
+
+        let refused = Game.get("workshop.buy.refused", 0.0);
+        if refused > this.broke_seen {
+            this.broke_seen = refused;
+            World.set_active(this.broke, true);
+        }
+        if World.is_active(this.broke) {
+            if Ui.is_pressed(this.broke_ok) || Ui.is_pressed(this.broke_lukk) || this.view != 0.0 {
+                World.set_active(this.broke, false);
+            }
+        }
 
         if this.view == 2.0 {
             // JA: the BMW drives off (875 frames 2-50), then 743 -> the map.

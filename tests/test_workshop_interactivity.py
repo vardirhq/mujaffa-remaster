@@ -15,7 +15,7 @@ def test_paint_uses_original_rgb_mixer_model():
     for asset in ('rgb-mixer.png','rgb-red.png','rgb-green.png','rgb-blue.png','rgb-ok.png'): assert asset in installer
     assert 'paint_index' not in controller; assert 'next_paint' not in controller
     assert 'workshop.paint.red' in controller and 'workshop.paint.green' in controller and 'workshop.paint.blue' in controller
-    assert 'this.red / 255.0' in controller and 'this.green / 255.0' in controller and 'this.blue / 255.0' in controller
+    assert 'to_linear(this.red)' in controller and 'to_linear(this.green)' in controller and 'to_linear(this.blue)' in controller
     assert 'Ui.is_pressed(this.change_paint)' in controller and 'set_mixer(true)' in controller and 'Ui.is_pressed(this.ok)' in controller
 def test_paint_rgb_tracks_are_native_vertical_sliders():
     installer=Path('tools/install_workshop_interactivity.py').read_text(); controller=Path('scripts/workshop_paint_controller.decay').read_text()

@@ -2,7 +2,7 @@
 from pathlib import Path
 state = Path("scripts/workshop_state.decay").read_text(encoding="utf-8")
 required = [
-    "var free_purchases: bool = true;",
+    "var free_purchases: bool = false;",
     "var money: f32 = 5000.0;",
     "var street_cred: f32 = 0.0;",
     "if this.free_purchases",

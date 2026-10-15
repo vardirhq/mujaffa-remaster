@@ -111,6 +111,11 @@ ARRIVAL_UNDER = {942, 943, 944, 945}
 ARRIVAL_OVER = {947, 948}
 ARRIVAL_CLIPS = {"lamp": 950}  # 425, also over the BMW, draws nothing
 GARAGE_CAR = 875
+# JA on the KJØR! dialog plays `bil` (875) frames 2-50: `karosseri` and `dæk`
+# back up a little and drive off to the bottom right, while its shadow (61)
+# stays where it was.
+LEAVE = range(2, 51)
+SHADOW = "Garage Car root-shadow"
 
 DRIVE_FRAME = 806
 ROAD = 951
@@ -323,6 +328,21 @@ def arrival_keys(art: Art) -> list[dict]:
     return keys
 
 
+def leave_keys(art: Art) -> list[dict]:
+    """The garage car's offset for each drive-away frame, in world units."""
+    def body(frame):
+        return next(item["matrix"] for item in art.movie.sprite_display(GARAGE_CAR, frame) if item.get("name") == "karosseri")
+
+    a, b, c, d, _, _ = art.placement(BROKE_FRAME, GARAGE_CAR)
+    rest = body(1)
+    keys = []
+    for index, frame in enumerate(LEAVE):
+        here = body(frame)
+        dx, dy = here[4] - rest[4], here[5] - rest[5]
+        keys.append({"time": round(index / 12.0, 4), "x": round((a * dx + c * dy) * PX, 4), "y": round(-(b * dx + d * dy) * PX, 4)})
+    return keys
+
+
 def render_all(art: Art) -> None:
     movie = art.movie
     stage_skip = {7}  # the invisible full-stage click shield
@@ -361,6 +381,7 @@ def render_all(art: Art) -> None:
         art.manifest["sheets"][f"arrival-{key}"] = art.sheet(
             f"arrival-{key}", [art.draws(clip, matrix, {clip: n}) for n in range(1, sprite_frames(art.movie, clip) + 1)])
     art.manifest["arrival"] = arrival_keys(art)
+    art.manifest["leave"] = leave_keys(art)
     dialog = [{"character": CRUISE_DIALOG, "matrix": art.placement(CRUISE_FRAME, CRUISE_DIALOG)}]
     for key, button in CRUISE_BUTTONS.items():
         art.manifest["buttons"][f"cruise-{key}"] = art.button_rect(CRUISE_FRAME, button, dialog)
@@ -575,6 +596,17 @@ def arrival_sequence(keys: list[dict]) -> dict:
     return {"duration": round(len(keys) / 12.0, 4), "looping": False, "tracks": tracks}
 
 
+def leave_sequence(keys: list[dict]) -> dict:
+    tracks = []
+    for prop, field, sign in (("position.x", "x", 1.0), ("position.y", "y", 1.0)):
+        tracks.append({"target": "/Parity Car", "property": prop,
+                       "keys": [{"time": key["time"], "value": key[field], "ease": "linear"} for key in keys]})
+        # The shadow is one of the car's layers; it holds still.
+        tracks.append({"target": f"/Parity Car/{SHADOW}", "property": prop,
+                       "keys": [{"time": key["time"], "value": -key[field], "ease": "linear"} for key in keys]})
+    return {"duration": round(len(keys) / 12.0, 4), "looping": False, "tracks": tracks}
+
+
 def hit_button(entity_id, name, label, parent):
     # A hit area laid out each frame by the trip controller; the art is behind it.
     return {"id": entity_id, "name": name, "parent": parent, "transform_3d": transform((0, 0, 0), (0.001, 0.001, 1.0)),
@@ -642,6 +674,8 @@ def build_entities(art: Art) -> list[dict]:
     # and what passes in front of it.
     out.append({"id": "trip-arrival", "name": "Trip Arrival", "parent": "trip", "disabled": True, "transform_3d": transform(),
                 "components": {"sindri.sequence": {"sequences": {"arrive": arrival_sequence(m["arrival"])}, "speed": 1.0}}})
+    out.append({"id": "trip-leave", "name": "Trip Leave", "parent": "trip", "transform_3d": transform(),
+                "components": {"sindri.sequence": {"sequences": {"leave": leave_sequence(m["leave"])}, "speed": 1.0}}})
     out.append(stage_layer("trip-arrival-street", "Arrival Street", layers["arrival-street"]["png"], 28, "trip-arrival"))
     out.append(stage_layer("trip-arrival-over", "Arrival Over", layers["arrival-over"]["png"], 85, "trip-arrival"))
     for key in ARRIVAL_CLIPS:

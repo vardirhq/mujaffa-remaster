@@ -45,6 +45,8 @@ script TripController {
     var bill: f32 = 0.0;
     // "Bhaias Verksted" (755-793): the street and the car's sequence.
     var arrival: Entity = null;
+    var leave: Entity = null;
+    var leaving: bool = false;
     var shadow: Entity = null;
     var cruise: Entity = null;
     var cruise_ja: Entity = null;
@@ -70,6 +72,7 @@ script TripController {
         this.broke_ok = World.find("Broke Ok");
         this.broke_lukk = World.find("Broke Lukk");
         this.arrival = World.find("Trip Arrival");
+        this.leave = World.find("Trip Leave");
         this.shadow = World.find("Garage Car root-shadow");
         this.repair = World.find("Trip Repair");
         this.repair_art = World.find("Trip Repair Dialog");
@@ -247,6 +250,7 @@ script TripController {
     // 755-793, then 722: the BMW drives up to the garage, and the workshop
     // opens with the repair question when a drive has just ended.
     fn arrive() {
+        Game.set("trip.car_driven", 1.0);
         show(7.0);
         Sequence.play(this.arrival, "arrive");
         Sequence.restart(this.arrival);
@@ -254,8 +258,28 @@ script TripController {
 
     fn arrived() {
         Sequence.stop(this.arrival);
+        Game.set("trip.car_driven", 0.0);
         show(0.0);
         back_in_garage();
+    }
+
+    fn drive_off() {
+        this.leaving = true;
+        World.set_active(this.cruise, false);
+        Game.set("trip.car_driven", 1.0);
+        Sequence.play(this.leave, "leave");
+        Sequence.restart(this.leave);
+    }
+
+    // The car comes back to its place for when the trip returns to the garage.
+    fn driven_off() {
+        this.leaving = false;
+        Sequence.stop(this.leave);
+        let shadow = this.shadow;
+        shadow.transform.position.x = 0.0;
+        shadow.transform.position.y = 0.0;
+        Game.set("trip.car_driven", 0.0);
+        show(3.0);
     }
 
     // Frame 722 with `repairok == 1` opens `repair_car`: "respect" when the
@@ -448,9 +472,13 @@ script TripController {
         }
 
         if this.view == 2.0 {
-            // JA: the BMW drives off (875 frames 2-50), then 743 -> the map.
-            if Ui.is_pressed(this.cruise_ja) { show(3.0); }
-            if Ui.is_pressed(this.cruise_nei) || Ui.is_pressed(this.cruise_lukk) { show(0.0); }
+            if this.leaving {
+                if Sequence.is_finished(this.leave) { driven_off(); }
+            } else {
+                // JA: the BMW drives off (875 frames 2-50), then 743 -> the map.
+                if Ui.is_pressed(this.cruise_ja) { drive_off(); }
+                if Ui.is_pressed(this.cruise_nei) || Ui.is_pressed(this.cruise_lukk) { show(0.0); }
+            }
         } else if this.view == 3.0 {
             refresh_map_numbers();
             if Ui.is_pressed(this.map_go) {

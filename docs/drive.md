@@ -65,8 +65,8 @@ handshake that starts a drive and reports it finished (1) or crashed (2).
   and after a level's NESTE SIDE, as `workshop.view` 7. Its BMW (946) holds the
   same `karosseri` as the garage's `bil` (875), so the fitted garage car itself
   drives in, moved by the `Trip Arrival` sequence through 946's placements.
-- JA on the KJØR! dialog goes straight to the map; the BMW's drive-away
-  animation (sprite 875 frames 2-50) is not cut yet.
+- JA on the KJØR! dialog plays the drive-away (875 frames 2-50) as the
+  `Trip Leave` sequence on the garage car, its shadow held still, then the map.
 - NESTE SIDE on the status screen goes back to the title, where 659 opened the
   highscore list.
 

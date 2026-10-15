@@ -208,5 +208,14 @@ def test_bhaias_verksted_plays_after_start_and_every_drive():
     # The garage leaves the car to the sequence while it plays.
     showroom = (ROOT / "tools/install_showroom.py").read_text(encoding="utf-8")
     assert "World.set_active(car, view <= 2.0 || view == 7.0);" in showroom
-    assert "if view == 7.0 {{ return; }}" in showroom
     assert '"target": "/Parity Car"' in INSTALLER
+
+
+def test_ja_plays_the_drive_away_before_the_map():
+    from install_drive import LEAVE, SHADOW
+    assert (LEAVE[0], LEAVE[-1]) == (2, 50)
+    assert "if Ui.is_pressed(this.cruise_ja) { drive_off(); }" in TRIP
+    assert "if Sequence.is_finished(this.leave) { driven_off(); }" in TRIP
+    assert '"target": f"/Parity Car/{SHADOW}"' in INSTALLER
+    showroom = (ROOT / "tools/install_showroom.py").read_text(encoding="utf-8")
+    assert 'if Game.get("trip.car_driven", 0.0) > 0.0 {{ return; }}' in showroom

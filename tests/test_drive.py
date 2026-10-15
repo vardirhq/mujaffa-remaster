@@ -96,3 +96,19 @@ def test_views_agree_between_controllers():
     assert 'Game.set("workshop.view", value);' in SHOWROOM
     assert "if this.view == 0.0 && Ui.is_pressed(this.nav_kjor) { set_view(2.0); }" in SHOWROOM
 
+
+
+def test_touch_drives_through_the_keyboard_rules():
+    # A finger presses the same arrow steps the keys do, so it cannot out-steer them.
+    assert "if right {" in DRIVE and "if left {" in DRIVE and "if up {" in DRIVE and "if down {" in DRIVE
+    assert "if steering() {" in DRIVE
+    assert "clamp(this.touch_y - 70.0, 60.0, 440.0)" in DRIVE
+    # Taps land on the same checks as Z, X and B.
+    assert 'let greet = Input.just_pressed("Z") || this.want_greet;' in DRIVE
+    assert 'let pick = Input.just_pressed("X") || this.want_pick;' in DRIVE
+    assert 'let burn = Input.just_pressed("B") || this.want_burn;' in DRIVE
+
+
+def test_small_buttons_grow_for_thumbs():
+    assert "entity.transform.scale.x = max(width, 36.0) * unit;" in TRIP
+    assert "entity.transform.scale.y = 32.0 * unit;" in SHOWROOM

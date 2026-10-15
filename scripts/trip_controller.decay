@@ -230,12 +230,13 @@ script TripController {
 
     // ---- layout ------------------------------------------------------------
 
-    // A hit area over stage rect (left, top, width, height).
+    // A hit area over stage rect (left, top, width, height), grown to at
+    // least 36 px each way around its centre so a thumb on a phone finds it.
     fn hit(entity: Entity, left: f32, top: f32, width: f32, height: f32, unit: f32) {
         entity.transform.position.x = (left + width / 2.0 - 250.0) * unit;
         entity.transform.position.y = (250.0 - top - height / 2.0) * unit;
-        entity.transform.scale.x = width * unit;
-        entity.transform.scale.y = height * unit;
+        entity.transform.scale.x = max(width, 36.0) * unit;
+        entity.transform.scale.y = max(height, 36.0) * unit;
     }
 
     // Each map frame's one clickable district, measured from the SWF.

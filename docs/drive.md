@@ -51,6 +51,12 @@ handshake that starts a drive and reports it finished (1) or crashed (2).
 
 - Key repeat: the arrow keys move the car one step per 1/12 s tick while held,
   in place of the OS key-repeat the original's `keyPress` events relied on.
+- Phones: one finger steers and taps act, so nothing sits under the game.
+  A held or dragged finger presses the same arrow steps towards a point 70 px
+  above it, and the opposite arrow to brake when the BMW gets there. A tap
+  (under 0.25 s, moving under 12 px) on the cousin greets him (Z), on the girl
+  picks her up (X), and two taps within 0.35 s elsewhere are a burn-out (B).
+  The horn (H) is sound only and waits for the sounds to be cut.
 - The garage's "respect" (+15) and "repair" dialogs are settled as JA on
   arrival in the garage; their JA/NEI art is not cut yet.
 - JA on the KJØR! dialog goes straight to the map; the BMW's drive-away

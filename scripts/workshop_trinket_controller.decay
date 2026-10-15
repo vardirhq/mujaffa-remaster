@@ -70,10 +70,10 @@ script WorkshopTrinketController {
     }
     fn update(dt:f32) {
         let unit=0.004*min(Viewport.aspect,1.0);
-        place(this.buy1,205.0,399.0,58.0,24.0,unit);
-        place(this.buy2,274.0,399.0,58.0,24.0,unit);
-        place(this.buy3,343.0,399.0,58.0,24.0,unit);
-        place(this.buy4,412.0,399.0,58.0,24.0,unit);
+        place(this.buy1,255.1,418.9,59.4,38.9,unit);
+        place(this.buy2,319.0,418.9,59.4,38.9,unit);
+        place(this.buy3,382.8,418.9,59.4,38.9,unit);
+        place(this.buy4,446.6,418.9,59.4,38.9,unit);
         settle(); refresh_visibility();
         if Game.get("workshop.category",0.0)!=10.0 { return; }
         if Ui.is_pressed(this.buy1) { ask(1.0); }

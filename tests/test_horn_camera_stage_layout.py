@@ -12,6 +12,6 @@ def test_horn_camera_share_category_layout_pass():
 
 def test_purchases_use_square_stage_aspect_scale():
     assert "let unit=0.004*min(Viewport.aspect,1.0);" in ROUTER
-    assert "this.horn_buy1.transform.position.y=(250.0-418.0)*unit;" in ROUTER
-    assert "this.horn_buy2.transform.position.y=(250.0-418.0)*unit;" in ROUTER
-    assert "this.camera_buy1.transform.position.y=(250.0-418.0)*unit;" in ROUTER
+    assert "this.horn_buy1.transform.position.y=(250.0-423.3)*unit;" in ROUTER
+    assert "this.horn_buy2.transform.position.y=(250.0-423.3)*unit;" in ROUTER
+    assert "this.camera_buy1.transform.position.y=(250.0-423.3)*unit;" in ROUTER

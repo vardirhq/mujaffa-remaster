@@ -10,7 +10,8 @@ def test_paint_slice_has_dedicated_controller():
     assert "set_mixer(true);" in source
     assert "set_mixer(false);" in source
     assert "Ui.slider_value(" in source
-    assert source.count("set_stripe(") >= 6
+    # Five swatches go through the till (`ask_stripe`), one per stripe.
+    assert source.count("ask_stripe(") >= 6
 
 
 def test_paint_reaches_the_body_through_the_colour_transform():

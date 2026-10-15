@@ -1,0 +1,96 @@
+// The UTSTYR panels as the original draws them (sprite 924, frame 722).
+//
+// `tools/install_workshop_panels.py` cuts each panel as a base picture plus
+// one picture per frame of its stateful clip: frame N carries the red tick on
+// option N, so showing the frame that matches what is fitted is the tick.
+// BILSTEREO has four such clips (one per speaker row) and LAKKERING's stripe
+// swatches are `fartstribe` (178). The category router shows the base; this
+// script shows the state on top of it.
+//
+// Each option's price tag (`koster<n>`, sprite 155) shows while the pointer is
+// over its button, as the original's rollover does.
+script WorkshopPanelArt {
+    var category: f32 = -1.0;
+    var lakkering: Entity = null;
+
+    fn start() {
+        this.lakkering = World.find("Workshop Panel LAKKERING");
+    }
+
+    fn digits(n: f32) -> String {
+        if n == 1.0 { return "1"; }
+        if n == 2.0 { return "2"; }
+        if n == 3.0 { return "3"; }
+        if n == 4.0 { return "4"; }
+        if n == 5.0 { return "5"; }
+        return "6";
+    }
+
+    // One clip's pictures: `frame` of `count` while its category is open.
+    fn clip(label: String, key: String, count: f32, frame: f32, open: bool) {
+        var n = 1.0;
+        while n <= count {
+            let state = World.find("Workshop Panel " + label + " " + key + " " + digits(n));
+            if state != null { World.set_active(state, open && n == frame); }
+            n = n + 1.0;
+        }
+    }
+
+    // A fitted value from the board, as its clip's frame.
+    fn fitted(key: String) -> f32 { return Game.get("workshop." + key, 0.0) + 1.0; }
+
+    // workshop.stripe is 0 none, 1 hvid, 2 grøn, 3 sort, 4 pink; `fartstribe`
+    // is labelled empty 1, grøn 2, hvid 3, sort 4, pink 5.
+    fn stripe_frame() -> f32 {
+        let stripe = Game.get("workshop.stripe", 0.0);
+        if stripe == 1.0 { return 3.0; }
+        if stripe == 2.0 { return 2.0; }
+        if stripe == 3.0 { return 4.0; }
+        if stripe == 4.0 { return 5.0; }
+        return 1.0;
+    }
+
+    fn tag(button: String) {
+        let hit = World.find("Workshop " + button);
+        let label = World.find("Workshop Tag " + button);
+        if hit == null || label == null { return; }
+        World.set_active(label, World.is_active(hit) && Ui.is_hovered(hit));
+    }
+
+    fn update(dt: f32) {
+        let c = Game.get("workshop.category", 0.0);
+        let garage = Game.get("workshop.view", 0.0) == 0.0;
+        let mixing = Game.get("workshop.paint.mixing", 0.0) > 0.0;
+        World.set_active(this.lakkering, garage && c == 0.0 && !mixing);
+        clip("LAKKERING", "stripe", 6.0, stripe_frame(), garage && c == 0.0 && !mixing);
+        // Speakers: front, side and rear start at 1 (frame 1); the woofer at 0.
+        clip("BILSTEREO", "front", 3.0, Game.get("workshop.audio.front", 1.0), c == 1.0);
+        clip("BILSTEREO", "side", 3.0, Game.get("workshop.audio.side", 1.0), c == 1.0);
+        clip("BILSTEREO", "rear", 3.0, Game.get("workshop.audio.rear", 1.0), c == 1.0);
+        clip("BILSTEREO", "woofer", 4.0, Game.get("workshop.audio.woofer", 0.0) + 1.0, c == 1.0);
+        clip("SPOILER", "spoiler", 5.0, fitted("spoiler"), c == 2.0);
+        clip("EKSOSANLEGG", "exhaust", 4.0, fitted("exhaust"), c == 3.0);
+        clip("FELGER", "rims", 4.0, fitted("rims"), c == 4.0);
+        clip("DEKK", "tyres", 4.0, fitted("tyres"), c == 5.0);
+        clip("RUTER", "windows", 4.0, fitted("windows"), c == 6.0);
+        clip("SOLTAK", "sunroof", 2.0, fitted("sunroof"), c == 7.0);
+        clip("NUMMERSKILT", "plate", 2.0, fitted("plate.editing"), c == 8.0);
+        clip("SETETREKK", "interior", 4.0, fitted("interior"), c == 9.0);
+        clip("BILNIPS", "trinket", 5.0, fitted("trinket"), c == 10.0);
+        clip("BÅT-HORN", "horn", 3.0, fitted("horn"), c == 11.0);
+        clip("BMW CAM", "camera", 3.0, fitted("camera"), c == 12.0);
+
+        tag("Paint Change"); tag("Stripe None"); tag("Stripe White"); tag("Stripe Green"); tag("Stripe Black"); tag("Stripe Pink");
+        tag("Audio Front 2"); tag("Audio Front 3"); tag("Audio Side 2"); tag("Audio Side 3");
+        tag("Audio Rear 2"); tag("Audio Rear 3"); tag("Audio Woofer 1"); tag("Audio Woofer 2"); tag("Audio Woofer 3");
+        tag("Spoiler 1"); tag("Spoiler 2"); tag("Spoiler 3"); tag("Spoiler 4");
+        tag("Exhaust 1"); tag("Exhaust 2"); tag("Exhaust 3");
+        tag("Rims Racer"); tag("Rims Krom"); tag("Rims Guld");
+        tag("Tyres 1"); tag("Tyres 2"); tag("Tyres 3");
+        tag("Windows 1"); tag("Windows 2"); tag("Windows 3");
+        tag("Sunroof 1"); tag("Plate Edit");
+        tag("Interior 1"); tag("Interior 2"); tag("Interior 3");
+        tag("Trinket 1"); tag("Trinket 2"); tag("Trinket 3"); tag("Trinket 4");
+        tag("Horn 1"); tag("Horn 2"); tag("Camera 1");
+    }
+}

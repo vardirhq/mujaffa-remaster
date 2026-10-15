@@ -90,12 +90,15 @@ GARAGE_LAYOUT_VIEWS = f'''    fn refresh_layout() {{
         // UTSTYR rail and its controls and moves the car to its frame-730 place.
         // 2 is the KJØR! dialog over the workshop; from 3 on (map, drive, end
         // screens) the trip covers the stage and the garage car is put away.
+        // 7 is "Bhaias Verksted". While `trip.car_driven` is set, the arrival
+        // or the drive-away sequence moves the car instead.
         let view = Game.get("workshop.view", 0.0);
         let showroom = view == 1.0;
         World.set_active(this.desktop, view == 0.0);
         World.set_active(this.mobile, false);
         let car = this.car;
-        World.set_active(car, view <= 2.0);
+        World.set_active(car, view <= 2.0 || view == 7.0);
+        if Game.get("trip.car_driven", 0.0) > 0.0 {{ return; }}
         car.transform.position.x = 0.0;
         car.transform.position.y = 0.0;
         if showroom {{
@@ -181,7 +184,7 @@ def description_entity() -> dict:
         "components": {
             "sindri.text": {
                 "text": "",
-                "font": "fonts/ChakraPetch-Regular.ttf",
+                "font": "fonts/LiberationSans-Bold.ttf", "bold": True,
                 "font_size": round(11.0 * sy * PX, 4),
                 "line_height": round((11.0 + 2.0) * sy * PX, 4),
                 "color": [0.0, 0.0, 0.0, 1.0],
@@ -202,7 +205,7 @@ def header_entity(key: str, spec: dict) -> dict:
         "components": {
             "sindri.text": {
                 "text": "{}",
-                "font": "fonts/ChakraPetch-Regular.ttf",
+                "font": "fonts/LiberationSans-Bold.ttf", "bold": True,
                 "font_size": round(HEADER_FONT_PX * 0.8 * PX, 4),
                 "line_height": round(HEADER_FONT_PX * PX, 4),
                 "color": HEADER_COLOUR,

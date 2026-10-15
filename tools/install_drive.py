@@ -38,17 +38,20 @@ from swf_car_extract import IDENT  # noqa: E402
 
 PX = 10.0 / 500.0
 SCALE = 2.0
-FONT = "fonts/ChakraPetch-Regular.ttf"
+FONT = "fonts/LiberationSans-Bold.ttf"
 # The page background (the runtime's clear colour), and a sprite layer above
 # every drive and trip layer.
 MATTE = "assets/generated/drive/png/matte.png"
 MATTE_RGB = "#242c3c"
 MATTE_LAYER = 250
+# The SWF's background colour (SetBackgroundColor ffffff): the end screens
+# leave most of the stage empty, so the original shows white there.
+PAPER = "assets/generated/drive/png/paper.png"
 
 # Field variables a script writes. The picture leaves them empty.
 LIVE_VARIABLES = {
     "../:bil_cool", "../:cool", "../:penge", "../:tilbane", "../:level",
-    "../../:penge", "../../:cool", "myStatus", "kort_rolllevel", "kort_rollstatus",
+    "../../:penge", "../../:cool", "myStatus", "kort_rolllevel", "kort_rollstatus", "../:repair",
 }
 
 # Map states: main-timeline frame -> (district button, next state, district, level).
@@ -88,6 +91,31 @@ CRUISE_BUTTONS = {"ja": 293, "nei": 294, "lukk": 295}
 BROKE_FRAME = 722
 BROKE_DIALOG = 290
 BROKE_BUTTONS = {"ok": 281, "lukk": 285}
+# `repair_car` (886, frame 722), shown on arriving back with `repairok == 1`:
+# frame `open` asks "Det koster {repair} ... Skal jeg fikse den?" with JA! (877)
+# and NEI! (878); frame `respect` is "Du kjører som en drøm" with JA! (883) and
+# a cross (295) that leaves `repairok` set, so it asks again next time.
+REPAIR = 886
+REPAIR_FRAMES = {"repair": 7, "respect": 14}
+REPAIR_BUTTONS = {"repair-ja": (7, 877), "repair-nei": (7, 878), "respect-ja": (14, 883), "respect-lukk": (14, 295)}
+REPAIR_FIELD = 882
+REPAIR_DIGITS = 5
+# "Bhaias Verksted": frames 755-793, after START, after a drive and after a
+# level's NESTE SIDE. The street is shapes 942-945 under the BMW (946, depth
+# 46) and 947/948 plus the clip 950 over it. 946 holds the same
+# `karosseri` and wheels as the garage's `bil` (875), so the garage car itself
+# drives in, moved by a sequence through 946's 39 placements.
+ARRIVAL = range(755, 794)
+ARRIVAL_CAR = 946
+ARRIVAL_UNDER = {942, 943, 944, 945}
+ARRIVAL_OVER = {947, 948}
+ARRIVAL_CLIPS = {"lamp": 950}  # 425, also over the BMW, draws nothing
+GARAGE_CAR = 875
+# JA on the KJØR! dialog plays `bil` (875) frames 2-50: `karosseri` and `dæk`
+# back up a little and drive off to the bottom right, while its shadow (61)
+# stays where it was.
+LEAVE = range(2, 51)
+SHADOW = "Garage Car root-shadow"
 
 DRIVE_FRAME = 806
 ROAD = 951
@@ -167,8 +195,9 @@ class Art:
     def sheet(self, name: str, frames: list[list[dict]], pad: float = 1.0) -> dict:
         box = None
         for draws in frames:
-            here = T._bounds(draws, self.shapes, self.movie.extents)
-            box = T._union([box, here])
+            here = T._bounds(draws, self.shapes, self.movie.extents) if draws else None
+            if here is not None:  # an empty frame (a blink) bounds nothing
+                box = T._union([box, here])
         rect = (box[0] - pad, box[2] - pad, box[1] - box[0] + 2 * pad, box[3] - box[2] + 2 * pad)
         width = max(1, math.ceil(rect[2] * SCALE))
         height = max(1, math.ceil(rect[3] * SCALE))
@@ -273,6 +302,47 @@ def sprite_frames(movie, character: int) -> int:
     return sum(1 for code, _ in iter_tags(movie.sprites[character]) if code == 1)
 
 
+def arrival_keys(art: Art) -> list[dict]:
+    """The garage car's pose for each arrival frame, as `Parity Car` keys.
+
+    The car's layers are drawn where `bil` (875) puts it on frame 722, so each
+    frame's pose is 946's placement, shifted by where 946 keeps `karosseri`
+    against where 875 does, after undoing 875's placement.
+    """
+    def body(character):
+        return next(item["matrix"] for item in art.movie.sprite_display(character, 1) if item.get("name") == "karosseri")
+
+    a, b, c, d, e, f = art.placement(BROKE_FRAME, GARAGE_CAR)
+    det = a * d - b * c
+    undo = (d / det, -b / det, -c / det, a / det, (c * f - d * e) / det, (b * e - a * f) / det)
+    garage, arrival = body(GARAGE_CAR), body(ARRIVAL_CAR)
+    shift = (1.0, 0.0, 0.0, 1.0, arrival[4] - garage[4], arrival[5] - garage[5])
+    keys = []
+    for index, frame in enumerate(ARRIVAL):
+        a, b, c, d, e, f = T.mul(art.placement(frame, ARRIVAL_CAR), T.mul(shift, undo))
+        # Stage pixels (y down) to world units (y up, origin at the centre).
+        x = e + a * 250.0 + c * 250.0
+        y = f + b * 250.0 + d * 250.0
+        keys.append({"time": round(index / 12.0, 4), "x": round((x - 250.0) * PX, 4), "y": round((250.0 - y) * PX, 4),
+                     "rotation": round(-math.degrees(math.atan2(b, a)), 3), "scale": round(math.hypot(a, b), 4)})
+    return keys
+
+
+def leave_keys(art: Art) -> list[dict]:
+    """The garage car's offset for each drive-away frame, in world units."""
+    def body(frame):
+        return next(item["matrix"] for item in art.movie.sprite_display(GARAGE_CAR, frame) if item.get("name") == "karosseri")
+
+    a, b, c, d, _, _ = art.placement(BROKE_FRAME, GARAGE_CAR)
+    rest = body(1)
+    keys = []
+    for index, frame in enumerate(LEAVE):
+        here = body(frame)
+        dx, dy = here[4] - rest[4], here[5] - rest[5]
+        keys.append({"time": round(index / 12.0, 4), "x": round((a * dx + c * dy) * PX, 4), "y": round(-(b * dx + d * dy) * PX, 4)})
+    return keys
+
+
 def render_all(art: Art) -> None:
     movie = art.movie
     stage_skip = {7}  # the invisible full-stage click shield
@@ -283,6 +353,35 @@ def render_all(art: Art) -> None:
     broke = [{"character": BROKE_DIALOG, "matrix": art.placement(BROKE_FRAME, BROKE_DIALOG)}]
     for key, button in BROKE_BUTTONS.items():
         art.manifest["buttons"][f"broke-{key}"] = art.button_rect(BROKE_FRAME, button, broke)
+    matrix = art.placement(BROKE_FRAME, REPAIR)
+    for name, frame in REPAIR_FRAMES.items():
+        art.stage(f"{name}-dialog", art.draws(REPAIR, matrix, {REPAIR: frame}))
+    for key, (frame, button) in REPAIR_BUTTONS.items():
+        art.manifest["buttons"][key] = art.button_rect(BROKE_FRAME, button, art.movie.sprite_display(REPAIR, frame), matrix)
+    # The bill in the embedded Arial Bold, one picture per digit. Its digits
+    # all advance the same, so a number is digit pictures side by side.
+    field = art.manifest["fields"]["repair-dialog"][0]
+    font = art.movie.fonts[art.movie.edit_texts[REPAIR_FIELD]["font_id"]]
+    zero = next(index for index, glyph in enumerate(font["glyphs"]) if glyph.get("code") == ord("0"))
+    advance = round(font["advances"][zero] / float(font["units_per_em"]) * field["size"], 3)
+    view = (field["left"] - 2.0, field["top"] - 2.0, advance + 4.0, field["size"] * 1.3 + 4.0)
+    only = [draw for draw in art.draws(REPAIR, matrix, {REPAIR: 7}) if draw["kind"] == "field" and draw["character"] == REPAIR_FIELD]
+    for digit in range(10):
+        art.movie.variables[field["variable"]] = str(digit)
+        art.movie.edit_texts[REPAIR_FIELD]["text"] = str(digit)
+        art.manifest["objects"][f"repair-digit-{digit}"] = art._png(only, view, f"repair-digit-{digit}")
+    art.movie.variables[field["variable"]] = ""
+    art.movie.edit_texts[REPAIR_FIELD]["text"] = ""
+    art.manifest["repair_digits"] = {"rect": [round(v, 3) for v in view], "advance": advance}
+    first = ARRIVAL[0]
+    art.stage("arrival-street", art.stage_draws(first, only=ARRIVAL_UNDER))
+    art.stage("arrival-over", art.stage_draws(first, only=ARRIVAL_OVER))
+    for key, clip in ARRIVAL_CLIPS.items():
+        matrix = art.placement(first, clip)
+        art.manifest["sheets"][f"arrival-{key}"] = art.sheet(
+            f"arrival-{key}", [art.draws(clip, matrix, {clip: n}) for n in range(1, sprite_frames(art.movie, clip) + 1)])
+    art.manifest["arrival"] = arrival_keys(art)
+    art.manifest["leave"] = leave_keys(art)
     dialog = [{"character": CRUISE_DIALOG, "matrix": art.placement(CRUISE_FRAME, CRUISE_DIALOG)}]
     for key, button in CRUISE_BUTTONS.items():
         art.manifest["buttons"][f"cruise-{key}"] = art.button_rect(CRUISE_FRAME, button, dialog)
@@ -472,7 +571,7 @@ def sheet_sprite(entity_id, name, entry, layer, parent, clips: dict):
 
 
 def text(entity_id, name, parent, x, y, size, color, layer, anchor_name="top_left", value="", template=None, bounds=None):
-    component = {"text": template if template is not None else value, "font": FONT, "font_size": round(size * PX, 4),
+    component = {"text": template if template is not None else value, "font": FONT, "bold": True, "font_size": round(size * PX, 4),
                  "line_height": round(size * 1.2 * PX, 4), "color": color, "anchor": anchor_name, "layer": layer}
     if template is not None:
         component["values"] = [0.0]
@@ -487,6 +586,25 @@ def field_text(entity_id, name, parent, field, layer, template=None):
     align = {0: "top_left", 1: "top_right", 2: "top"}[field["align"]]
     x = {0: field["left"], 1: field["right"], 2: (field["left"] + field["right"]) / 2}[field["align"]]
     return text(entity_id, name, parent, x, field["top"] + 1.0, field["size"], field["color"], layer, align, template=template)
+
+
+def arrival_sequence(keys: list[dict]) -> dict:
+    tracks = []
+    for prop, field in (("position.x", "x"), ("position.y", "y"), ("rotation", "rotation"), ("scale.x", "scale"), ("scale.y", "scale")):
+        tracks.append({"target": "/Parity Car", "property": prop,
+                       "keys": [{"time": key["time"], "value": key[field], "ease": "linear"} for key in keys]})
+    return {"duration": round(len(keys) / 12.0, 4), "looping": False, "tracks": tracks}
+
+
+def leave_sequence(keys: list[dict]) -> dict:
+    tracks = []
+    for prop, field, sign in (("position.x", "x", 1.0), ("position.y", "y", 1.0)):
+        tracks.append({"target": "/Parity Car", "property": prop,
+                       "keys": [{"time": key["time"], "value": key[field], "ease": "linear"} for key in keys]})
+        # The shadow is one of the car's layers; it holds still.
+        tracks.append({"target": f"/Parity Car/{SHADOW}", "property": prop,
+                       "keys": [{"time": key["time"], "value": -key[field], "ease": "linear"} for key in keys]})
+    return {"duration": round(len(keys) / 12.0, 4), "looping": False, "tracks": tracks}
 
 
 def hit_button(entity_id, name, label, parent):
@@ -534,6 +652,39 @@ def build_entities(art: Art) -> list[dict]:
         button["components"]["sindri.ui.shape"]["layer"] = 265
         out.append(button)
 
+    # The repair and respect dialogs, drawn like "Din fattiglus!" above the
+    # workshop. The bill is up to five digit pictures per slot, which the
+    # trip controller lays out and shows.
+    for name in REPAIR_FRAMES:
+        out.append({"id": f"trip-{name}", "name": f"Trip {name.capitalize()}", "parent": "trip", "disabled": True, "transform_3d": transform()})
+        out.append({"id": f"trip-{name}-art", "name": f"Trip {name.capitalize()} Dialog", "parent": f"trip-{name}", "transform_3d": transform((0, 0, 0), (2.0, 2.0, 1.0)),
+                    "components": {"sindri.ui.image": {"texture": layers[f"{name}-dialog"]["png"], "tint": [1.0, 1.0, 1.0, 1.0], "anchor": "center", "layer": 260}}})
+    for key in REPAIR_BUTTONS:
+        name, _, answer = key.partition("-")
+        button = hit_button(f"trip-{key}", f"{name.capitalize()} {answer.capitalize()}", answer.upper(), f"trip-{name}")
+        button["components"]["sindri.ui.shape"]["layer"] = 265
+        out.append(button)
+    for slot in range(1, REPAIR_DIGITS + 1):
+        for digit in range(10):
+            out.append({"id": f"trip-repair-digit-{slot}-{digit}", "name": f"Repair Digit {slot} {digit}", "parent": "trip-repair", "disabled": True,
+                        "transform_3d": transform((0, 0, 0), (0.001, 0.001, 1.0)),
+                        "components": {"sindri.ui.image": {"texture": objects[f"repair-digit-{digit}"]["png"], "tint": [1.0, 1.0, 1.0, 1.0], "anchor": "center", "layer": 262}}})
+
+    # "Bhaias Verksted": the street, the garage car driven by the sequence,
+    # and what passes in front of it.
+    out.append({"id": "trip-arrival", "name": "Trip Arrival", "parent": "trip", "disabled": True, "transform_3d": transform(),
+                "components": {"sindri.sequence": {"sequences": {"arrive": arrival_sequence(m["arrival"])}, "speed": 1.0}}})
+    out.append({"id": "trip-leave", "name": "Trip Leave", "parent": "trip", "transform_3d": transform(),
+                "components": {"sindri.sequence": {"sequences": {"leave": leave_sequence(m["leave"])}, "speed": 1.0}}})
+    out.append(stage_layer("trip-arrival-street", "Arrival Street", layers["arrival-street"]["png"], 28, "trip-arrival"))
+    out.append(stage_layer("trip-arrival-over", "Arrival Over", layers["arrival-over"]["png"], 85, "trip-arrival"))
+    for key in ARRIVAL_CLIPS:
+        sprite = sheet_sprite(f"trip-arrival-{key}", f"Arrival {key.capitalize()}", sheets[f"arrival-{key}"], 86, "trip-arrival",
+                              {"play": (list(range(1, len(sheets[f"arrival-{key}"]["frames"]) + 1)), True)})
+        x, y, w, h = sheets[f"arrival-{key}"]["rect"]
+        sprite["transform_3d"]["position"] = [round((x + w / 2 - 250.0) * PX, 4), round((250.0 - y - h / 2) * PX, 4), 0.0]
+        out.append(sprite)
+
     # The map: one picture per state, shown one at a time.
     out.append({"id": "trip-map", "name": "Trip Map", "parent": "trip", "disabled": True, "transform_3d": transform()})
     for frame in list(ROUTE) + list(LEVEL_COMPLETE):
@@ -547,9 +698,11 @@ def build_entities(art: Art) -> list[dict]:
 
     # The end screens.
     out.append({"id": "trip-over", "name": "Trip Game Over", "parent": "trip", "disabled": True, "transform_3d": transform()})
+    out.append(stage_layer("trip-over-paper", "Game Over Paper", PAPER, 0, "trip-over"))
     out.append(stage_layer("trip-over-art", "Game Over Art", layers["game-over"]["png"], 1, "trip-over"))
     out.append(hit_button("trip-over-go", "Game Over Go", "OK", "trip-over"))
     out.append({"id": "trip-status", "name": "Trip Status", "parent": "trip", "disabled": True, "transform_3d": transform()})
+    out.append(stage_layer("trip-status-paper", "Status Paper", PAPER, 0, "trip-status"))
     for tier in STATUS:
         # "Status N" is already taken by the GameState prototype's markers.
         out.append(stage_layer(f"trip-status-{tier}", f"Trip Status {tier}", layers[f"status-{tier}"]["png"], 1, "trip-status", disabled=True))
@@ -642,7 +795,7 @@ def build_entities(art: Art) -> list[dict]:
     for index, field in enumerate(m["fields"].get("hud", [])):
         name = FIELD_NAMES.get(field["variable"])
         if name:
-            template = "{}" if name in ("Cred", "Penger", "Level") else ("{.1}" if name == "BMW" else None)
+            template = "{}" if name in ("BMW", "Cred", "Penger", "Level") else None
             out.append(field_text(f"drive-hud-field-{index}", f"Drive HUD {name}", "drive", field, 32, template))
     for frame in (7, 21, 41):
         out.append(stage_layer(f"drive-intro-{frame}", f"Drive Intro {frame}", layers[f"intro-{frame}"]["png"], 40, "drive", disabled=True))
@@ -666,6 +819,8 @@ def install(project: Path) -> None:
 
     cairosvg.svg2png(bytestring=f'<svg xmlns="http://www.w3.org/2000/svg" width="8" height="8"><rect width="8" height="8" fill="{MATTE_RGB}"/></svg>'.encode(),
                      write_to=str(project / MATTE))
+    cairosvg.svg2png(bytestring=b'<svg xmlns="http://www.w3.org/2000/svg" width="8" height="8"><rect width="8" height="8" fill="#ffffff"/></svg>',
+                     write_to=str(project / PAPER))
     (art.out / "manifest.json").write_text(json.dumps(art.manifest, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
 
     scene_path = project / "main.scene.json"

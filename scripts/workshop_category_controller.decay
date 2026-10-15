@@ -17,20 +17,21 @@ script WorkshopCategoryController {
  }
  fn layout_button(entity:Entity,index:f32,unit:f32){ entity.transform.position.x=(72.5-250.0)*unit; entity.transform.position.y=(250.0-(137.0+25.0*index))*unit; entity.transform.scale.x=145.0*unit; entity.transform.scale.y=24.0*unit; }
  fn layout_controls(){ let unit=0.004*min(Viewport.aspect,1.0); layout_button(this.paint,0.0,unit); layout_button(this.audio,1.0,unit); layout_button(this.spoiler,2.0,unit); layout_button(this.exhaust,3.0,unit); layout_button(this.rims,4.0,unit); layout_button(this.tyres,5.0,unit); layout_button(this.windows,6.0,unit); layout_button(this.sunroof,7.0,unit); layout_button(this.plate,8.0,unit); layout_button(this.interior,9.0,unit); layout_button(this.trinket,10.0,unit); layout_button(this.horn,11.0,unit); layout_button(this.camera,12.0,unit); }
+ // The original's button rects in stage pixels (sprite 924, frame 722).
  fn layout_new_purchases(){
   let unit=0.004*min(Viewport.aspect,1.0);
-  this.plate_buy.transform.position.x=(325.0-250.0)*unit;
-  this.plate_buy.transform.position.y=(250.0-405.0)*unit;
-  this.plate_buy.transform.scale.x=100.0*unit; this.plate_buy.transform.scale.y=26.0*unit;
-  this.horn_buy1.transform.position.x=(290.0-250.0)*unit;
-  this.horn_buy1.transform.position.y=(250.0-418.0)*unit;
-  this.horn_buy1.transform.scale.x=72.0*unit; this.horn_buy1.transform.scale.y=26.0*unit;
-  this.horn_buy2.transform.position.x=(402.0-250.0)*unit;
-  this.horn_buy2.transform.position.y=(250.0-418.0)*unit;
-  this.horn_buy2.transform.scale.x=72.0*unit; this.horn_buy2.transform.scale.y=26.0*unit;
-  this.camera_buy1.transform.position.x=(325.0-250.0)*unit;
-  this.camera_buy1.transform.position.y=(250.0-418.0)*unit;
-  this.camera_buy1.transform.scale.x=72.0*unit; this.camera_buy1.transform.scale.y=26.0*unit;
+  this.plate_buy.transform.position.x=(215.6-250.0)*unit;
+  this.plate_buy.transform.position.y=(250.0-417.8)*unit;
+  this.plate_buy.transform.scale.x=59.6*unit; this.plate_buy.transform.scale.y=39.1*unit;
+  this.horn_buy1.transform.position.x=(292.1-250.0)*unit;
+  this.horn_buy1.transform.position.y=(250.0-423.3)*unit;
+  this.horn_buy1.transform.scale.x=68.4*unit; this.horn_buy1.transform.scale.y=44.9*unit;
+  this.horn_buy2.transform.position.x=(378.9-250.0)*unit;
+  this.horn_buy2.transform.position.y=(250.0-423.3)*unit;
+  this.horn_buy2.transform.scale.x=68.4*unit; this.horn_buy2.transform.scale.y=44.9*unit;
+  this.camera_buy1.transform.position.x=(283.3-250.0)*unit;
+  this.camera_buy1.transform.position.y=(250.0-423.3)*unit;
+  this.camera_buy1.transform.scale.x=68.4*unit; this.camera_buy1.transform.scale.y=44.9*unit;
  }
  fn refresh_new_purchase_visibility(){
   World.set_active(this.plate_buy,this.category==8.0 && Game.get("workshop.plate.editing",0.0)==0.0);

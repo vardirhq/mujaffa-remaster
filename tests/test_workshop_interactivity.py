@@ -37,7 +37,7 @@ def test_runtime_paint_texture_is_neutralized_before_tint():
     assert 'ImageOps.grayscale' in prep
     assert 'manifest["outputs"]["paint:tintable"]' in prep
 def test_stripes_remain_on_normal_lakkering_panel():
-    c=Path('scripts/workshop_paint_controller.decay').read_text(); assert 'World.set_active(this.stripe_none, !value)' in c; assert 'Garage Car farvestribe-hvid' in c; assert 'Garage Car farvestribe-pink' in c
+    c=Path('scripts/workshop_paint_controller.decay').read_text(); assert 'show_swatches(!value);' in c; assert 'World.set_active(this.stripe_none, value && this.stripe_index != 0.0)' in c; assert 'Garage Car farvestribe-hvid' in c; assert 'Garage Car farvestribe-pink' in c
 def test_rgb_controls_are_scoped_to_lakkering():
     r=Path('scripts/workshop_category_controller.decay').read_text(); assert 'Workshop RGB Mixer' in r; assert 'World.set_active(this.mixer,false)' in r or 'World.set_active(this.mixer, false)' in r; assert 'World.set_active(this.rgb_red_marker,false)' in r
 def test_car_layers_author_the_colour_transform_the_scripts_write():

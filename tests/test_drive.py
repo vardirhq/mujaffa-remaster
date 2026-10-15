@@ -154,3 +154,68 @@ def test_the_broke_dialog_answers_every_refusal():
     assert 'Game.set("workshop.buy.refused"' in state
     assert 'Game.get("workshop.buy.refused", 0.0)' in TRIP
     assert "BROKE_BUTTONS = {\"ok\": 281, \"lukk\": 285}" in INSTALLER
+
+
+def test_live_text_is_bold_arial_metric_like_the_original():
+    # Every edit text in the SWF is embedded Arial Bold (font 2). Liberation
+    # Sans Bold has Arial's metrics under the OFL; `bold` asks for the face's
+    # bold, without which a system regular of the same family can win.
+    for tool in ("install_drive.py", "install_showroom.py", "install_workshop_interactivity.py"):
+        source = (ROOT / "tools" / tool).read_text(encoding="utf-8")
+        assert "ChakraPetch" not in source
+        assert "LiberationSans-Bold.ttf" in source
+        assert re.search(r'"bold":\s*True', source)
+    assert (ROOT / "fonts/LiberationSans-Bold.ttf").is_file()
+    assert "SIL Open Font License" in (ROOT / "fonts/OFL-LiberationSans.txt").read_text(encoding="utf-8")
+
+
+def test_hud_bmw_reads_like_flash_and_end_screens_are_on_white():
+    source = (ROOT / "tools/install_drive.py").read_text(encoding="utf-8")
+    # Flash prints bil_cool 1 as "1" and 1.15 as "1.15": `{}` does the same.
+    assert '"{.1}"' not in source
+    assert 'name in ("BMW", "Cred", "Penger", "Level")' in source
+    assert 'stage_layer("trip-over-paper", "Game Over Paper", PAPER, 0, "trip-over")' in source
+    assert 'stage_layer("trip-status-paper", "Status Paper", PAPER, 0, "trip-status")' in source
+
+
+def test_repair_and_respect_ask_like_repair_car():
+    from install_drive import REPAIR, REPAIR_BUTTONS, REPAIR_FRAMES
+    assert REPAIR == 886 and REPAIR_FRAMES == {"repair": 7, "respect": 14}
+    assert REPAIR_BUTTONS["repair-ja"] == (7, 877) and REPAIR_BUTTONS["repair-nei"] == (7, 878)
+    assert REPAIR_BUTTONS["respect-ja"] == (14, 883)
+    # Nothing is settled without an answer any more.
+    garage = TRIP[TRIP.index("fn back_in_garage()"):TRIP.index("fn pay_repair()")]
+    assert "game.cool" not in garage and "trip.spent" not in garage
+    assert "this.bill = energi * 20.0;" in garage
+    answer = TRIP[TRIP.index("fn answer_repair()"):TRIP.index("fn digit_name(")]
+    assert "if Ui.is_pressed(this.repair_ja) { pay_repair(); this.repair_due = false; }" in answer
+    assert "if Ui.is_pressed(this.repair_nei) { this.repair_due = false; }" in answer
+    assert 'Game.get("game.cool", 0.0) + 15.0' in answer
+    # The respect cross leaves `repairok` set, so it asks again.
+    assert "if Ui.is_pressed(this.respect_lukk) { World.set_active(this.respect, false); }" in answer
+    # The bill's digit pictures follow field 882 and Arial Bold's digit advance.
+    assert "291.4 + (slot - 1.0) * 11.133, 202.35, 15.133, 30.0" in TRIP
+
+
+def test_bhaias_verksted_plays_after_start_and_every_drive():
+    from install_drive import ARRIVAL, ARRIVAL_CAR, GARAGE_CAR
+    assert (ARRIVAL[0], ARRIVAL[-1], ARRIVAL_CAR, GARAGE_CAR) == (755, 793, 946, 875)
+    # START, a finished drive and both level-complete pages arrive; none of
+    # them opens the workshop directly any more.
+    assert TRIP.count("arrive();") == 4
+    assert "show(0.0);\n                    back_in_garage();" not in TRIP
+    assert 'if Sequence.is_finished(this.arrival) { arrived(); }' in TRIP
+    # The garage leaves the car to the sequence while it plays.
+    showroom = (ROOT / "tools/install_showroom.py").read_text(encoding="utf-8")
+    assert "World.set_active(car, view <= 2.0 || view == 7.0);" in showroom
+    assert '"target": "/Parity Car"' in INSTALLER
+
+
+def test_ja_plays_the_drive_away_before_the_map():
+    from install_drive import LEAVE, SHADOW
+    assert (LEAVE[0], LEAVE[-1]) == (2, 50)
+    assert "if Ui.is_pressed(this.cruise_ja) { drive_off(); }" in TRIP
+    assert "if Sequence.is_finished(this.leave) { driven_off(); }" in TRIP
+    assert '"target": f"/Parity Car/{SHADOW}"' in INSTALLER
+    showroom = (ROOT / "tools/install_showroom.py").read_text(encoding="utf-8")
+    assert 'if Game.get("trip.car_driven", 0.0) > 0.0 {{ return; }}' in showroom

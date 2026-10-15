@@ -9,7 +9,8 @@
 // the garage, except after Tveita, which shows the level-complete map.
 //
 // `workshop.view` says which of these covers the stage: 0 workshop,
-// 1 showroom, 2 dialog, 3 map, 4 drive, 5 game over, 6 status. The drive
+// 1 showroom, 2 dialog, 3 map, 4 drive, 5 game over, 6 status, 7 "Bhaias
+// Verksted" (the arrival, 755-793). The drive
 // itself is the drive controller's: this raises `drive.ticket` and waits for
 // `drive.result_ticket` to match it.
 //
@@ -32,6 +33,21 @@ script TripController {
     var broke_ok: Entity = null;
     var broke_lukk: Entity = null;
     var broke_seen: f32 = 0.0;
+    // `repair_car` (886): the bill with JA!/NEI!, or the 15 respekt.
+    var repair: Entity = null;
+    var repair_art: Entity = null;
+    var repair_ja: Entity = null;
+    var repair_nei: Entity = null;
+    var respect: Entity = null;
+    var respect_art: Entity = null;
+    var respect_ja: Entity = null;
+    var respect_lukk: Entity = null;
+    var bill: f32 = 0.0;
+    // "Bhaias Verksted" (755-793): the street and the car's sequence.
+    var arrival: Entity = null;
+    var leave: Entity = null;
+    var leaving: bool = false;
+    var shadow: Entity = null;
     var cruise: Entity = null;
     var cruise_ja: Entity = null;
     var cruise_nei: Entity = null;
@@ -55,6 +71,17 @@ script TripController {
         this.broke_art = World.find("Trip Broke Dialog");
         this.broke_ok = World.find("Broke Ok");
         this.broke_lukk = World.find("Broke Lukk");
+        this.arrival = World.find("Trip Arrival");
+        this.leave = World.find("Trip Leave");
+        this.shadow = World.find("Garage Car root-shadow");
+        this.repair = World.find("Trip Repair");
+        this.repair_art = World.find("Trip Repair Dialog");
+        this.repair_ja = World.find("Repair Ja");
+        this.repair_nei = World.find("Repair Nei");
+        this.respect = World.find("Trip Respect");
+        this.respect_art = World.find("Trip Respect Dialog");
+        this.respect_ja = World.find("Respect Ja");
+        this.respect_lukk = World.find("Respect Lukk");
         this.cruise = World.find("Trip Cruise");
         this.cruise_ja = World.find("Cruise Ja");
         this.cruise_nei = World.find("Cruise Nei");
@@ -82,7 +109,8 @@ script TripController {
         Game.set("game.cool", 0.0);
         // Tickets only ever go up, so a board left over from an earlier run
         // cannot start or end a drive by itself.
-        show(0.0);
+        // START (frame 202) goes on through "Bhaias Verksted" (755).
+        arrive();
     }
 
     // ---- the route ---------------------------------------------------------
@@ -175,6 +203,9 @@ script TripController {
         World.set_active(this.drive, value == 4.0);
         World.set_active(this.over, value == 5.0);
         World.set_active(this.status, value == 6.0);
+        World.set_active(this.arrival, value == 7.0);
+        // 946 has no shadow (61) under the BMW; the garage's `bil` does.
+        World.set_active(this.shadow, value != 7.0);
         if value == 3.0 { show_map(); }
         if value == 6.0 { show_status(); }
     }
@@ -216,25 +247,141 @@ script TripController {
 
     // ---- the garage after a drive -----------------------------------------
 
-    // Frame 722 with `repairok == 1`. The original asks with a JA button
-    // (`repair_car` "respect" and "open"); this settles it as JA on arrival.
-    // v1.6's can't-pay branch zeroes `penge` and then sets `energi` to the
-    // whole repair bill (twenty times the damage); here the money left pays
-    // what it can and the rest stays as damage.
+    // 755-793, then 722: the BMW drives up to the garage, and the workshop
+    // opens with the repair question when a drive has just ended.
+    fn arrive() {
+        Game.set("trip.car_driven", 1.0);
+        show(7.0);
+        Sequence.play(this.arrival, "arrive");
+        Sequence.restart(this.arrival);
+    }
+
+    fn arrived() {
+        Sequence.stop(this.arrival);
+        Game.set("trip.car_driven", 0.0);
+        show(0.0);
+        back_in_garage();
+    }
+
+    fn drive_off() {
+        this.leaving = true;
+        World.set_active(this.cruise, false);
+        Game.set("trip.car_driven", 1.0);
+        Sequence.play(this.leave, "leave");
+        Sequence.restart(this.leave);
+    }
+
+    // The car comes back to its place for when the trip returns to the garage.
+    fn driven_off() {
+        this.leaving = false;
+        Sequence.stop(this.leave);
+        let shadow = this.shadow;
+        shadow.transform.position.x = 0.0;
+        shadow.transform.position.y = 0.0;
+        Game.set("trip.car_driven", 0.0);
+        show(3.0);
+    }
+
+    // Frame 722 with `repairok == 1` opens `repair_car`: "respect" when the
+    // BMW came back without a scratch, "open" with the bill (`repair =
+    // energi * 20`) when it is damaged. Until it is answered it opens again
+    // each time the workshop does, as `repairok` stays set in the original.
     fn back_in_garage() {
         if !this.repair_due { return; }
-        this.repair_due = false;
         let energi = Game.get("trip.energi", 0.0);
         if energi == 0.0 {
-            // "Du kjører som en drøm... Du får 15 respekt."
-            Game.set("game.cool", Game.get("game.cool", 0.0) + 15.0);
+            World.set_active(this.respect, true);
+        } else if energi > 1.0 {
+            this.bill = energi * 20.0;
+            World.set_active(this.repair, true);
+            show_bill();
+        } else {
+            this.repair_due = false;
         }
-        if energi > 1.0 {
-            let repair = energi * 20.0;
-            let money = Game.get("workshop.money", 0.0);
-            let paid = min(repair, money);
-            Game.set("trip.spent", Game.get("trip.spent", 0.0) + paid);
-            Game.set("trip.energi", floor((repair - paid) / 20.0));
+    }
+
+    // JA! (877). v1.6's can't-pay branch zeroes `penge` and then sets `energi`
+    // to the whole bill (twenty times the damage); here the money left pays
+    // what it can and the rest stays as damage.
+    fn pay_repair() {
+        let money = Game.get("workshop.money", 0.0);
+        let paid = min(this.bill, money);
+        Game.set("trip.spent", Game.get("trip.spent", 0.0) + paid);
+        Game.set("trip.energi", floor((this.bill - paid) / 20.0));
+    }
+
+    fn answer_repair() {
+        if World.is_active(this.repair) {
+            if Ui.is_pressed(this.repair_ja) { pay_repair(); this.repair_due = false; }
+            // NEI! (878) only clears `repairok`: the damage drives on with you.
+            if Ui.is_pressed(this.repair_nei) { this.repair_due = false; }
+        }
+        if World.is_active(this.respect) {
+            // JA! (883): "Du får 15 respekt av meg !"
+            if Ui.is_pressed(this.respect_ja) { Game.set("game.cool", Game.get("game.cool", 0.0) + 15.0); this.repair_due = false; }
+            // The cross (295) closes it with `repairok` still set.
+            if Ui.is_pressed(this.respect_lukk) { World.set_active(this.respect, false); }
+        }
+        if !this.repair_due || this.view != 0.0 {
+            World.set_active(this.repair, false);
+            World.set_active(this.respect, false);
+        }
+    }
+
+    fn digit_name(n: f32) -> String {
+        if n == 0.0 { return "0"; }
+        if n == 1.0 { return "1"; }
+        if n == 2.0 { return "2"; }
+        if n == 3.0 { return "3"; }
+        if n == 4.0 { return "4"; }
+        if n == 5.0 { return "5"; }
+        if n == 6.0 { return "6"; }
+        if n == 7.0 { return "7"; }
+        if n == 8.0 { return "8"; }
+        return "9";
+    }
+
+    // The bill as digit pictures in field 882, left-aligned like the field.
+    fn show_bill() {
+        var count = 1.0;
+        var scale = 10.0;
+        while this.bill >= scale && count < 5.0 { count = count + 1.0; scale = scale * 10.0; }
+        var slot = 1.0;
+        while slot <= 5.0 {
+            var place = 1.0;
+            var k = slot;
+            while k < count { place = place * 10.0; k = k + 1.0; }
+            let value = floor(this.bill / place) - floor(this.bill / (place * 10.0)) * 10.0;
+            var d = 0.0;
+            while d <= 9.0 {
+                let entity = World.find("Repair Digit " + digit_name(slot) + " " + digit_name(d));
+                if entity != null { World.set_active(entity, slot <= count && d == value); }
+                d = d + 1.0;
+            }
+            slot = slot + 1.0;
+        }
+    }
+
+    // A picture over stage rect (left, top, width, height), at its own size.
+    fn put(entity: Entity, left: f32, top: f32, width: f32, height: f32, unit: f32) {
+        entity.transform.position.x = (left + width / 2.0 - 250.0) * unit;
+        entity.transform.position.y = (250.0 - top - height / 2.0) * unit;
+        entity.transform.scale.x = width * unit;
+        entity.transform.scale.y = height * unit;
+    }
+
+    // Field 882 starts at x 291.4 on the stage; Arial Bold's digits each
+    // advance 11.133 px at its 20 px.
+    fn layout_bill(unit: f32) {
+        var slot = 1.0;
+        while slot <= 5.0 {
+            var d = 0.0;
+            while d <= 9.0 {
+                let entity = World.find("Repair Digit " + digit_name(slot) + " " + digit_name(d));
+                if entity != null { put(entity, 291.4 + (slot - 1.0) * 11.133, 202.35, 15.133, 30.0, unit); }
+                d = d + 1.0;
+            }
+            slot = slot + 1.0;
         }
     }
 
@@ -268,6 +415,13 @@ script TripController {
         hit(this.broke_art, 0.0, 0.0, 500.0, 500.0, unit);
         hit(this.broke_ok, 216.662, 310.612, 91.975, 34.981, unit);
         hit(this.broke_lukk, 411.45, 134.029, 20.474, 19.255, unit);
+        hit(this.repair_art, 0.0, 0.0, 500.0, 500.0, unit);
+        hit(this.respect_art, 0.0, 0.0, 500.0, 500.0, unit);
+        hit(this.repair_ja, 202.014, 286.898, 75.471, 28.704, unit);
+        hit(this.repair_nei, 335.814, 286.898, 75.471, 28.704, unit);
+        hit(this.respect_ja, 272.014, 286.898, 75.471, 28.704, unit);
+        hit(this.respect_lukk, 435.55, 145.0, 16.8, 15.8, unit);
+        if World.is_active(this.repair) { layout_bill(unit); }
         hit(this.cruise_ja, 124.844, 298.515, 93.466, 35.548, unit);
         hit(this.cruise_nei, 290.547, 298.515, 93.466, 35.548, unit);
         hit(this.cruise_lukk, 414.063, 132.692, 20.806, 19.567, unit);
@@ -310,6 +464,7 @@ script TripController {
             this.broke_seen = refused;
             World.set_active(this.broke, true);
         }
+        answer_repair();
         if World.is_active(this.broke) {
             if Ui.is_pressed(this.broke_ok) || Ui.is_pressed(this.broke_lukk) || this.view != 0.0 {
                 World.set_active(this.broke, false);
@@ -317,9 +472,13 @@ script TripController {
         }
 
         if this.view == 2.0 {
-            // JA: the BMW drives off (875 frames 2-50), then 743 -> the map.
-            if Ui.is_pressed(this.cruise_ja) { show(3.0); }
-            if Ui.is_pressed(this.cruise_nei) || Ui.is_pressed(this.cruise_lukk) { show(0.0); }
+            if this.leaving {
+                if Sequence.is_finished(this.leave) { driven_off(); }
+            } else {
+                // JA: the BMW drives off (875 frames 2-50), then 743 -> the map.
+                if Ui.is_pressed(this.cruise_ja) { drive_off(); }
+                if Ui.is_pressed(this.cruise_nei) || Ui.is_pressed(this.cruise_lukk) { show(0.0); }
+            }
         } else if this.view == 3.0 {
             refresh_map_numbers();
             if Ui.is_pressed(this.map_go) {
@@ -328,12 +487,10 @@ script TripController {
                 } else if this.state == 483.0 {
                     // 640: `goto_label = "bane2_start"`, back through the garage.
                     this.state = 404.0;
-                    show(0.0);
-                    back_in_garage();
+                    arrive();
                 } else if this.state == 492.0 {
                     this.state = 443.0;
-                    show(0.0);
-                    back_in_garage();
+                    arrive();
                 } else {
                     show(6.0);
                 }
@@ -347,10 +504,11 @@ script TripController {
                 } else if is_level_complete(this.state) {
                     show(3.0);
                 } else {
-                    show(0.0);
-                    back_in_garage();
+                    arrive();
                 }
             }
+        } else if this.view == 7.0 {
+            if Sequence.is_finished(this.arrival) { arrived(); }
         } else if this.view == 5.0 {
             if Ui.is_pressed(this.over_go) { show(6.0); }
         } else if this.view == 6.0 {

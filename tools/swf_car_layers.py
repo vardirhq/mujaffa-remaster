@@ -111,6 +111,10 @@ def main() -> int:
             key = f"{category}:{label}"
             body_layers[key] = leaves
             all_persistent.extend(leaves)
+            if category == "spoiler":
+                # `spoilerlak` takes `setRGB(colorHEX)`; everything else in
+                # the frame is the wing's own ink, cut apart so it stays ink.
+                body_layers[f"{key}:ink"] = [leaf for leaf in leaves if "spoilerlak" not in leaf["path"]]
             variants.append({"label": label, "frame": frame, "key": key})
         body_meta[category] = {
             "sprite": sprite_id,

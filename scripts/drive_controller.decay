@@ -352,9 +352,9 @@ script DriveController {
 
         // Frame 794 dresses the car from the workshop: the body is one flat
         // colour (`c.setRGB(colorHEX)`).
-        this.car_body.sprite.tint.r = Game.get("workshop.paint.red", 0.0) / 255.0;
-        this.car_body.sprite.tint.g = Game.get("workshop.paint.green", 52.0) / 255.0;
-        this.car_body.sprite.tint.b = Game.get("workshop.paint.blue", 156.0) / 255.0;
+        this.car_body.sprite.tint.r = to_linear(Game.get("workshop.paint.red", 0.0));
+        this.car_body.sprite.tint.g = to_linear(Game.get("workshop.paint.green", 52.0));
+        this.car_body.sprite.tint.b = to_linear(Game.get("workshop.paint.blue", 156.0));
         dress_car();
 
         let people = World.find("Drive Person");
@@ -392,6 +392,18 @@ script DriveController {
         one_of("Drive Car vinduer ", 4.0, Game.get("workshop.windows", 0.0) + 1.0);
         one_of("Drive Car soltag ", 2.0, Game.get("workshop.sunroof", 0.0) + 1.0);
         one_of("Drive Car heks ", 5.0, Game.get("workshop.spoiler", 0.0) + 1.0);
+        one_of("Drive Car heksfarve ", 5.0, Game.get("workshop.spoiler", 0.0) + 1.0);
+        // `h.setRGB(colorHEX)`: the wing (`hf`) takes the body's paint.
+        var n = 2.0;
+        while n <= 5.0 {
+            let wing = World.find("Drive Car heksfarve " + digits(n));
+            if wing != null {
+                wing.sprite.tint.r = this.car_body.sprite.tint.r;
+                wing.sprite.tint.g = this.car_body.sprite.tint.g;
+                wing.sprite.tint.b = this.car_body.sprite.tint.b;
+            }
+            n = n + 1.0;
+        }
         one_of("Drive Car forrude ", 5.0, Game.get("workshop.trinket", 0.0) + 1.0);
     }
 
@@ -617,6 +629,18 @@ script DriveController {
 
     fn clamp(value: f32, low: f32, high: f32) -> f32 {
         return min(max(value, low), high);
+    }
+
+    // The workshop's paint is sRGB bytes, but the sprite's colour transform works
+    // in linear light, so the drive car came out brighter than the garage's. Decay
+    // has no `pow`, so the 2.4 power of the sRGB curve is b^2 * b^(1/4) *
+    // b^(1/8) = b^2.375, which lands within one byte of the exact curve.
+    fn to_linear(byte: f32) -> f32 {
+        let c = clamp(byte / 255.0, 0.0, 1.0);
+        if c <= 0.04045 { return c / 12.92; }
+        let b = (c + 0.055) / 1.055;
+        let q = sqrt(sqrt(b));
+        return b * b * q * sqrt(q);
     }
 
     fn near(x: f32, y: f32, radius: f32) -> bool {

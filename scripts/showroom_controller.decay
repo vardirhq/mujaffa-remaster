@@ -41,12 +41,13 @@ script ShowroomController {
     }
 
     // The tabs drawn in the chrome at stage (205, 474) and (315, 474), 105x20,
-    // and KJØR! at (424, 474), 69x20.
+    // and KJØR! at (424, 474), 69x20. The hit areas run 6 px above and below
+    // the art (468-500) so a thumb on a phone finds them.
     fn layout_tab(entity: Entity, left: f32, width: f32, unit: f32) {
         entity.transform.position.x = (left + width / 2.0 - 250.0) * unit;
         entity.transform.position.y = (250.0 - 484.0) * unit;
         entity.transform.scale.x = width * unit;
-        entity.transform.scale.y = 20.0 * unit;
+        entity.transform.scale.y = 32.0 * unit;
     }
 
     fn layout_nav() {

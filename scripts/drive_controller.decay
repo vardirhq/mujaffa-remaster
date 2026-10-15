@@ -61,6 +61,17 @@ script DriveController {
     // pavement, 2 handled, 3 run over.
     var fetter: f32 = 0.0; var cousin_x: f32 = 457.0; var cousin_y: f32 = -36.0;
     var greet_wait: f32 = 0.0;
+
+    // ---- touch: one finger steers, taps act ---------------------------------
+    var touch_down: bool = false;
+    var touch_moved: bool = false;
+    var touch_time: f32 = 0.0;
+    var touch_x0: f32 = 0.0; var touch_y0: f32 = 0.0;
+    var touch_x: f32 = 0.0; var touch_y: f32 = 0.0;
+    var since_tap: f32 = 10.0;
+    var want_greet: bool = false;
+    var want_pick: bool = false;
+    var want_burn: bool = false;
     var dansk_pige: f32 = 0.0; var girl_x: f32 = 468.0; var girl_y: f32 = 594.0;
     var girl_turn: f32 = 0.0;
 
@@ -283,6 +294,10 @@ script DriveController {
     fn begin() {
         this.running = true;
         this.clock = 0.0;
+        this.touch_down = false;
+        this.want_greet = false;
+        this.want_pick = false;
+        this.want_burn = false;
         this.tick = 0.0;
         this.phase = 0.0;
         this.phase_ticks = 0.0;
@@ -600,20 +615,92 @@ script DriveController {
         }
     }
 
+    fn clamp(value: f32, low: f32, high: f32) -> f32 {
+        return min(max(value, low), high);
+    }
+
+    fn near(x: f32, y: f32, radius: f32) -> bool {
+        let dx = this.touch_x - x;
+        let dy = this.touch_y - y;
+        return dx * dx + dy * dy < radius * radius;
+    }
+
+    // A finger that has moved, or stayed down past a tap, is steering.
+    fn steering() -> bool {
+        return this.touch_down && (this.touch_moved || this.touch_time > 0.25);
+    }
+
+    // The pointer in stage pixels: the overlay is 2 units tall and the stage
+    // is laid out at 0.004 units per pixel on a square or wider screen.
+    fn read_touch(dt: f32) {
+        let unit = 0.004 * min(Viewport.aspect, 1.0);
+        this.since_tap = this.since_tap + dt;
+        if Pointer.inside {
+            this.touch_x = Pointer.overlay_x / unit + 250.0;
+            this.touch_y = 250.0 - Pointer.overlay_y / unit;
+        }
+        if Pointer.just_pressed("Left") {
+            this.touch_down = true;
+            this.touch_moved = false;
+            this.touch_time = 0.0;
+            this.touch_x0 = this.touch_x;
+            this.touch_y0 = this.touch_y;
+        }
+        if this.touch_down {
+            this.touch_time = this.touch_time + dt;
+            let mx = this.touch_x - this.touch_x0;
+            let my = this.touch_y - this.touch_y0;
+            if mx * mx + my * my > 144.0 { this.touch_moved = true; }
+        }
+        if Pointer.just_released("Left") && this.touch_down {
+            this.touch_down = false;
+            if !this.touch_moved && this.touch_time <= 0.25 { tap(); }
+        }
+    }
+
+    // A tap on the cousin greets him, on the girl picks her up; two quick
+    // taps anywhere else are a burn-out.
+    fn tap() {
+        if this.phase != 1.0 { return; }
+        if this.fetter == 1.0 && near(this.cousin_x, this.cousin_y, 55.0) {
+            this.want_greet = true;
+        } else if this.dansk_pige == 1.0 && near(this.girl_x, this.girl_y, 55.0) {
+            this.want_pick = true;
+        } else if this.since_tap < 0.35 {
+            this.want_burn = true;
+        }
+        this.since_tap = 0.0;
+    }
+
     // `bilstyr` (1317) and its arrow-key button (1316). The original gets one
     // key event per OS key repeat; here a held arrow gives one per tick.
     fn steer() {
         if this.phase == 1.0 || this.phase == 3.0 {
-            if Input.is_down("ArrowRight") {
+            // A held finger presses the same arrows towards a point 70 px above
+            // it (so the thumb does not hide the BMW), and the opposite arrow
+            // to brake once the car is there.
+            var right = Input.is_down("ArrowRight");
+            var left = Input.is_down("ArrowLeft");
+            var up = Input.is_down("ArrowUp");
+            var down = Input.is_down("ArrowDown");
+            if steering() {
+                let dx = clamp(this.touch_x, 60.0, 440.0) - this.car_x;
+                let dy = clamp(this.touch_y - 70.0, 60.0, 440.0) - this.car_y;
+                right = right || (dx > 8.0 && this.horz < dx / 4.0) || (dx <= 8.0 && dx >= -8.0 && this.horz < 0.0);
+                left = left || (dx < -8.0 && this.horz > dx / 4.0) || (dx <= 8.0 && dx >= -8.0 && this.horz > 0.0);
+                down = down || (dy > 8.0 && this.vert < dy / 4.0) || (dy <= 8.0 && dy >= -8.0 && this.vert < 0.0);
+                up = up || (dy < -8.0 && this.vert > dy / 4.0) || (dy <= 8.0 && dy >= -8.0 && this.vert > 0.0);
+            }
+            if right {
                 if this.horz < 0.0 { if this.horz < -12.0 { this.horz = this.horz + 12.0; } else { this.horz = 0.0; } } else { this.horz = this.horz + 4.0; }
             }
-            if Input.is_down("ArrowLeft") {
+            if left {
                 if this.horz > 0.0 { if this.horz > 12.0 { this.horz = this.horz - 12.0; } else { this.horz = 0.0; } } else { this.horz = this.horz - 4.0; }
             }
-            if Input.is_down("ArrowUp") {
+            if up {
                 if this.vert > 0.0 { if this.vert > 12.0 { this.vert = this.vert - 12.0; } else { this.vert = 0.0; } } else { this.vert = this.vert - 4.0; }
             }
-            if Input.is_down("ArrowDown") {
+            if down {
                 if this.vert < 0.0 { if this.vert < -12.0 { this.vert = this.vert + 12.0; } else { this.vert = 0.0; } } else { this.vert = this.vert + 4.0; }
             }
         }
@@ -631,15 +718,22 @@ script DriveController {
             if this.car_x + this.horz > 60.0 && this.car_x + this.horz < 440.0 { this.car_x = this.car_x + this.horz; } else { this.horz = 0.0; }
         }
         // Z greets the cousin, X picks up the girl: on screen is enough.
+        // Tapping them does the same.
+        let greet = Input.just_pressed("Z") || this.want_greet;
+        let pick = Input.just_pressed("X") || this.want_pick;
+        let burn = Input.just_pressed("B") || this.want_burn;
+        this.want_greet = false;
+        this.want_pick = false;
+        this.want_burn = false;
         if this.phase == 1.0 {
-            if Input.just_pressed("Z") && this.fetter == 1.0 && this.greet_wait == 0.0 {
+            if greet && this.fetter == 1.0 && this.greet_wait == 0.0 {
                 this.greet_wait = 1.0;
                 Animation.play(this.car_volla, "shout");
             }
-            if Input.just_pressed("X") && this.dansk_pige == 1.0 && this.pick == 0.0 {
+            if pick && this.dansk_pige == 1.0 && this.pick == 0.0 {
                 this.pick = 1.0;
             }
-            if Input.just_pressed("B") && this.dansk_pige != 1.0 && this.burn == 0.0 {
+            if burn && this.dansk_pige != 1.0 && this.burn == 0.0 {
                 let now = floor(this.tick / 12.0);
                 if now - this.last_burn > 10.0 && this.car_y > 50.0 && this.car_y < 380.0 {
                     this.last_burn = now;
@@ -986,6 +1080,7 @@ script DriveController {
             begin();
         }
         if !this.running { return; }
+        read_touch(dt);
         this.clock = this.clock + dt;
         var steps = 0.0;
         while this.clock >= 1.0 / 12.0 && steps < 4.0 {

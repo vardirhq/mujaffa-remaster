@@ -1001,13 +1001,13 @@ def _write_sheet(track, movie, reference_art, shapes, out, scale, frame_rate):
             "names": order and [f"cell-{index:03d}" for index in range(len(order))],
         },
     }
-    (out / "png" / f"{name}.sheet.json").write_text(
+    (out / "png" / f"{name}.sheet").write_text(
         json.dumps(sheet, indent=2) + "\n", encoding="utf-8"
     )
     return {
         "id": track["name"],
         "png": f"png/{name}.png",
-        "sheet": f"png/{name}.sheet.json",
+        "sheet": f"png/{name}.sheet",
         "svg": f"svg/{name}.svg",
         "stage_rect": [round(value, 4) for value in rect],
         "cells": len(order),

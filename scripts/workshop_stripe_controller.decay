@@ -20,7 +20,7 @@ script WorkshopStripeController {
         this.ticket=Game.get("workshop.buy.ticket",0.0)+1.0;
         this.pending=value;
         Game.set("workshop.buy.price",250.0);
-        let next_worth=0.1; let old_worth=0.1;
+        var next_worth=0.1; var old_worth=0.1;
         if value==0.0 { next_worth=0.0; }
         if this.fitted==0.0 { old_worth=0.0; }
         Game.set("workshop.buy.cred",next_worth-old_worth);

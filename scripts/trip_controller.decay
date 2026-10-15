@@ -1,0 +1,336 @@
+// KJØR!: the frame-740 dialog, the route map, and what follows a drive.
+//
+// Main-timeline frames 740-743 (the "Skal vi cruise?" dialog), 368-469 (one
+// map frame per step of the three routes), 483/492/502 (level complete), 523
+// (game over) and 529-549 (status). docs/drive.md has the decoded map.
+//
+// The map frame is `goto_label`: clicking the one open district stores the
+// frame to show after that drive and starts it. A finished drive goes back to
+// the garage, except after Tveita, which shows the level-complete map.
+//
+// `workshop.view` says which of these covers the stage: 0 workshop,
+// 1 showroom, 2 dialog, 3 map, 4 drive, 5 game over, 6 status. The drive
+// itself is the drive controller's: this raises `drive.ticket` and waits for
+// `drive.result_ticket` to match it.
+//
+// Three map rows differ from v1.6, which cannot finish level 3: its
+// `bane3_grønland` result goes back to frame 368, the Holmenkollen button
+// sets Frogner again, and the Sinsen button is level 2's (see docs/drive.md).
+script TripController {
+    var view: f32 = 0.0;
+    var state: f32 = 368.0;
+    var level: f32 = 1.0;
+    var district: f32 = 1.0;
+    var ticket: f32 = 0.0;
+    var repair_due: bool = false;
+    var shown_map: Entity = null;
+    var shown_status: Entity = null;
+
+    var cruise: Entity = null;
+    var cruise_ja: Entity = null;
+    var cruise_nei: Entity = null;
+    var cruise_lukk: Entity = null;
+    var map: Entity = null;
+    var map_go: Entity = null;
+    var map_bmw: Entity = null;
+    var map_cred: Entity = null;
+    var map_penger: Entity = null;
+    var map_bane: Entity = null;
+    var map_level: Entity = null;
+    var drive: Entity = null;
+    var over: Entity = null;
+    var over_go: Entity = null;
+    var status: Entity = null;
+    var status_text: Entity = null;
+    var status_go: Entity = null;
+
+    fn start() {
+        this.cruise = World.find("Trip Cruise");
+        this.cruise_ja = World.find("Cruise Ja");
+        this.cruise_nei = World.find("Cruise Nei");
+        this.cruise_lukk = World.find("Cruise Lukk");
+        this.map = World.find("Trip Map");
+        this.map_go = World.find("Map Go");
+        this.map_bmw = World.find("Map BMW");
+        this.map_cred = World.find("Map Cred");
+        this.map_penger = World.find("Map Penger");
+        this.map_bane = World.find("Map Bane");
+        this.map_level = World.find("Map Level");
+        this.drive = World.find("Drive");
+        this.over = World.find("Trip Game Over");
+        this.over_go = World.find("Game Over Go");
+        this.status = World.find("Trip Status");
+        this.status_text = World.find("Status Text");
+        this.status_go = World.find("Status Go");
+
+        // Frame 202 (`initGame`): level 1 from Grønland, `energi = 1`, no cred.
+        Game.set("trip.level", 1.0);
+        Game.set("trip.district", 1.0);
+        Game.set("trip.energi", 1.0);
+        Game.set("trip.earned", 0.0);
+        Game.set("trip.spent", 0.0);
+        Game.set("game.cool", 0.0);
+        // Tickets only ever go up, so a board left over from an earlier run
+        // cannot start or end a drive by itself.
+        show(0.0);
+    }
+
+    // ---- the route ---------------------------------------------------------
+
+    fn is_route(frame: f32) -> bool {
+        return (frame >= 368.0 && frame <= 383.0) || (frame >= 404.0 && frame <= 424.0) || (frame >= 443.0 && frame <= 469.0);
+    }
+
+    fn is_level_complete(frame: f32) -> bool {
+        return frame == 483.0 || frame == 492.0 || frame == 502.0;
+    }
+
+    // The map frame `goto_label` names once the open district is clicked.
+    fn next_state(frame: f32) -> f32 {
+        if frame == 368.0 { return 373.0; }
+        if frame == 373.0 { return 378.0; }
+        if frame == 378.0 { return 383.0; }
+        if frame == 383.0 { return 483.0; }
+        if frame == 404.0 { return 409.0; }
+        if frame == 409.0 { return 414.0; }
+        if frame == 414.0 { return 419.0; }
+        if frame == 419.0 { return 424.0; }
+        if frame == 424.0 { return 492.0; }
+        if frame == 443.0 { return 448.0; }
+        if frame == 448.0 { return 453.0; }
+        if frame == 453.0 { return 458.0; }
+        if frame == 458.0 { return 463.0; }   // FIXED: v1.6 repeats 458
+        if frame == 463.0 { return 469.0; }   // FIXED: v1.6 goes to 424
+        return 502.0;
+    }
+
+    // `tilbane` for the open district: 1 GRØNLAND, 2 GRUNERLØKKA, 3 SINSEN,
+    // 4 TVEITA, 5 RÅDHUSPLASSEN, 6 BISLETT, 7 FROGNER, 8 HOLMENKOLLEN.
+    fn open_district(frame: f32) -> f32 {
+        if frame == 368.0 || frame == 404.0 || frame == 443.0 { return 1.0; }
+        if frame == 373.0 { return 2.0; }
+        if frame == 378.0 || frame == 419.0 || frame == 463.0 { return 3.0; }
+        if frame == 409.0 || frame == 448.0 { return 5.0; }
+        if frame == 414.0 { return 6.0; }
+        if frame == 453.0 { return 7.0; }
+        if frame == 458.0 { return 8.0; }   // FIXED: v1.6 sets FROGNER
+        return 4.0;
+    }
+
+    fn level_of(frame: f32) -> f32 {
+        if frame >= 443.0 && frame != 483.0 && frame != 492.0 { return 3.0; }
+        if frame >= 404.0 && frame != 483.0 { return 2.0; }
+        return 1.0;
+    }
+
+    fn district_name(code: f32) -> String {
+        if code == 1.0 { return "GRØNLAND"; }
+        if code == 2.0 { return "GRUNERLØKKA"; }
+        if code == 3.0 { return "SINSEN"; }
+        if code == 4.0 { return "TVEITA"; }
+        if code == 5.0 { return "RÅDHUSPLASSEN"; }
+        if code == 6.0 { return "BISLETT"; }
+        if code == 7.0 { return "FROGNER"; }
+        return "HOLMENKOLLEN";
+    }
+
+    fn map_name(frame: f32) -> String {
+        if frame == 368.0 { return "Map 368"; }
+        if frame == 373.0 { return "Map 373"; }
+        if frame == 378.0 { return "Map 378"; }
+        if frame == 383.0 { return "Map 383"; }
+        if frame == 404.0 { return "Map 404"; }
+        if frame == 409.0 { return "Map 409"; }
+        if frame == 414.0 { return "Map 414"; }
+        if frame == 419.0 { return "Map 419"; }
+        if frame == 424.0 { return "Map 424"; }
+        if frame == 443.0 { return "Map 443"; }
+        if frame == 448.0 { return "Map 448"; }
+        if frame == 453.0 { return "Map 453"; }
+        if frame == 458.0 { return "Map 458"; }
+        if frame == 463.0 { return "Map 463"; }
+        if frame == 469.0 { return "Map 469"; }
+        if frame == 483.0 { return "Map 483"; }
+        if frame == 492.0 { return "Map 492"; }
+        return "Map 502";
+    }
+
+    // ---- views -------------------------------------------------------------
+
+    fn show(value: f32) {
+        this.view = value;
+        Game.set("workshop.view", value);
+        World.set_active(this.cruise, value == 2.0);
+        World.set_active(this.map, value == 3.0);
+        World.set_active(this.drive, value == 4.0);
+        World.set_active(this.over, value == 5.0);
+        World.set_active(this.status, value == 6.0);
+        if value == 3.0 { show_map(); }
+        if value == 6.0 { show_status(); }
+    }
+
+    fn show_map() {
+        if this.shown_map != null { World.set_active(this.shown_map, false); }
+        this.shown_map = World.find(map_name(this.state));
+        World.set_active(this.shown_map, true);
+        // 404 and 443 start a level: `tilbane = "GRØNLAND"; level = n`.
+        if this.state == 404.0 || this.state == 443.0 { this.district = 1.0; }
+        this.level = level_of(this.state);
+        Ui.set_text(this.map_bane, district_name(this.district));
+        // The level-complete frames cover the panel with their own header.
+        let panel = !is_level_complete(this.state);
+        World.set_active(this.map_bmw, panel);
+        World.set_active(this.map_cred, panel);
+        World.set_active(this.map_penger, panel);
+        World.set_active(this.map_bane, panel);
+        World.set_active(this.map_level, panel);
+    }
+
+    // Frame 529: the tier is cool < 200, < 600, < 1200, < 2500, and the rest.
+    fn show_status() {
+        let cool = Game.get("game.cool", 0.0);
+        var tier = 5.0;
+        if cool < 2500.0 { tier = 4.0; }
+        if cool < 1200.0 { tier = 3.0; }
+        if cool < 600.0 { tier = 2.0; }
+        if cool < 200.0 { tier = 1.0; }
+        if this.shown_status != null { World.set_active(this.shown_status, false); }
+        if tier == 1.0 { this.shown_status = World.find("Trip Status 1"); }
+        if tier == 2.0 { this.shown_status = World.find("Trip Status 2"); }
+        if tier == 3.0 { this.shown_status = World.find("Trip Status 3"); }
+        if tier == 4.0 { this.shown_status = World.find("Trip Status 4"); }
+        if tier == 5.0 { this.shown_status = World.find("Trip Status 5"); }
+        World.set_active(this.shown_status, true);
+        Ui.set_number(this.status_text, cool);
+    }
+
+    // ---- the garage after a drive -----------------------------------------
+
+    // Frame 722 with `repairok == 1`. The original asks with a JA button
+    // (`repair_car` "respect" and "open"); this settles it as JA on arrival.
+    // v1.6's can't-pay branch zeroes `penge` and then sets `energi` to the
+    // whole repair bill (twenty times the damage); here the money left pays
+    // what it can and the rest stays as damage.
+    fn back_in_garage() {
+        if !this.repair_due { return; }
+        this.repair_due = false;
+        let energi = Game.get("trip.energi", 0.0);
+        if energi == 0.0 {
+            // "Du kjører som en drøm... Du får 15 respekt."
+            Game.set("game.cool", Game.get("game.cool", 0.0) + 15.0);
+        }
+        if energi > 1.0 {
+            let repair = energi * 20.0;
+            let money = Game.get("workshop.money", 0.0);
+            let paid = min(repair, money);
+            Game.set("trip.spent", Game.get("trip.spent", 0.0) + paid);
+            Game.set("trip.energi", floor((repair - paid) / 20.0));
+        }
+    }
+
+    // ---- layout ------------------------------------------------------------
+
+    // A hit area over stage rect (left, top, width, height).
+    fn hit(entity: Entity, left: f32, top: f32, width: f32, height: f32, unit: f32) {
+        entity.transform.position.x = (left + width / 2.0 - 250.0) * unit;
+        entity.transform.position.y = (250.0 - top - height / 2.0) * unit;
+        entity.transform.scale.x = width * unit;
+        entity.transform.scale.y = height * unit;
+    }
+
+    // Each map frame's one clickable district, measured from the SWF.
+    fn layout_map_go(unit: f32) {
+        let s = this.state;
+        let go = this.map_go;
+        if s == 368.0 || s == 404.0 || s == 443.0 { hit(go, 315.1, 337.65, 48.9, 46.85, unit); }
+        if s == 373.0 { hit(go, 239.25, 217.3, 48.9, 46.85, unit); }
+        if s == 378.0 || s == 419.0 || s == 463.0 { hit(go, 243.25, 94.3, 48.9, 46.85, unit); }
+        if s == 383.0 || s == 424.0 || s == 469.0 { hit(go, 394.25, 135.3, 48.9, 46.85, unit); }
+        if s == 409.0 || s == 448.0 { hit(go, 157.25, 408.25, 48.9, 46.85, unit); }
+        if s == 414.0 { hit(go, 117.25, 238.3, 48.9, 46.85, unit); }
+        if s == 453.0 { hit(go, 35.3, 329.3, 48.9, 46.85, unit); }
+        if s == 458.0 { hit(go, 71.25, 148.3, 48.9, 46.85, unit); }
+        if is_level_complete(s) { hit(go, 378.4, 468.45, 111.0, 22.0, unit); }
+    }
+
+    fn layout(unit: f32) {
+        hit(this.cruise_ja, 124.844, 298.515, 93.466, 35.548, unit);
+        hit(this.cruise_nei, 290.547, 298.515, 93.466, 35.548, unit);
+        hit(this.cruise_lukk, 414.063, 132.692, 20.806, 19.567, unit);
+        layout_map_go(unit);
+        hit(this.over_go, 382.35, 471.05, 111.0, 22.0, unit);
+        hit(this.status_go, 382.35, 471.05, 111.0, 22.0, unit);
+    }
+
+    fn refresh_map_numbers() {
+        Ui.set_number(this.map_bmw, 1.0 + Game.get("workshop.street_cred", 0.0));
+        Ui.set_number(this.map_cred, Game.get("game.cool", 0.0));
+        Ui.set_number(this.map_penger, Game.get("workshop.money", 5000.0));
+        Ui.set_number(this.map_level, this.level);
+    }
+
+    // ---- the loop ----------------------------------------------------------
+
+    fn start_drive() {
+        this.district = open_district(this.state);
+        this.level = level_of(this.state);
+        this.state = next_state(this.state);
+        Game.set("trip.level", this.level);
+        Game.set("trip.district", this.district);
+        this.ticket = Game.get("drive.ticket", 0.0) + 1.0;
+        Game.set("drive.ticket", this.ticket);
+        show(4.0);
+    }
+
+    fn update(dt: f32) {
+        // The workshop's own buttons move between 0, 1 and 2.
+        let board = Game.get("workshop.view", 0.0);
+        if board != this.view {
+            show(board);
+            if board == 0.0 { back_in_garage(); }
+        }
+        layout(0.004 * min(Viewport.aspect, 1.0));
+
+        if this.view == 2.0 {
+            // JA: the BMW drives off (875 frames 2-50), then 743 -> the map.
+            if Ui.is_pressed(this.cruise_ja) { show(3.0); }
+            if Ui.is_pressed(this.cruise_nei) || Ui.is_pressed(this.cruise_lukk) { show(0.0); }
+        } else if this.view == 3.0 {
+            refresh_map_numbers();
+            if Ui.is_pressed(this.map_go) {
+                if is_route(this.state) {
+                    start_drive();
+                } else if this.state == 483.0 {
+                    // 640: `goto_label = "bane2_start"`, back through the garage.
+                    this.state = 404.0;
+                    show(0.0);
+                    back_in_garage();
+                } else if this.state == 492.0 {
+                    this.state = 443.0;
+                    show(0.0);
+                    back_in_garage();
+                } else {
+                    show(6.0);
+                }
+            }
+        } else if this.view == 4.0 {
+            if Game.get("drive.result_ticket", 0.0) == this.ticket {
+                let result = Game.get("drive.result", 0.0);
+                this.repair_due = true;
+                if result == 2.0 {
+                    show(5.0);
+                } else if is_level_complete(this.state) {
+                    show(3.0);
+                } else {
+                    show(0.0);
+                    back_in_garage();
+                }
+            }
+        } else if this.view == 5.0 {
+            if Ui.is_pressed(this.over_go) { show(6.0); }
+        } else if this.view == 6.0 {
+            // 659 goes on to the highscore list, which is not cut yet.
+            if Ui.is_pressed(this.status_go) { Scene.go("title.scene.json"); }
+        }
+    }
+}

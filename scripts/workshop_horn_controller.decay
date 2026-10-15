@@ -10,9 +10,9 @@ script WorkshopHornController {
   if this.pending>0.0 || this.fitted==value { return; }
   this.ticket=Game.get("workshop.buy.ticket",0.0)+1.0;
   this.pending=value;
-  let price=900.0; let contribution=0.1;
+  var price=900.0; var contribution=0.1;
   if value==2.0 { price=1700.0; contribution=0.3; }
-  let old=0.0;
+  var old=0.0;
   if this.fitted==1.0 { old=0.1; }
   if this.fitted==2.0 { old=0.3; }
   // Original horn upgrade from compressor to multitone adds 0.2 cool.

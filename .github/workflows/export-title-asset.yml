@@ -1,0 +1,66 @@
+name: Export Generated Title Asset
+
+on:
+  workflow_dispatch:
+    inputs:
+      asset:
+        description: "Original title animation to export"
+        required: true
+        type: choice
+        options:
+          - opening-1
+          - opening-2
+          - prompt
+
+permissions:
+  contents: read
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install renderer
+        run: python -m pip install --disable-pip-version-check cairosvg
+      - name: Regenerate original title textures
+        env:
+          PYTHONPATH: tools
+        run: |
+          python tools/swf_art_extract.py mujaffa_3juni_2003.swf reference-art --scale 4
+          python tools/swf_title_extract.py mujaffa_3juni_2003.swf reference-art assets/generated/title --scale 2
+      - name: Package selected animation
+        env:
+          ASSET: ${{ inputs.asset }}
+        run: |
+          python - <<'PY'
+          import json, os, pathlib, shutil
+          asset = os.environ["ASSET"]
+          assert asset in {"opening-1", "opening-2", "prompt"}
+          base = pathlib.Path("assets/generated/title")
+          manifest = json.loads((base / "title-manifest.json").read_text())
+          match = next((a for a in manifest["animations"] if a["id"] == asset), None)
+          if match is None:
+              raise SystemExit(f"Animation not found in manifest: {asset}")
+          out = pathlib.Path("export") / asset
+          out.mkdir(parents=True)
+          png = base / match["png"]
+          if not png.is_file():
+              raise SystemExit(f"Missing generated PNG: {png}")
+          shutil.copy2(png, out / png.name)
+          sheet = png.with_suffix(".sheet")
+          if sheet.is_file():
+              shutil.copy2(sheet, out / sheet.name)
+          (out / "animation.json").write_text(json.dumps(match, indent=2) + "\n")
+          (out / "README.txt").write_text(
+              "Original SWF-derived animation. PNG is the generated sprite sheet; "
+              "animation.json contains frame sequence and timing.\n"
+          )
+          print(f"Exported {asset}: {png}")
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: mujaffa-title-${{ inputs.asset }}
+          path: export/
+          if-no-files-found: error
+          retention-days: 30

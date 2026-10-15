@@ -57,8 +57,10 @@ handshake that starts a drive and reports it finished (1) or crashed (2).
   (under 0.25 s, moving under 12 px) on the cousin greets him (Z), on the girl
   picks her up (X), and two taps within 0.35 s elsewhere are a burn-out (B).
   The horn (H) is sound only and waits for the sounds to be cut.
-- The garage's "respect" (+15) and "repair" dialogs are settled as JA on
-  arrival in the garage; their JA/NEI art is not cut yet.
+- The garage's `repair_car` dialogs (886) are cut from the SWF and wait for an
+  answer: "respect" gives +15 on JA!, and its cross leaves `repairok` set so it
+  asks again next time the workshop opens; "open" shows the bill as digit
+  pictures from the embedded Arial Bold, and NEI! drives on with the damage.
 - JA on the KJØR! dialog goes straight to the map; the BMW's drive-away
   animation (sprite 875 frames 2-50) is not cut yet.
 - NESTE SIDE on the status screen goes back to the title, where 659 opened the

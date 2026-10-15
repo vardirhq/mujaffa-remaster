@@ -176,3 +176,22 @@ def test_hud_bmw_reads_like_flash_and_end_screens_are_on_white():
     assert 'name in ("BMW", "Cred", "Penger", "Level")' in source
     assert 'stage_layer("trip-over-paper", "Game Over Paper", PAPER, 0, "trip-over")' in source
     assert 'stage_layer("trip-status-paper", "Status Paper", PAPER, 0, "trip-status")' in source
+
+
+def test_repair_and_respect_ask_like_repair_car():
+    from install_drive import REPAIR, REPAIR_BUTTONS, REPAIR_FRAMES
+    assert REPAIR == 886 and REPAIR_FRAMES == {"repair": 7, "respect": 14}
+    assert REPAIR_BUTTONS["repair-ja"] == (7, 877) and REPAIR_BUTTONS["repair-nei"] == (7, 878)
+    assert REPAIR_BUTTONS["respect-ja"] == (14, 883)
+    # Nothing is settled without an answer any more.
+    garage = TRIP[TRIP.index("fn back_in_garage()"):TRIP.index("fn pay_repair()")]
+    assert "game.cool" not in garage and "trip.spent" not in garage
+    assert "this.bill = energi * 20.0;" in garage
+    answer = TRIP[TRIP.index("fn answer_repair()"):TRIP.index("fn digit_name(")]
+    assert "if Ui.is_pressed(this.repair_ja) { pay_repair(); this.repair_due = false; }" in answer
+    assert "if Ui.is_pressed(this.repair_nei) { this.repair_due = false; }" in answer
+    assert 'Game.get("game.cool", 0.0) + 15.0' in answer
+    # The respect cross leaves `repairok` set, so it asks again.
+    assert "if Ui.is_pressed(this.respect_lukk) { World.set_active(this.respect, false); }" in answer
+    # The bill's digit pictures follow field 882 and Arial Bold's digit advance.
+    assert "291.4 + (slot - 1.0) * 11.133, 202.35, 15.133, 30.0" in TRIP

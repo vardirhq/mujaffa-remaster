@@ -51,7 +51,7 @@ PAPER = "assets/generated/drive/png/paper.png"
 # Field variables a script writes. The picture leaves them empty.
 LIVE_VARIABLES = {
     "../:bil_cool", "../:cool", "../:penge", "../:tilbane", "../:level",
-    "../../:penge", "../../:cool", "myStatus", "kort_rolllevel", "kort_rollstatus",
+    "../../:penge", "../../:cool", "myStatus", "kort_rolllevel", "kort_rollstatus", "../:repair",
 }
 
 # Map states: main-timeline frame -> (district button, next state, district, level).
@@ -91,6 +91,15 @@ CRUISE_BUTTONS = {"ja": 293, "nei": 294, "lukk": 295}
 BROKE_FRAME = 722
 BROKE_DIALOG = 290
 BROKE_BUTTONS = {"ok": 281, "lukk": 285}
+# `repair_car` (886, frame 722), shown on arriving back with `repairok == 1`:
+# frame `open` asks "Det koster {repair} ... Skal jeg fikse den?" with JA! (877)
+# and NEI! (878); frame `respect` is "Du kjører som en drøm" with JA! (883) and
+# a cross (295) that leaves `repairok` set, so it asks again next time.
+REPAIR = 886
+REPAIR_FRAMES = {"repair": 7, "respect": 14}
+REPAIR_BUTTONS = {"repair-ja": (7, 877), "repair-nei": (7, 878), "respect-ja": (14, 883), "respect-lukk": (14, 295)}
+REPAIR_FIELD = 882
+REPAIR_DIGITS = 5
 
 DRIVE_FRAME = 806
 ROAD = 951
@@ -286,6 +295,26 @@ def render_all(art: Art) -> None:
     broke = [{"character": BROKE_DIALOG, "matrix": art.placement(BROKE_FRAME, BROKE_DIALOG)}]
     for key, button in BROKE_BUTTONS.items():
         art.manifest["buttons"][f"broke-{key}"] = art.button_rect(BROKE_FRAME, button, broke)
+    matrix = art.placement(BROKE_FRAME, REPAIR)
+    for name, frame in REPAIR_FRAMES.items():
+        art.stage(f"{name}-dialog", art.draws(REPAIR, matrix, {REPAIR: frame}))
+    for key, (frame, button) in REPAIR_BUTTONS.items():
+        art.manifest["buttons"][key] = art.button_rect(BROKE_FRAME, button, art.movie.sprite_display(REPAIR, frame), matrix)
+    # The bill in the embedded Arial Bold, one picture per digit. Its digits
+    # all advance the same, so a number is digit pictures side by side.
+    field = art.manifest["fields"]["repair-dialog"][0]
+    font = art.movie.fonts[art.movie.edit_texts[REPAIR_FIELD]["font_id"]]
+    zero = next(index for index, glyph in enumerate(font["glyphs"]) if glyph.get("code") == ord("0"))
+    advance = round(font["advances"][zero] / float(font["units_per_em"]) * field["size"], 3)
+    view = (field["left"] - 2.0, field["top"] - 2.0, advance + 4.0, field["size"] * 1.3 + 4.0)
+    only = [draw for draw in art.draws(REPAIR, matrix, {REPAIR: 7}) if draw["kind"] == "field" and draw["character"] == REPAIR_FIELD]
+    for digit in range(10):
+        art.movie.variables[field["variable"]] = str(digit)
+        art.movie.edit_texts[REPAIR_FIELD]["text"] = str(digit)
+        art.manifest["objects"][f"repair-digit-{digit}"] = art._png(only, view, f"repair-digit-{digit}")
+    art.movie.variables[field["variable"]] = ""
+    art.movie.edit_texts[REPAIR_FIELD]["text"] = ""
+    art.manifest["repair_digits"] = {"rect": [round(v, 3) for v in view], "advance": advance}
     dialog = [{"character": CRUISE_DIALOG, "matrix": art.placement(CRUISE_FRAME, CRUISE_DIALOG)}]
     for key, button in CRUISE_BUTTONS.items():
         art.manifest["buttons"][f"cruise-{key}"] = art.button_rect(CRUISE_FRAME, button, dialog)
@@ -536,6 +565,24 @@ def build_entities(art: Art) -> list[dict]:
         button = hit_button(f"trip-broke-{key}", f"Broke {key.capitalize()}", key.upper(), "trip-broke")
         button["components"]["sindri.ui.shape"]["layer"] = 265
         out.append(button)
+
+    # The repair and respect dialogs, drawn like "Din fattiglus!" above the
+    # workshop. The bill is up to five digit pictures per slot, which the
+    # trip controller lays out and shows.
+    for name in REPAIR_FRAMES:
+        out.append({"id": f"trip-{name}", "name": f"Trip {name.capitalize()}", "parent": "trip", "disabled": True, "transform_3d": transform()})
+        out.append({"id": f"trip-{name}-art", "name": f"Trip {name.capitalize()} Dialog", "parent": f"trip-{name}", "transform_3d": transform((0, 0, 0), (2.0, 2.0, 1.0)),
+                    "components": {"sindri.ui.image": {"texture": layers[f"{name}-dialog"]["png"], "tint": [1.0, 1.0, 1.0, 1.0], "anchor": "center", "layer": 260}}})
+    for key in REPAIR_BUTTONS:
+        name, _, answer = key.partition("-")
+        button = hit_button(f"trip-{key}", f"{name.capitalize()} {answer.capitalize()}", answer.upper(), f"trip-{name}")
+        button["components"]["sindri.ui.shape"]["layer"] = 265
+        out.append(button)
+    for slot in range(1, REPAIR_DIGITS + 1):
+        for digit in range(10):
+            out.append({"id": f"trip-repair-digit-{slot}-{digit}", "name": f"Repair Digit {slot} {digit}", "parent": "trip-repair", "disabled": True,
+                        "transform_3d": transform((0, 0, 0), (0.001, 0.001, 1.0)),
+                        "components": {"sindri.ui.image": {"texture": objects[f"repair-digit-{digit}"]["png"], "tint": [1.0, 1.0, 1.0, 1.0], "anchor": "center", "layer": 262}}})
 
     # The map: one picture per state, shown one at a time.
     out.append({"id": "trip-map", "name": "Trip Map", "parent": "trip", "disabled": True, "transform_3d": transform()})

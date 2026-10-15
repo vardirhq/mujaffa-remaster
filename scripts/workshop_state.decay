@@ -31,6 +31,10 @@ script WorkshopState {
     var plate_confirmed: f32 = 0.0;
     var plate_moused: f32 = 0.0;
     var plate_cool: bool = false;
+    // Running totals the trip leaves on the board: gold picked up on the road
+    // (`penge += ran`) and repairs paid in the garage. Only the change counts.
+    var trip_earned: f32 = 0.0;
+    var trip_spent: f32 = 0.0;
 
     // The last ticket settled. A controller raises the ticket to ask; this
     // never settles the same one twice.
@@ -62,6 +66,14 @@ script WorkshopState {
     }
 
     fn update(dt: f32) {
+        let earned = Game.get("trip.earned", 0.0);
+        let spent = Game.get("trip.spent", 0.0);
+        if earned != this.trip_earned || spent != this.trip_spent {
+            this.money = max(this.money + (earned - this.trip_earned) - (spent - this.trip_spent), 0.0);
+            this.trip_earned = earned;
+            this.trip_spent = spent;
+            publish();
+        }
         let confirmed = Game.get("workshop.plate.confirmed", 0.0);
         if confirmed > this.plate_confirmed {
             this.plate_confirmed = confirmed;

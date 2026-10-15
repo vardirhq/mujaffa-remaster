@@ -58,7 +58,8 @@ def test_showroom_car_is_the_frame_730_placement():
     dx = (SHOWROOM_CAR[0] - WORKSHOP_CAR[0]) * PX
     dy = (WORKSHOP_CAR[1] - SHOWROOM_CAR[1]) * PX
     assert f"{dx:.4f}" in GARAGE_LAYOUT_VIEWS and f"{dy:.4f}" in GARAGE_LAYOUT_VIEWS
-    assert 'Game.get("workshop.view", 0.0) == 1.0' in GARAGE_LAYOUT_VIEWS
+    assert 'Game.get("workshop.view", 0.0)' in GARAGE_LAYOUT_VIEWS
+    assert "view == 1.0" in GARAGE_LAYOUT_VIEWS
 
 
 def test_garage_hook_matches_the_workshop_parity_patch():
@@ -79,8 +80,9 @@ def test_header_numbers_are_live_text_not_pixels():
 def test_controller_finds_what_the_installer_names():
     for name in (
         "Workshop View", "Showroom View", "Showroom Description", "Header Penger",
-        "Header BMW", "Header Street Cred", "Nav Verksted", "Nav Showroom",
+        "Header BMW", "Header Street Cred", "Nav Verksted", "Nav Showroom", "Nav Kjor",
     ):
         assert f'World.find("{name}")' in CONTROLLER
         assert f'"{name}"' in INSTALLER
+    assert 'World.find("Original Mujaffa Logo")' in CONTROLLER
 

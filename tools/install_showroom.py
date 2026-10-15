@@ -88,10 +88,14 @@ GARAGE_LAYOUT_FIXED = '''    fn refresh_layout() {
 GARAGE_LAYOUT_VIEWS = f'''    fn refresh_layout() {{
         // `workshop.view` is 1 on the frame-730 showroom, which hides the
         // UTSTYR rail and its controls and moves the car to its frame-730 place.
-        let showroom = Game.get("workshop.view", 0.0) == 1.0;
-        World.set_active(this.desktop, !showroom);
+        // 2 is the KJØR! dialog over the workshop; from 3 on (map, drive, end
+        // screens) the trip covers the stage and the garage car is put away.
+        let view = Game.get("workshop.view", 0.0);
+        let showroom = view == 1.0;
+        World.set_active(this.desktop, view == 0.0);
         World.set_active(this.mobile, false);
         let car = this.car;
+        World.set_active(car, view <= 2.0);
         car.transform.position.x = 0.0;
         car.transform.position.y = 0.0;
         if showroom {{
@@ -279,6 +283,7 @@ def install(project: Path, scale: float) -> None:
             *(header_entity(key, spec) for key, spec in HEADER.items()),
             nav_button("nav-verksted", "Nav Verksted", "VERKSTED"),
             nav_button("nav-showroom", "Nav Showroom", "SHOWROOM"),
+            nav_button("nav-kjor", "Nav Kjor", "KJØR!"),
             {
                 "id": "showroom-controller",
                 "name": "Showroom Controller",

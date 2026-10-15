@@ -85,7 +85,7 @@ jobs:
           # from the original and the difference is the report.
           git diff --exit-code title.scene.json
           test -f assets/generated/title/png/title-backdrop.png
-          test -f assets/generated/title/png/title-opening-1.sheet.json
+          test -f assets/generated/title/png/title-opening-1.sheet
           test -f assets/generated/title/png/title-prompt.png
           test "$(find assets/generated/title/png -name '*.png' | wc -l)" -ge 24
       - name: Generate layered Mujaffa car and showroom art
@@ -100,6 +100,8 @@ jobs:
         run: python mujaffa/tools/install_workshop_interactivity.py --project mujaffa
       - name: Install frame-730 showroom and live header
         run: python mujaffa/tools/install_showroom.py --project mujaffa
+      - name: Install the KJØR! trip (dialog, map, drive, end screens)
+        run: python mujaffa/tools/install_drive.py --project mujaffa
       - name: Verify workshop source
         shell: bash
         run: |
@@ -119,6 +121,13 @@ jobs:
           grep -q '"name": "Showroom View"' mujaffa/main.scene.json
           grep -q '"name": "Showroom Description"' mujaffa/main.scene.json
           grep -q '"name": "Nav Showroom"' mujaffa/main.scene.json
+          grep -q '"name": "Nav Kjor"' mujaffa/main.scene.json
+          grep -q '"name": "Trip Map"' mujaffa/main.scene.json
+          grep -q '"name": "Drive Road"' mujaffa/main.scene.json
+          grep -q '"script": "DriveController"' mujaffa/main.scene.json
+          grep -q '"script": "TripController"' mujaffa/main.scene.json
+          test -f mujaffa/assets/generated/drive/manifest.json
+          test "$(find mujaffa/assets/generated/drive/png -name 'map-*.png' | wc -l)" -eq 18
           test -f mujaffa/assets/generated/showroom-730/png/room.png
           test -f mujaffa/assets/generated/showroom-730/png/panel.png
           grep -q 'Game.get("workshop.view", 0.0)' mujaffa/scripts/garage.decay

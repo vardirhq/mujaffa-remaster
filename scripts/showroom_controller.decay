@@ -3,6 +3,9 @@
 // VERKSTED is main-timeline frame 722 (`køb`) and SHOWROOM is frame 730
 // (`showroom`). Both share one stage, so switching is a matter of which world
 // group is on; `workshop.view` tells the garage which car placement to use.
+// KJØR! (button 925, frame 722) raises the frame-740 dialog as view 2; the
+// trip controller owns the views after that (3 map, 4 drive, 5 game over,
+// 6 status) and hands back 0, so this follows the board rather than its own copy.
 //
 // Entering the showroom runs frame 745 (`makeDescription`), which writes the
 // car's state into edit-text 935 (`beskrivelse`). `describe()` is that program
@@ -19,6 +22,8 @@ script ShowroomController {
     var street_cred: Entity = null;
     var nav_workshop: Entity = null;
     var nav_showroom: Entity = null;
+    var nav_kjor: Entity = null;
+    var logo: Entity = null;
 
     fn start() {
         this.workshop = World.find("Workshop View");
@@ -29,29 +34,46 @@ script ShowroomController {
         this.street_cred = World.find("Header Street Cred");
         this.nav_workshop = World.find("Nav Verksted");
         this.nav_showroom = World.find("Nav Showroom");
+        this.nav_kjor = World.find("Nav Kjor");
+        this.logo = World.find("Original Mujaffa Logo");
         layout_nav();
         set_view(0.0);
     }
 
-    // The tabs drawn in the chrome at stage (205, 474) and (315, 474), 105x20.
-    fn layout_tab(entity: Entity, left: f32, unit: f32) {
-        entity.transform.position.x = (left + 52.5 - 250.0) * unit;
+    // The tabs drawn in the chrome at stage (205, 474) and (315, 474), 105x20,
+    // and KJØR! at (424, 474), 69x20.
+    fn layout_tab(entity: Entity, left: f32, width: f32, unit: f32) {
+        entity.transform.position.x = (left + width / 2.0 - 250.0) * unit;
         entity.transform.position.y = (250.0 - 484.0) * unit;
-        entity.transform.scale.x = 105.0 * unit;
+        entity.transform.scale.x = width * unit;
         entity.transform.scale.y = 20.0 * unit;
     }
 
     fn layout_nav() {
         let unit = 0.004 * min(Viewport.aspect, 1.0);
-        layout_tab(this.nav_workshop, 205.0, unit);
-        layout_tab(this.nav_showroom, 315.0, unit);
+        layout_tab(this.nav_workshop, 205.0, 105.0, unit);
+        layout_tab(this.nav_showroom, 315.0, 105.0, unit);
+        layout_tab(this.nav_kjor, 424.0, 69.0, unit);
     }
 
     fn set_view(value: f32) {
-        this.view = value;
         Game.set("workshop.view", value);
-        World.set_active(this.workshop, value == 0.0);
+        show_view(value);
+    }
+
+    fn show_view(value: f32) {
+        this.view = value;
+        // Frame 740 keeps the workshop behind the dialog; the map and the
+        // drive cover the whole stage, header included.
+        World.set_active(this.workshop, value == 0.0 || value == 2.0);
         World.set_active(this.showroom, value == 1.0);
+        World.set_active(this.penger, value <= 2.0);
+        World.set_active(this.bmw, value <= 2.0);
+        World.set_active(this.street_cred, value <= 2.0);
+        World.set_active(this.logo, value <= 2.0);
+        World.set_active(this.nav_workshop, value <= 1.0);
+        World.set_active(this.nav_showroom, value <= 1.0);
+        World.set_active(this.nav_kjor, value == 0.0);
         if value == 1.0 {
             Ui.set_text(this.description, describe());
         }
@@ -191,9 +213,14 @@ script ShowroomController {
     }
 
     fn update(dt: f32) {
+        let board = Game.get("workshop.view", 0.0);
+        if board != this.view { show_view(board); }
         layout_nav();
         refresh_header();
+        if this.view > 1.0 { return; }
         if Ui.is_pressed(this.nav_workshop) { set_view(0.0); }
         if Ui.is_pressed(this.nav_showroom) { set_view(1.0); }
+        // Button 925: `camefrom = "køb"; gotoAndStop(740)`.
+        if this.view == 0.0 && Ui.is_pressed(this.nav_kjor) { set_view(2.0); }
     }
 }

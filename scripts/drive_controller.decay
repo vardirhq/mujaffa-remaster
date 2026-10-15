@@ -1,0 +1,998 @@
+// The drive: main-timeline frames 794-810 of the original, run at its 12 fps.
+//
+// Every number here is from the v1.6 bytes (docs/drive.md has the map). The
+// original's logic is spread over a dozen off-stage controller clips: `move`
+// (1303) runs collisions and then the world step, `control` (1302) spawns and
+// scrolls, `bilstyr` (1317) steers, `vej_ting` (1319) rolls traffic, `pigemc`
+// (1325) is the pick-up, `exit` (1310) and `dø` (1311) end the drive. This
+// script is all of them, ticked in that order on a fixed 1/12 s step, so a
+// faster display does not make the drive faster.
+//
+// Positions are stage pixels of the 500x500 original, y down, as `_x`/`_y`.
+//
+// The trip controller starts a drive by raising `drive.ticket`; this answers
+// with `drive.result` (1 finished, 2 crashed) and `drive.result_ticket`.
+script DriveController {
+    // ---- run state -------------------------------------------------------
+    var ticket: f32 = 0.0;
+    var running: bool = false;
+    var clock: f32 = 0.0;
+    var tick: f32 = 0.0;
+    var phase: f32 = 0.0; // 0 intro, 1 driving, 2 driving off, 3 crashed, 4 done
+    var phase_ticks: f32 = 0.0;
+    var level: f32 = 1.0;
+    var district: f32 = 1.0;
+    var traffic_set: String = "";
+    var bil_cool: f32 = 1.0;
+
+    var speed: f32 = 20.0;
+    var spawn_clock: f32 = 0.0; // `L`
+    var rykket: f32 = 0.0;
+    var distance_count: f32 = 0.0;
+    var afstand: f32 = 0.0;
+    var energi: f32 = 0.0;
+    var cool: f32 = 0.0;
+    var earned: f32 = 0.0;
+    var condoms: f32 = 0.0;
+
+    var fetter_1: f32 = 0.0; var fetter_2: f32 = 0.0; var fetter_3: f32 = 0.0; var fetter_4: f32 = 0.0;
+    var pige_1: f32 = 0.0; var pige_2: f32 = 0.0; var pige_3: f32 = 0.0;
+
+    // The car and its steering (`bilstyr`).
+    var car_x: f32 = 314.55;
+    var car_y: f32 = 358.7;
+    var horz: f32 = 0.0;
+    var vert: f32 = 0.0;
+    var friction: f32 = 0.0;
+    var burn: f32 = 0.0;       // 0 idle, else the burner clip's frame
+    var last_burn: f32 = -100.0;
+
+    // Road furniture.
+    var stripes_y: f32 = 224.5;
+    var vej_over: f32 = 0.0; var crossing_y: f32 = 1037.25;
+    var vej_over2: f32 = 0.0; var junction_y: f32 = 975.3;
+    var vej_kondom: f32 = 0.0; var condom_x: f32 = 347.3; var condom_y: f32 = 577.7;
+    var gold_x: f32 = 179.55; var gold_y: f32 = -127.8; var gold_ok: f32 = 1.0; var gold_anim: f32 = 0.0;
+    var gold2_x: f32 = 369.6; var gold2_y: f32 = -52.25; var gold2_ok: f32 = 1.0; var gold2_anim: f32 = 0.0;
+    var vej_person: f32 = 0.0; var person_y: f32 = -52.4;
+    var person_x: f32 = 466.55;
+
+    // The cousin (`fetter`) and the girl (`dansk_pige`): 0 away, 1 on the
+    // pavement, 2 handled, 3 run over.
+    var fetter: f32 = 0.0; var cousin_x: f32 = 457.0; var cousin_y: f32 = -36.0;
+    var greet_wait: f32 = 0.0;
+    var dansk_pige: f32 = 0.0; var girl_x: f32 = 468.0; var girl_y: f32 = 594.0;
+    var girl_turn: f32 = 0.0;
+
+    // The pick-up (`pigemc`): its frame, 0 when idle.
+    var pick: f32 = 0.0;
+    var pick_area: f32 = 0.0;
+    var pick_hold: f32 = 0.0;
+    var pick_ok: bool = false;
+    var last_speed: f32 = 0.0;
+    var pickup: bool = false;
+
+    // Mopeds (`domi`) and other cars (`dyr`).
+    var vej_domi: f32 = 0.0; var moped_x: f32 = 431.3; var moped_y: f32 = 825.95;
+    var moped_turned: bool = false; var moped_look: f32 = 1.0; var moped_hit: f32 = 0.0;
+    var swerve: f32 = 0.0; var swerving: bool = false;
+    var vej_dyr: f32 = 0.0; var traffic_x: f32 = 139.45; var traffic_y: f32 = -246.85;
+    var traffic_turned: bool = false; var traffic_look: f32 = 1.0; var traffic_boom: f32 = 0.0;
+    var traffic_hw: f32 = 40.0; var traffic_hh: f32 = 70.0;
+    var traffic_entity: Entity = null;
+    var roll: f32 = 0.0;
+
+    // Pop-up numbers.
+    var pop_cool: f32 = 0.0; var pop_girl: f32 = 0.0; var pop_kill: f32 = 0.0;
+    var crash_ticks: f32 = 0.0;
+    var exit_loops: f32 = 0.0;
+
+    // ---- entities --------------------------------------------------------
+    var root: Entity = null;
+    var stripes: Entity = null; var crossing: Entity = null; var junction: Entity = null;
+    var condom: Entity = null; var gold: Entity = null; var gold2: Entity = null;
+    var person: Entity = null; var person_art: Entity = null;
+    var cousin: Entity = null; var cousin_art: Entity = null;
+    var girl: Entity = null; var girl_art: Entity = null;
+    var car: Entity = null; var car_body: Entity = null; var car_boom: Entity = null;
+    var car_volla: Entity = null; var car_girl: Entity = null;
+    var moped: Entity = null; var moped_1: Entity = null; var moped_2: Entity = null; var moped_3: Entity = null;
+    var traffic: Entity = null;
+    var hud_en: Entity = null; var hud_di: Entity = null; var hud_condoms: Entity = null;
+    var hud_penger: Entity = null; var hud_cred: Entity = null; var hud_bmw: Entity = null;
+    var hud_bane: Entity = null; var hud_level: Entity = null;
+    var intro_7: Entity = null; var intro_21: Entity = null; var intro_41: Entity = null; var intro_name: Entity = null;
+    var pop_cool_text: Entity = null; var pop_girl_text: Entity = null; var pop_kill_text: Entity = null;
+    var pop_gold_text: Entity = null; var pop_gold2_text: Entity = null;
+
+    fn start() {
+        this.root = World.find("Drive");
+        this.stripes = World.find("Drive Stripes");
+        this.crossing = World.find("Drive Crossing");
+        this.junction = World.find("Drive Junction");
+        this.condom = World.find("Drive Condom");
+        this.gold = World.find("Drive Gold");
+        this.gold2 = World.find("Drive Gold-2");
+        this.person = World.find("Drive Person");
+        this.cousin = World.find("Drive Cousin");
+        this.cousin_art = World.find("Drive Cousin Art");
+        this.girl = World.find("Drive Girl");
+        this.girl_art = World.find("Drive Girl Art");
+        this.car = World.find("Drive Car");
+        this.car_body = World.find("Drive Car farve 1");
+        this.car_boom = World.find("Drive Car Boom");
+        this.car_volla = World.find("Drive Car Volla");
+        this.car_girl = World.find("Drive Car Girl");
+        this.moped = World.find("Drive Moped");
+        this.moped_1 = World.find("Drive Moped 1");
+        this.moped_2 = World.find("Drive Moped 2");
+        this.moped_3 = World.find("Drive Moped 3");
+        this.traffic = World.find("Drive Traffic");
+        this.hud_en = World.find("Drive HUD en");
+        this.hud_di = World.find("Drive HUD di");
+        this.hud_condoms = World.find("Drive HUD kondom Art");
+        this.hud_penger = World.find("Drive HUD Penger");
+        this.hud_cred = World.find("Drive HUD Cred");
+        this.hud_bmw = World.find("Drive HUD BMW");
+        this.hud_bane = World.find("Drive HUD Bane");
+        this.hud_level = World.find("Drive HUD Level");
+        this.intro_7 = World.find("Drive Intro 7");
+        this.intro_21 = World.find("Drive Intro 21");
+        this.intro_41 = World.find("Drive Intro 41");
+        this.intro_name = World.find("Drive Intro District");
+        this.pop_cool_text = World.find("Drive Pop cool");
+        this.pop_girl_text = World.find("Drive Pop girl-cool");
+        this.pop_kill_text = World.find("Drive Pop kill");
+        this.pop_gold_text = World.find("Drive Pop gold");
+        this.pop_gold2_text = World.find("Drive Pop gold-2");
+        this.ticket = Game.get("drive.ticket", 0.0);
+    }
+
+    // ---- helpers ---------------------------------------------------------
+    fn place(entity: Entity, x: f32, y: f32) {
+        entity.transform.position.x = (x - 250.0) * 0.02;
+        entity.transform.position.y = (250.0 - y) * 0.02;
+    }
+
+    // Flash `random(n)`: a whole number from 0 to n - 1.
+    fn random(n: f32) -> f32 {
+        return Random.int(0.0, n - 1.0);
+    }
+
+    fn digits(n: f32) -> String {
+        if n == 1.0 { return "1"; }
+        if n == 2.0 { return "2"; }
+        if n == 3.0 { return "3"; }
+        if n == 4.0 { return "4"; }
+        if n == 5.0 { return "5"; }
+        if n == 6.0 { return "6"; }
+        if n == 7.0 { return "7"; }
+        if n == 8.0 { return "8"; }
+        if n == 9.0 { return "9"; }
+        if n == 10.0 { return "10"; }
+        if n == 11.0 { return "11"; }
+        if n == 12.0 { return "12"; }
+        if n == 13.0 { return "13"; }
+        if n == 14.0 { return "14"; }
+        return "15";
+    }
+
+    // `tilbane`: the trip controller's district codes, 1 to 8.
+    fn district_name(code: f32) -> String {
+        if code == 1.0 { return "GRØNLAND"; }
+        if code == 2.0 { return "GRUNERLØKKA"; }
+        if code == 3.0 { return "SINSEN"; }
+        if code == 4.0 { return "TVEITA"; }
+        if code == 5.0 { return "RÅDHUSPLASSEN"; }
+        if code == 6.0 { return "BISLETT"; }
+        if code == 7.0 { return "FROGNER"; }
+        return "HOLMENKOLLEN";
+    }
+
+    // The district's own cars: `dyr` (1197) goes to the label named by
+    // `tilbane`. Its Bislett label is spelt BISLET, so Bislett never finds it
+    // and keeps frame 1, the Grünerløkka cars, as it did in 2003.
+    fn traffic_set_for(code: f32) -> String {
+        if code == 6.0 { return "GRUNERLØKKA"; }
+        return district_name(code);
+    }
+
+    fn person_entity(code: f32) -> String {
+        if code == 1.0 { return "Drive Person GRØNLAND"; }
+        if code == 2.0 { return "Drive Person GRUNERLØKKA"; }
+        if code == 3.0 { return "Drive Person SINSEN"; }
+        if code == 4.0 { return "Drive Person TVEITA"; }
+        if code == 5.0 { return "Drive Person RÅDHUSPLASSEN"; }
+        if code == 6.0 { return "Drive Person BISLETT"; }
+        if code == 7.0 { return "Drive Person FROGNER"; }
+        return "Drive Person HOLMENKOLLEN";
+    }
+
+    // Looks are the odd frames before each car clip's `boom` label.
+    fn traffic_looks() -> f32 {
+        if this.traffic_set == "GRUNERLØKKA" { return 3.0; }
+        if this.traffic_set == "GRØNLAND" || this.traffic_set == "TVEITA" || this.traffic_set == "HOLMENKOLLEN" { return 4.0; }
+        return 5.0;
+    }
+
+    fn traffic_boom_frame() -> f32 {
+        return traffic_looks() * 2.0 + 1.0;
+    }
+
+    // `mod_bil_hwidth = dyr._width / 2 - 7`, measured from each set's first look.
+    fn set_traffic_size() {
+        let s = this.traffic_set;
+        if s == "GRUNERLØKKA" { this.traffic_hw = 48.5; this.traffic_hh = 75.4; }
+        if s == "FROGNER" || s == "RÅDHUSPLASSEN" { this.traffic_hw = 46.6; this.traffic_hh = 72.7; }
+        if s == "SINSEN" { this.traffic_hw = 32.6; this.traffic_hh = 45.5; }
+        if s == "GRØNLAND" { this.traffic_hw = 42.4; this.traffic_hh = 86.2; }
+        if s == "TVEITA" { this.traffic_hw = 35.4; this.traffic_hh = 72.9; }
+        if s == "HOLMENKOLLEN" { this.traffic_hw = 36.5; this.traffic_hh = 63.0; }
+    }
+
+    fn show_traffic(frame: f32) {
+        if this.traffic_entity != null { World.set_active(this.traffic_entity, false); }
+        this.traffic_entity = World.find("Drive Traffic " + this.traffic_set + " " + digits(frame));
+        if this.traffic_entity != null { World.set_active(this.traffic_entity, true); }
+    }
+
+    fn pick_traffic_look() {
+        this.traffic_look = random(traffic_looks()) * 2.0 + 1.0;
+        show_traffic(this.traffic_look);
+    }
+
+    fn show_moped(look: f32) {
+        this.moped_look = look;
+        World.set_active(this.moped_1, look == 1.0);
+        World.set_active(this.moped_2, look == 2.0);
+        World.set_active(this.moped_3, look == 3.0);
+    }
+
+    // `checkCollision`: true when a corner of the object's box is in the car's.
+    fn corners(x: f32, y: f32, hw: f32, hh: f32) -> f32 {
+        let x1 = this.car_x - 45.3; let x2 = this.car_x + 45.3;
+        let y1 = this.car_y - 76.6; let y2 = this.car_y + 76.6;
+        var mask = 0.0;
+        let left = x - hw >= x1 && x - hw <= x2;
+        let right = x + hw >= x1 && x + hw <= x2;
+        let top = y - hh >= y1 && y - hh <= y2;
+        let bottom = y + hh >= y1 && y + hh <= y2;
+        if left && top { mask = mask + 1.0; }
+        if right && top { mask = mask + 2.0; }
+        if left && bottom { mask = mask + 4.0; }
+        if right && bottom { mask = mask + 8.0; }
+        return mask;
+    }
+
+    fn hits(x: f32, y: f32, hw: f32, hh: f32) -> bool {
+        return corners(x, y, hw, hh) > 0.0;
+    }
+
+    fn popup(text: Entity, x: f32, y: f32, value: f32) {
+        var shown_y = y;
+        if shown_y > 450.0 { shown_y = 450.0; }
+        place(text, x, shown_y);
+        Ui.set_number(text, value);
+    }
+
+    fn hide_popup(text: Entity) {
+        place(text, -1000.0, -1000.0);
+    }
+
+    // ---- a new drive (frame 794) -----------------------------------------
+    fn begin() {
+        this.running = true;
+        this.clock = 0.0;
+        this.tick = 0.0;
+        this.phase = 0.0;
+        this.phase_ticks = 0.0;
+        this.level = Game.get("trip.level", 1.0);
+        this.district = Game.get("trip.district", 1.0);
+        this.traffic_set = traffic_set_for(this.district);
+        this.bil_cool = 1.0 + Game.get("workshop.street_cred", 0.0);
+        this.cool = Game.get("game.cool", 0.0);
+        this.energi = Game.get("trip.energi", 0.0);
+        this.earned = Game.get("trip.earned", 0.0);
+
+        // Sprite 1082 (`NØRREBRO`): the level's road speed, and on level 1
+        // the damage is forgiven at the start of every drive.
+        this.speed = 22.0;
+        if this.level == 2.0 { this.speed = 24.0; }
+        if this.level == 3.0 { this.speed = 26.0; }
+        if this.level == 1.0 { this.energi = 0.0; }
+
+        this.spawn_clock = 0.0; this.rykket = 0.0; this.distance_count = 0.0; this.afstand = 0.0;
+        this.condoms = 0.0; this.pickup = false; this.pick = 0.0;
+        this.fetter = 0.0; this.dansk_pige = 0.0; this.vej_person = 0.0; this.vej_kondom = 0.0;
+        this.vej_over = 0.0; this.vej_over2 = 0.0; this.vej_dyr = 0.0; this.vej_domi = 1.0;
+        this.fetter_1 = random(100.0) + 200.0; this.fetter_2 = random(200.0) + 500.0;
+        this.fetter_3 = random(200.0) + 800.0; this.fetter_4 = random(200.0) + 900.0;
+        this.pige_1 = random(200.0) + 200.0; this.pige_2 = random(150.0) + 600.0; this.pige_3 = random(100.0) + 900.0;
+
+        this.car_x = 314.55; this.car_y = 358.7; this.horz = 0.0; this.vert = 0.0; this.friction = 0.0;
+        this.burn = 0.0; this.last_burn = -100.0;
+        this.stripes_y = 224.5;
+        this.crossing_y = 1037.25; this.junction_y = 975.3;
+        this.condom_x = 347.3; this.condom_y = 577.7;
+        this.gold_x = 179.55; this.gold_y = -127.8; this.gold_ok = 1.0; this.gold_anim = 0.0;
+        this.gold2_x = 369.6; this.gold2_y = -52.25; this.gold2_ok = 1.0; this.gold2_anim = 0.0;
+        this.person_y = -52.4;
+        this.cousin_x = 457.0; this.cousin_y = -36.0; this.greet_wait = 0.0;
+        this.girl_x = 468.0; this.girl_y = 594.0; this.girl_turn = 0.0;
+        this.moped_x = 431.3; this.moped_y = 825.95; this.moped_turned = false; this.moped_hit = 0.0; this.swerving = false;
+        this.traffic_x = 139.45; this.traffic_y = -246.85; this.traffic_turned = false; this.traffic_boom = 0.0;
+        this.pop_cool = 0.0; this.pop_girl = 0.0; this.pop_kill = 0.0;
+        this.crash_ticks = 0.0; this.exit_loops = 0.0;
+
+        set_traffic_size();
+        pick_traffic_look();
+        show_moped(1.0);
+        World.set_active(this.car_boom, false);
+        World.set_active(this.car_body, true);
+        Animation.play(this.car_volla, "idle");
+        Animation.play(this.car_girl, "idle");
+        Animation.play(this.cousin_art, "walk");
+        Animation.play(this.girl_art, "walk");
+        Animation.play(this.hud_condoms, "f1");
+
+        // Frame 794 dresses the car from the workshop: the body is one flat
+        // colour (`c.setRGB(colorHEX)`).
+        this.car_body.sprite.tint.r = Game.get("workshop.paint.red", 0.0) / 255.0;
+        this.car_body.sprite.tint.g = Game.get("workshop.paint.green", 52.0) / 255.0;
+        this.car_body.sprite.tint.b = Game.get("workshop.paint.blue", 156.0) / 255.0;
+        dress_car();
+
+        let people = World.find("Drive Person");
+        World.set_active(World.find("Drive Person GRØNLAND"), false);
+        World.set_active(World.find("Drive Person GRUNERLØKKA"), false);
+        World.set_active(World.find("Drive Person SINSEN"), false);
+        World.set_active(World.find("Drive Person TVEITA"), false);
+        World.set_active(World.find("Drive Person RÅDHUSPLASSEN"), false);
+        World.set_active(World.find("Drive Person BISLETT"), false);
+        World.set_active(World.find("Drive Person FROGNER"), false);
+        World.set_active(World.find("Drive Person HOLMENKOLLEN"), false);
+        World.set_active(World.find(person_entity(this.district)), true);
+        place(people, this.person_x, this.person_y);
+
+        Ui.set_text(this.intro_name, district_name(this.district));
+        Ui.set_text(this.hud_bane, district_name(this.district));
+        hide_popup(this.pop_cool_text); hide_popup(this.pop_girl_text); hide_popup(this.pop_kill_text);
+        hide_popup(this.pop_gold_text); hide_popup(this.pop_gold2_text);
+        draw();
+    }
+
+    fn one_of(prefix: String, count: f32, selected: f32) {
+        var n = 1.0;
+        while n <= count {
+            let part = World.find(prefix + digits(n));
+            if part != null { World.set_active(part, n == selected); }
+            n = n + 1.0;
+        }
+    }
+
+    // Frame 794 `#4`: hjul by `daek`, vinduer, soltag, spoiler (`heks`) and the
+    // windscreen trinket, each a frame of its own child clip.
+    fn dress_car() {
+        one_of("Drive Car hjul ", 4.0, Game.get("workshop.tyres", 0.0) + 1.0);
+        one_of("Drive Car vinduer ", 4.0, Game.get("workshop.windows", 0.0) + 1.0);
+        one_of("Drive Car soltag ", 2.0, Game.get("workshop.sunroof", 0.0) + 1.0);
+        one_of("Drive Car heks ", 5.0, Game.get("workshop.spoiler", 0.0) + 1.0);
+        one_of("Drive Car forrude ", 5.0, Game.get("workshop.trinket", 0.0) + 1.0);
+    }
+
+    // ---- the tick ----------------------------------------------------------
+    fn step() {
+        this.tick = this.tick + 1.0;
+        this.phase_ticks = this.phase_ticks + 1.0;
+        if this.phase == 0.0 {
+            intro();
+            return;
+        }
+        if this.phase == 4.0 { return; }
+        if this.phase != 2.0 {
+            check_collision();
+            world_step();
+        }
+        steer();
+        roll_traffic();
+        pick_up();
+        burnout();
+        animate();
+        if this.phase == 2.0 { drive_off(); }
+        if this.phase == 3.0 {
+            this.crash_ticks = this.crash_ticks + 1.0;
+            // `dø` (1311) is 14 frames, then `slutbane` → GAME OVER.
+            if this.crash_ticks >= 14.0 { finish(2.0); }
+        }
+    }
+
+    // Sprite 1204 is 99 frames; its frame 98 plays the root on through 795-805
+    // to 806, where the controller clips are placed.
+    fn intro() {
+        let t = this.phase_ticks;
+        World.set_active(this.intro_7, t < 21.0);
+        World.set_active(this.intro_21, (t >= 21.0 && t < 40.0) || (t >= 89.0 && t < 99.0));
+        let blink = t >= 40.0 && t < 89.0;
+        let on = floor((t - 40.0) / 4.0) % 2.0 == 0.0;
+        World.set_active(this.intro_41, blink && on);
+        if blink && !on { World.set_active(this.intro_21, true); }
+        World.set_active(this.intro_name, t < 99.0);
+        if t >= 110.0 {
+            this.phase = 1.0;
+            this.phase_ticks = 0.0;
+        }
+    }
+
+    fn crash() {
+        // `slut` (frame 807): the BMW blows up and `dø` runs out the game.
+        if this.phase == 3.0 { return; }
+        this.phase = 3.0;
+        this.crash_ticks = 0.0;
+        World.set_active(this.car_boom, true);
+    }
+
+    fn damage(amount: f32) {
+        if this.energi + amount > 80.0 { crash(); }
+        this.energi = this.energi + amount;
+    }
+
+    // `sub` (1307), `checkCollision`: dyr, domi, person, pige, fetter, kondom,
+    // then both gold chains.
+    fn check_collision() {
+        // dyr: the original's test reads the gold flags in two of its four
+        // terms, so only the top-left and bottom-right corners count.
+        if this.vej_dyr == 1.0 || this.vej_dyr == 2.0 {
+            let mask = corners(this.traffic_x, this.traffic_y, this.traffic_hw, this.traffic_hh);
+            if (mask == 1.0 || mask >= 8.0 || mask == 9.0) && this.traffic_boom == 0.0 {
+                hit_traffic();
+            }
+        }
+        if this.vej_domi == 1.0 || this.vej_domi == 2.0 {
+            if hits(this.moped_x, this.moped_y, 23.2, 41.7) {
+                this.vej_domi = 0.0;
+                this.moped_hit = 1.0;
+                damage(15.0);
+            }
+        }
+        if this.vej_person == 1.0 && hits(this.person_x, this.person_y, 30.0, 22.0) {
+            this.vej_person = 2.0;
+        }
+        if (this.dansk_pige == 1.0 || this.dansk_pige == 2.0) && hits(this.girl_x, this.girl_y, 0.0, 0.0) {
+            popup(this.pop_kill_text, this.girl_x, this.girl_y, -25.0);
+            this.pop_kill = 25.0;
+            Animation.play(this.girl_art, "splat");
+            this.cool = this.cool - 25.0;
+            this.dansk_pige = 3.0;
+        }
+        if (this.fetter == 1.0 || this.fetter == 2.0) && hits(this.cousin_x, this.cousin_y, 0.0, 0.0) && this.speed > 3.0 {
+            popup(this.pop_kill_text, this.cousin_x, this.cousin_y, -25.0);
+            this.pop_kill = 25.0;
+            Animation.play(this.cousin_art, "splat");
+            this.cool = this.cool - 25.0;
+            this.fetter = 3.0;
+        }
+        if this.vej_kondom == 1.0 && this.condoms < 3.0 && hits(this.condom_x, this.condom_y, 9.75, 24.65) {
+            this.condoms = this.condoms + 1.0;
+            this.condom_y = 600.0;
+            this.vej_kondom = 0.0;
+        }
+        if this.gold_ok == 1.0 && hits(this.gold_x, this.gold_y, 24.5, 27.25) {
+            let ran = random(120.0) + 100.0;
+            this.gold_ok = 0.0;
+            this.earned = this.earned + ran;
+            this.gold_anim = 1.0;
+            popup(this.pop_gold_text, this.gold_x, this.gold_y, ran);
+        }
+        if this.gold2_ok == 1.0 && hits(this.gold2_x, this.gold2_y, 24.5, 27.25) {
+            let ran = random(120.0) + 100.0;
+            this.gold2_ok = 0.0;
+            this.earned = this.earned + ran;
+            this.gold2_anim = 1.0;
+            popup(this.pop_gold2_text, this.gold2_x, this.gold2_y, ran);
+        }
+    }
+
+    fn hit_traffic() {
+        // The look frame plays on into `minus30` and the `boom` frames. (The
+        // unused BISLET set's last two looks only take 10.) Grünerløkka's cars call
+        // `eval("../../:slut")`, which names nothing: they dent you but never
+        // end the game.
+        this.traffic_boom = 1.0;
+        let amount = 30.0;
+        if this.traffic_set == "GRUNERLØKKA" {
+            this.energi = this.energi + amount;
+        } else {
+            damage(amount);
+        }
+        show_traffic(traffic_boom_frame());
+    }
+
+    // `move` frame 2 and `control` `move`.
+    fn world_step() {
+        let s = this.speed;
+        if s < 5.0 { this.spawn_clock = this.spawn_clock + 0.5; } else { this.spawn_clock = floor(this.spawn_clock + 1.0); }
+        let l = this.spawn_clock;
+        if l == this.fetter_1 || l == this.fetter_2 || l == this.fetter_3 || l == this.fetter_4 {
+            this.cousin_y = -30.0;
+            this.cousin_x = 470.0;
+            if random(2.0) == 0.0 { this.cousin_x = 35.0; }
+            this.fetter = 1.0;
+            Animation.play(this.cousin_art, "walk");
+        }
+        if l == this.pige_1 || l == this.pige_2 || l == this.pige_3 {
+            this.girl_y = -30.0;
+            this.girl_x = 470.0;
+            if random(2.0) == 0.0 { this.girl_x = 35.0; }
+            this.girl_turn = 0.0;
+            this.dansk_pige = 1.0;
+            Animation.play(this.girl_art, "walk");
+        }
+        if l == 90.0 && this.vej_kondom != 1.0 {
+            this.condom_y = -30.0;
+            this.condom_x = random(200.0) + 150.0;
+            this.vej_kondom = 1.0;
+        }
+
+        if this.gold_anim == 0.0 { if this.gold_y > 650.0 { this.gold_x = floor(random(500.0)); this.gold_y = -20.0; } else { this.gold_y = this.gold_y + s; } }
+        if this.gold2_anim == 0.0 { if this.gold2_y > 650.0 { this.gold2_x = floor(random(500.0)); this.gold2_y = -20.0; } else { this.gold2_y = this.gold2_y + s; } }
+        if this.condom_y > 650.0 { this.vej_kondom = 0.0; } else { this.condom_y = this.condom_y + s; }
+
+        if this.vej_dyr == 1.0 { this.traffic_y = this.traffic_y + s + s / 3.0; }
+        if this.vej_dyr == 2.0 { this.traffic_y = this.traffic_y + s / 3.0; }
+        if (this.vej_dyr == 1.0 || this.vej_dyr == 2.0) && this.traffic_y > 720.0 {
+            this.traffic_y = -400.0;
+            this.traffic_x = random(100.0) + 120.0;
+            pick_traffic_look();
+            this.vej_dyr = 0.0;
+        }
+
+        if this.crossing_y > 650.0 { this.vej_over = 0.0; } else { this.crossing_y = this.crossing_y + s; }
+        if this.junction_y > 750.0 { this.vej_over2 = 0.0; } else { this.junction_y = this.junction_y + s; }
+
+        if this.girl_y > 520.0 || this.girl_y < -50.0 {
+            this.dansk_pige = 0.0;
+        } else if this.dansk_pige == 1.0 || this.dansk_pige == 2.0 {
+            this.girl_y = this.girl_y + s - 5.0;
+        } else if this.dansk_pige == 3.0 {
+            this.girl_y = this.girl_y + s;
+        }
+        if this.cousin_y > 520.0 || this.cousin_y < -150.0 {
+            this.fetter = 0.0;
+        } else if this.fetter == 1.0 || this.fetter == 2.0 {
+            this.cousin_y = this.cousin_y + s + 5.0;
+        } else if this.fetter == 3.0 {
+            this.cousin_y = this.cousin_y + s;
+        }
+
+        // `domivsbil`: from behind it overtakes, oncoming it closes fast.
+        if this.vej_domi == 1.0 { this.moped_y = this.moped_y - s / 3.0; }
+        if this.vej_domi == 2.0 || this.moped_hit > 0.0 { this.moped_y = this.moped_y + s + s / 3.0; }
+        if this.vej_domi != 0.0 && (this.moped_y < -100.0 || this.moped_y > 650.0) {
+            this.vej_domi = 0.0;
+            this.swerving = false;
+        }
+
+        if this.vej_person == 1.0 || this.vej_person == 2.0 {
+            this.person_y = this.person_y + s;
+            if this.person_y > 650.0 { this.vej_person = 0.0; }
+        }
+
+        this.stripes_y = this.stripes_y + s;
+
+        this.rykket = this.rykket + s;
+        if this.rykket > 139.0 {
+            this.stripes_y = this.stripes_y - this.rykket;
+            this.rykket = 0.0;
+        }
+        if s > 5.0 && this.phase == 1.0 {
+            if this.distance_count == 12.0 {
+                this.afstand = this.afstand + 1.0;
+                if this.afstand > 80.0 {
+                    // `afslut1`: the BMW drives off the top of the screen.
+                    this.phase = 2.0;
+                    this.phase_ticks = 0.0;
+                    this.speed = 0.0;
+                    this.swerving = false;
+                }
+                this.distance_count = 0.0;
+            }
+            this.distance_count = this.distance_count + 1.0;
+        }
+    }
+
+    // `bilstyr` (1317) and its arrow-key button (1316). The original gets one
+    // key event per OS key repeat; here a held arrow gives one per tick.
+    fn steer() {
+        if this.phase == 1.0 || this.phase == 3.0 {
+            if Input.is_down("ArrowRight") {
+                if this.horz < 0.0 { if this.horz < -12.0 { this.horz = this.horz + 12.0; } else { this.horz = 0.0; } } else { this.horz = this.horz + 4.0; }
+            }
+            if Input.is_down("ArrowLeft") {
+                if this.horz > 0.0 { if this.horz > 12.0 { this.horz = this.horz - 12.0; } else { this.horz = 0.0; } } else { this.horz = this.horz - 4.0; }
+            }
+            if Input.is_down("ArrowUp") {
+                if this.vert > 0.0 { if this.vert > 12.0 { this.vert = this.vert - 12.0; } else { this.vert = 0.0; } } else { this.vert = this.vert - 4.0; }
+            }
+            if Input.is_down("ArrowDown") {
+                if this.vert < 0.0 { if this.vert < -12.0 { this.vert = this.vert + 12.0; } else { this.vert = 0.0; } } else { this.vert = this.vert + 4.0; }
+            }
+        }
+        if this.friction == 3.0 {
+            this.friction = 0.0;
+            if this.horz < 0.0 { this.horz = this.horz + 1.0; }
+            if this.horz > 0.0 { this.horz = this.horz - 1.0; }
+            if this.vert > 0.0 { this.vert = this.vert - 1.0; }
+            if this.vert < 0.0 { this.vert = this.vert + 1.0; }
+        } else {
+            this.friction = this.friction + 1.0;
+        }
+        if this.speed > 5.0 {
+            if this.car_y + this.vert > 60.0 && this.car_y + this.vert < 440.0 { this.car_y = this.car_y + this.vert; } else { this.vert = 0.0; }
+            if this.car_x + this.horz > 60.0 && this.car_x + this.horz < 440.0 { this.car_x = this.car_x + this.horz; } else { this.horz = 0.0; }
+        }
+        // Z greets the cousin, X picks up the girl: on screen is enough.
+        if this.phase == 1.0 {
+            if Input.just_pressed("Z") && this.fetter == 1.0 && this.greet_wait == 0.0 {
+                this.greet_wait = 1.0;
+                Animation.play(this.car_volla, "shout");
+            }
+            if Input.just_pressed("X") && this.dansk_pige == 1.0 && this.pick == 0.0 {
+                this.pick = 1.0;
+            }
+            if Input.just_pressed("B") && this.dansk_pige != 1.0 && this.burn == 0.0 {
+                let now = floor(this.tick / 12.0);
+                if now - this.last_burn > 10.0 && this.car_y > 50.0 && this.car_y < 380.0 {
+                    this.last_burn = now;
+                    this.burn = 4.0;
+                }
+            }
+        }
+    }
+
+    // `vej_ting` (1319): a roll of `random(100)` every five frames, against the
+    // level's table. Level 3 gets the sparsest one; that is what the bytes say.
+    fn roll_traffic() {
+        if this.phase != 1.0 { return; }
+        if this.tick % 5.0 != 0.0 { return; }
+        let t = random(100.0);
+        this.roll = t;
+        if t == 80.0 || t == 40.0 { spawn_crossing(); }
+        if t == 15.0 || t == 16.0 { spawn_junction(); }
+        if t == 35.0 { spawn_condom(); }
+        if this.level == 2.0 {
+            if t >= 1.0 && t <= 49.0 { spawn_traffic(false); }
+            if t >= 41.0 && t <= 79.0 { spawn_traffic(true); }
+            if t >= 11.0 && t <= 39.0 { spawn_moped(true); }
+            if t >= 61.0 && t <= 89.0 { spawn_moped(false); }
+            if t == 21.0 || t == 61.0 || t == 31.0 || t == 71.0 { spawn_person(); }
+            return;
+        }
+        if t == 8.0 || t == 68.0 || t == 48.0 || t == 25.0 || t == 58.0 || t == 38.0 || t == 78.0 || t == 88.0 { spawn_traffic(false); }
+        if t == 21.0 || t == 61.0 || t == 31.0 || t == 71.0 || (this.level == 1.0 && (t == 81.0 || t == 91.0)) { spawn_traffic(true); }
+        if t == 21.0 || t == 61.0 || t == 31.0 || t == 71.0 { spawn_person(); }
+        if t == 7.0 || t == 97.0 || (this.level == 1.0 && t == 61.0) { spawn_moped(false); }
+        if t == 19.0 || t == 29.0 || (this.level == 1.0 && (t == 99.0 || t == 59.0)) { spawn_moped(true); }
+    }
+
+    fn spawn_crossing() {
+        if this.vej_over == 0.0 && this.vej_over2 == 0.0 { this.vej_over = 1.0; this.crossing_y = -150.0; }
+    }
+
+    fn spawn_junction() {
+        if this.vej_over == 0.0 && this.vej_over2 == 0.0 { this.vej_over2 = 1.0; this.junction_y = -300.0; }
+    }
+
+    fn spawn_condom() {
+        if this.vej_kondom == 0.0 { this.vej_kondom = 1.0; this.condom_y = -30.0; this.condom_x = random(360.0) + 70.0; }
+    }
+
+    fn spawn_person() {
+        if this.vej_person == 0.0 { this.vej_person = 1.0; this.person_y = -30.0; }
+    }
+
+    // `dyr` comes towards you; `dyrbak` is a slow car you catch up with.
+    fn spawn_traffic(ahead: bool) {
+        if this.vej_dyr != 0.0 { return; }
+        this.traffic_boom = 0.0;
+        pick_traffic_look();
+        this.traffic_y = -400.0;
+        if ahead {
+            this.traffic_turned = true;
+            this.vej_dyr = 2.0;
+            this.traffic_x = random(100.0) + 250.0;
+        } else {
+            this.traffic_turned = false;
+            this.vej_dyr = 1.0;
+            this.traffic_x = random(80.0) + 140.0;
+        }
+    }
+
+    // `domi` overtakes from behind on the right; `domibak` comes at you on the left.
+    fn spawn_moped(oncoming: bool) {
+        if this.vej_domi != 0.0 { return; }
+        this.moped_hit = 0.0;
+        if oncoming {
+            this.vej_domi = 2.0;
+            this.moped_turned = true;
+            this.moped_y = -100.0;
+            this.moped_x = 90.0;
+            show_moped(1.0);
+        } else {
+            this.vej_domi = 1.0;
+            if this.moped_turned {
+                this.moped_turned = false;
+                show_moped(random(3.0) + 1.0);
+            }
+            this.moped_y = 600.0;
+            this.moped_x = random(40.0) + 360.0;
+        }
+        if !this.pickup {
+            this.swerving = true;
+            this.swerve = 2.0;
+        }
+    }
+
+    // `slinger` (1309): frames 2-27 nudge the moped right and back.
+    fn swerve_step() -> f32 {
+        let f = this.swerve;
+        if f == 2.0 || f == 12.0 { return 0.5; }
+        if f == 3.0 || f == 11.0 { return 1.0; }
+        if f == 4.0 || f == 5.0 || f == 7.0 { return 2.0; }
+        if f == 6.0 || f == 8.0 || f == 9.0 || f == 10.0 { return 1.5; }
+        if f == 15.0 || f == 25.0 { return -0.5; }
+        if f == 16.0 || f == 24.0 { return -1.0; }
+        if f == 17.0 || f == 18.0 || f == 19.0 || f == 22.0 { return -1.5; }
+        if f == 20.0 || f == 21.0 || f == 23.0 { return -2.0; }
+        return 0.0;
+    }
+
+    // `pigemc` (1325): the car stops, the girl walks over, gets in if you
+    // have a condom, and the car pulls away again.
+    fn pick_up() {
+        if this.pick == 0.0 { return; }
+        let f = this.pick;
+        if f == 1.0 {
+            let above = this.girl_y < this.car_y;
+            let left = this.girl_x < this.car_x;
+            if above { if left { this.pick_area = 1.0; } else { this.pick_area = 3.0; } }
+            else { if left { this.pick_area = 2.0; } else { this.pick_area = 4.0; } }
+        }
+        if f == 2.0 {
+            this.last_speed = this.speed;
+            this.dansk_pige = 0.5; // the original's string "0": not 0, not 1, not 2
+            this.pickup = true;
+            this.swerving = false;
+            this.speed = floor(this.speed / 2.0);
+        }
+        if f == 5.0 || f == 8.0 { this.speed = floor(this.speed / 2.0); }
+        if f == 11.0 { this.speed = 0.0; }
+        if f == 13.0 {
+            if this.pick_area == 1.0 || this.pick_area == 3.0 { this.girl_turn = 180.0; this.pick = 15.0; } else { this.pick = 19.0; }
+            return;
+        }
+        if f == 15.0 {
+            // 16-17: walk down to the car.
+            if this.girl_y + 10.0 >= this.car_y { this.pick = 22.0; return; }
+            this.girl_y = this.girl_y + 10.0;
+            return;
+        }
+        if f == 19.0 {
+            if this.girl_y - 10.0 <= this.car_y { this.pick = 22.0; return; }
+            this.girl_y = this.girl_y - 10.0;
+            return;
+        }
+        if f == 22.0 {
+            if this.pick_area == 1.0 || this.pick_area == 4.0 { this.girl_turn = this.girl_turn - 90.0; } else { this.girl_turn = this.girl_turn + 90.0; }
+            if this.pick_area == 1.0 || this.pick_area == 2.0 { this.pick = 24.0; } else { this.pick = 28.0; }
+            return;
+        }
+        if f == 24.0 {
+            if this.girl_x + 10.0 >= this.car_x - 45.3 - 10.0 { this.pick = 31.0; return; }
+            this.girl_x = this.girl_x + 10.0;
+            return;
+        }
+        if f == 28.0 {
+            if this.girl_x - 10.0 <= this.car_x + 45.3 + 10.0 { this.pick = 31.0; return; }
+            this.girl_x = this.girl_x - 10.0;
+            return;
+        }
+        if f == 31.0 {
+            // Frame 32: no condom, no deal ("flipper"); otherwise she gets in.
+            if this.condoms == 0.0 {
+                this.pick_ok = false;
+                Animation.play(this.car_girl, "flipper");
+                this.pick_hold = 16.0;
+            } else {
+                this.pick_ok = true;
+                this.condoms = this.condoms - 1.0;
+                this.dansk_pige = 0.5;
+                World.set_active(this.girl, false);
+                if this.pick_area == 3.0 || this.pick_area == 4.0 { Animation.play(this.car_girl, "ok"); this.pick_hold = 124.0; }
+                else { Animation.play(this.car_girl, "ok2"); this.pick_hold = 98.0; }
+            }
+            this.pick = 32.0;
+            return;
+        }
+        if f == 32.0 {
+            // Stopped until the in-car clip calls `/pigemc.play()`.
+            this.pick_hold = this.pick_hold - 1.0;
+            if this.pick_hold > 0.0 { return; }
+            Animation.play(this.car_girl, "idle");
+            World.set_active(this.girl, true);
+            this.girl_turn = this.girl_turn + 180.0;
+            if this.pick_ok {
+                popup(this.pop_girl_text, this.girl_x, this.girl_y, floor(this.bil_cool * 20.0));
+                this.pop_girl = 25.0;
+                this.cool = this.cool + floor(this.bil_cool * 20.0);
+            }
+            this.pick = 39.0;
+            return;
+        }
+        if f == 39.0 {
+            // 40: back to the pavement at ten pixels a frame.
+            if this.pick_area == 3.0 || this.pick_area == 4.0 {
+                if this.girl_x >= 475.0 { this.pick = 50.0; return; }
+                this.girl_x = this.girl_x + 10.0;
+            } else {
+                if this.girl_x <= 35.0 { this.pick = 50.0; return; }
+                this.girl_x = this.girl_x - 10.0;
+            }
+            return;
+        }
+        if f == 50.0 {
+            this.girl_turn = 0.0;
+            this.dansk_pige = 2.0;
+            Animation.play(this.girl_art, "walk");
+        }
+        if f == 53.0 { this.speed = this.last_speed / 4.0; this.swerving = true; }
+        if f == 56.0 || f == 59.0 { this.speed = this.speed + this.last_speed / 4.0; }
+        if f == 62.0 {
+            this.speed = this.speed + this.last_speed / 4.0;
+            this.pickup = false;
+            this.pick = 0.0;
+            return;
+        }
+        this.pick = f + 1.0;
+    }
+
+    // `burner` (972): pushed back ten pixels a frame for nine frames, then
+    // shot forward for fourteen. Cosmetic in the original: no cred, no money.
+    fn burnout() {
+        if this.burn == 0.0 { return; }
+        let f = this.burn;
+        if f >= 4.0 && f <= 12.0 && this.car_y < 440.0 { this.car_y = this.car_y + 10.0; }
+        if f >= 15.0 && f <= 28.0 && this.car_y > 60.0 { this.car_y = this.car_y - 10.0; }
+        this.burn = f + 1.0;
+        if this.burn > 28.0 { this.burn = 0.0; }
+    }
+
+    fn animate() {
+        if this.greet_wait > 0.0 {
+            this.greet_wait = this.greet_wait + 1.0;
+            // `volla` frame 11 greets: cred, a pop-up and the cousin's wave.
+            if this.greet_wait == 11.0 && this.fetter == 1.0 {
+                this.cool = this.cool + floor(this.bil_cool * 10.0);
+                this.fetter = 2.0;
+                popup(this.pop_cool_text, this.cousin_x, this.cousin_y, floor(this.bil_cool * 10.0));
+                this.pop_cool = 25.0;
+                if this.cousin_x > this.car_x { Animation.play(this.cousin_art, "hej"); } else { Animation.play(this.cousin_art, "greet"); }
+            }
+            if this.greet_wait > 15.0 { this.greet_wait = 0.0; Animation.play(this.car_volla, "idle"); }
+        }
+        if this.swerving && (this.vej_domi == 1.0 || this.vej_domi == 2.0) {
+            this.moped_x = this.moped_x + swerve_step();
+            this.swerve = this.swerve + 1.0;
+            if this.swerve > 26.0 { this.swerve = 2.0; }
+        }
+        if this.moped_hit > 0.0 {
+            this.moped_hit = this.moped_hit + 1.0;
+            if this.moped_hit > 6.0 { this.moped_hit = 0.0; this.moped_y = 600.0; }
+        }
+        if this.traffic_boom > 0.0 {
+            this.traffic_boom = this.traffic_boom + 1.0;
+            if this.traffic_boom > 5.0 {
+                this.traffic_boom = 0.0;
+                this.vej_dyr = 0.0;
+                this.traffic_y = 700.0;
+                pick_traffic_look();
+            } else {
+                show_traffic(traffic_boom_frame() + this.traffic_boom - 1.0);
+            }
+        }
+        if this.gold_anim > 0.0 {
+            this.gold_anim = this.gold_anim + 1.0;
+            if this.gold_anim > 10.0 {
+                this.gold_anim = 0.0; this.gold_ok = 1.0;
+                this.gold_x = random(460.0) + 20.0; this.gold_y = -20.0;
+                hide_popup(this.pop_gold_text);
+            }
+        }
+        if this.gold2_anim > 0.0 {
+            this.gold2_anim = this.gold2_anim + 1.0;
+            if this.gold2_anim > 10.0 {
+                this.gold2_anim = 0.0; this.gold2_ok = 1.0;
+                this.gold2_x = random(460.0) + 20.0; this.gold2_y = -20.0;
+                hide_popup(this.pop_gold2_text);
+            }
+        }
+        if this.pop_cool > 0.0 { this.pop_cool = this.pop_cool - 1.0; if this.pop_cool == 0.0 { hide_popup(this.pop_cool_text); } }
+        if this.pop_girl > 0.0 { this.pop_girl = this.pop_girl - 1.0; if this.pop_girl == 0.0 { hide_popup(this.pop_girl_text); } }
+        if this.pop_kill > 0.0 { this.pop_kill = this.pop_kill - 1.0; if this.pop_kill == 0.0 { hide_popup(this.pop_kill_text); } }
+    }
+
+    // `exit` (1310): 22 pixels up every other frame until it has looped 23
+    // times, then `afslut` sends you on.
+    fn drive_off() {
+        if this.phase_ticks % 2.0 == 0.0 {
+            this.car_y = this.car_y - 22.0;
+            this.exit_loops = this.exit_loops + 1.0;
+            if this.exit_loops > 22.0 { finish(1.0); }
+        } else {
+            this.car_y = this.car_y - 22.0;
+        }
+    }
+
+    fn finish(result: f32) {
+        this.phase = 4.0;
+        this.running = false;
+        Game.set("game.cool", this.cool);
+        Game.set("trip.energi", this.energi);
+        Game.set("trip.earned", this.earned);
+        Game.set("drive.result", result);
+        Game.set("drive.result_ticket", this.ticket);
+    }
+
+    // ---- drawing -------------------------------------------------------------
+    fn draw() {
+        place(this.stripes, 244.4, this.stripes_y);
+        place(this.crossing, 252.0, this.crossing_y);
+        place(this.junction, 262.0, this.junction_y);
+        place(this.condom, this.condom_x, this.condom_y);
+        if this.gold_anim > 0.0 { place(this.gold, -1000.0, -1000.0); } else { place(this.gold, this.gold_x, this.gold_y); }
+        if this.gold2_anim > 0.0 { place(this.gold2, -1000.0, -1000.0); } else { place(this.gold2, this.gold2_x, this.gold2_y); }
+        place(this.person, this.person_x, this.person_y);
+        place(this.cousin, this.cousin_x, this.cousin_y);
+        World.set_active(this.cousin, this.fetter != 0.0);
+        place(this.girl, this.girl_x, this.girl_y);
+        this.girl.transform.rotation_z = -this.girl_turn * 0.0174533;
+        place(this.car, this.car_x, this.car_y);
+        place(this.moped, this.moped_x, this.moped_y);
+        if this.moped_turned { this.moped.transform.rotation_z = 3.14159; } else { this.moped.transform.rotation_z = 0.0; }
+        place(this.traffic, this.traffic_x, this.traffic_y);
+        if this.traffic_turned { this.traffic.transform.rotation_z = 3.14159; } else { this.traffic.transform.rotation_z = 0.0; }
+
+        // HUD (1231): the ENERGI cover slides right by the damage, the
+        // DISTANSE marker by a pixel per distance tick.
+        // The ENERGI cover's right edge starts at 168.9 and moves 1.48 per
+        // point of damage; the bar it covers runs from 167.5 to 253.5.
+        let cover = min(168.9 + this.energi * 1.48, 253.5);
+        this.hud_en.transform.position.x = ((167.5 + cover) / 2.0 - 250.0) * 0.02;
+        this.hud_en.transform.scale.x = (cover - 167.5) * 0.02;
+        place(this.hud_di, 174.077 + this.afstand, 50.467);
+        if this.condoms == 0.0 { Animation.play(this.hud_condoms, "f1"); }
+        if this.condoms == 1.0 { Animation.play(this.hud_condoms, "f2"); }
+        if this.condoms == 2.0 { Animation.play(this.hud_condoms, "f3"); }
+        if this.condoms == 3.0 { Animation.play(this.hud_condoms, "f4"); }
+        Ui.set_number(this.hud_penger, Game.get("workshop.money", 5000.0) + this.earned - Game.get("trip.earned", 0.0));
+        Ui.set_number(this.hud_cred, this.cool);
+        Ui.set_number(this.hud_bmw, this.bil_cool);
+        Ui.set_number(this.hud_level, this.level);
+    }
+
+    fn update(dt: f32) {
+        let asked = Game.get("drive.ticket", 0.0);
+        if asked != this.ticket {
+            this.ticket = asked;
+            begin();
+        }
+        if !this.running { return; }
+        this.clock = this.clock + dt;
+        var steps = 0.0;
+        while this.clock >= 1.0 / 12.0 && steps < 4.0 {
+            this.clock = this.clock - 1.0 / 12.0;
+            step();
+            steps = steps + 1.0;
+        }
+        draw();
+    }
+}

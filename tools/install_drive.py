@@ -433,7 +433,18 @@ def render_all(art: Art) -> None:
     # greeting, the "hej" variant and the splat play as authored.
     for name, character in (("cousin", 1081), ("girl", 1090)):
         frames = sprite_frames(movie, character)
-        art.sheet(name, [art.draws(character, placed(character), {character: n}) for n in range(1, frames + 1)])
+        poses = [art.draws(character, placed(character), {character: n}) for n in range(1, frames + 1)]
+        if name == "girl":
+            # Hold the previous visible pose when an original timeline frame
+            # contains no drawing, preserving frame count and timing.
+            last_visible = next((pose for pose in poses if pose), None)
+            if last_visible is not None:
+                for index, pose in enumerate(poses):
+                    if pose:
+                        last_visible = pose
+                    else:
+                        poses[index] = last_visible
+        art.sheet(name, poses)
 
     # The player's BMW (1150), one layer per depth so options can switch.
     car = placed(1150)

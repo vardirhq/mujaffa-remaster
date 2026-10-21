@@ -34,6 +34,7 @@ script DriveController {
     var cool: f32 = 0.0;
     var earned: f32 = 0.0;
     var condoms: f32 = 0.0;
+    var drawn_condoms: f32 = -1.0;
 
     var fetter_1: f32 = 0.0; var fetter_2: f32 = 0.0; var fetter_3: f32 = 0.0; var fetter_4: f32 = 0.0;
     var pige_1: f32 = 0.0; var pige_2: f32 = 0.0; var pige_3: f32 = 0.0;
@@ -1087,10 +1088,14 @@ script DriveController {
         this.hud_en.transform.position.x = ((167.5 + cover) / 2.0 - 250.0) * 0.02;
         this.hud_en.transform.scale.x = (cover - 167.5) * 0.02;
         place(this.hud_di, 174.077 + this.afstand, 50.467);
-        if this.condoms == 0.0 { Animation.play(this.hud_condoms, "f1"); }
-        if this.condoms == 1.0 { Animation.play(this.hud_condoms, "f2"); }
-        if this.condoms == 2.0 { Animation.play(this.hud_condoms, "f3"); }
-        if this.condoms == 3.0 { Animation.play(this.hud_condoms, "f4"); }
+        // Avoid restarting a HUD animation on every render update.
+        if this.condoms != this.drawn_condoms {
+            if this.condoms == 0.0 { Animation.play(this.hud_condoms, "f1"); }
+            if this.condoms == 1.0 { Animation.play(this.hud_condoms, "f2"); }
+            if this.condoms == 2.0 { Animation.play(this.hud_condoms, "f3"); }
+            if this.condoms == 3.0 { Animation.play(this.hud_condoms, "f4"); }
+            this.drawn_condoms = this.condoms;
+        }
         Ui.set_number(this.hud_penger, Game.get("workshop.money", 5000.0) + this.earned - Game.get("trip.earned", 0.0));
         Ui.set_number(this.hud_cred, this.cool);
         Ui.set_number(this.hud_bmw, this.bil_cool);
